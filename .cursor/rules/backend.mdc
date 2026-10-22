@@ -1,0 +1,19 @@
+---
+description: Capas de dominio/backend, SOLID, DI, errores y concurrencia
+alwaysApply: false
+---
+
+# Backend / dominio
+
+Activación por relevancia mientras el layout no esté definido. Al especializar, añade `globs` de las rutas reales según `docs/start.md`; nombres como `services` o `models` no identifican por sí solos código backend.
+
+- **Principios:** SOLID y Composition over Inheritance. Dominio aislado de infraestructura.
+- **Responsabilidades:** Adapta los nombres y estructura a la arquitectura documentada; no crees capas vacías por seguir esta referencia.
+  - **Entidades de dominio:** reglas e invariantes de negocio independientes del ORM y del transporte.
+  - **Casos de uso:** orquestan las reglas de negocio y dependencias abstractas; pueden coordinar persistencia y transacciones sin acoplarse a implementaciones concretas.
+  - **Controllers / Handlers:** adaptan I/O (HTTP, CLI, eventos), validan su formato e invocan casos de uso. Sin reglas de negocio ni persistencia directa.
+  - **Adaptadores de entrada:** rutas, middlewares y guards según el framework; mapean entradas a handlers.
+  - **Infraestructura / adaptadores de salida:** acceso a BD y servicios externos; los modelos de persistencia no se confunden con entidades de dominio.
+- **DI:** Prefiere inyección de dependencias (o equivalente idiomático) para testabilidad.
+- **Operaciones críticas:** dinero, inventario, estado compartido → transacciones o updates atómicos con filtros de estado, según el store del proyecto.
+- **Errores:** Respeta el contrato documentado en `docs/architecture.md` y el mecanismo del framework. No silencies fallos: captura localmente solo si hay recuperación o traducción explícita; en otro caso, propaga al límite adecuado. Registra diagnósticos internos sin secretos y devuelve mensajes públicos seguros con los códigos/estados correspondientes, nunca trazas ni detalles de infraestructura.

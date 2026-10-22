@@ -1,0 +1,13 @@
+---
+description: Desarrollo frontend e interfaz, componentes, estado y acceso a datos del cliente
+alwaysApply: false
+---
+
+# Frontend / interfaz
+
+Activación por relevancia mientras el layout no esté definido. Al especializar, añade `globs` de las rutas reales según `docs/start.md`; no amplíes patrones a todo el repositorio por defecto.
+
+- **UI vs estado:** Componentes presentacionales limpios y predecibles; estilos semánticos según el design system del proyecto.
+- **Lógica extraída:** API, formularios y estado complejo → hooks, composables o módulos (según el framework).
+- **Estado:** Lo más local posible. Store/contexto global solo para sesión o datos verdaderamente compartidos entre vistas.
+- **HTTP:** Reutiliza el mecanismo de acceso a datos del proyecto o framework. Centraliza la configuración común y autenticación cuando proceda, sin añadir un wrapper si el mecanismo existente ya resuelve esa responsabilidad. Nunca envíes secretos del servidor al cliente.

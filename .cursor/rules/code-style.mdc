@@ -1,0 +1,15 @@
+---
+description: Tipado, naming, inmutabilidad, env vars y código asíncrono
+alwaysApply: true
+---
+
+# Estilo de código
+
+- **Tipado estricto:** Cuando el lenguaje lo permita. Prohibido `any` (o equivalente que anule el tipado) salvo justificación acordada.
+- **Naming descriptivo:** Nombres que revelen intención. El código se lee más de lo que se escribe.
+- **Inmutabilidad:** Prefiere `const` (o equivalente) y estructuras inmutables. Minimiza side effects en funciones puras.
+- **Declarativo > imperativo:** Prefiere APIs declarativas del lenguaje antes que bucles o flujos imperativos innecesarios.
+- **Secretos:** Nunca hardcodees credenciales ni secretos. En aplicaciones cliente-servidor, mantenlos en el servidor o gestor de secretos; nunca en variables públicas del frontend. Una variable de entorno expuesta al cliente no es confidencial.
+- **Configuración:** Usa el mecanismo del runtime para valores que varían por entorno. Se permiten constantes legítimas y valores predeterminados no sensibles, configurables y documentados; no conviertas cada constante en una variable de entorno.
+- **Async moderno:** `async/await` (o equivalente idiomático). Evita callback hell y cadenas largas de `.then()`.
+- **Documentación:** Consulta Context7 o las fuentes oficiales para la versión que usa el proyecto antes de elegir APIs o mecanismos de integración. No asumas que la documentación de la última versión aplica a la instalada; si no puedes verificar compatibilidad, indícalo.

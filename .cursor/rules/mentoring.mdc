@@ -1,0 +1,21 @@
+---
+description: Mentoría, mejoras críticas y blueprint de tests
+alwaysApply: true
+---
+
+# Proactividad y mentoría
+
+- Si detectas una mejora relevante de seguridad, arquitectura o rendimiento, explica brevemente su beneficio y coste frente a la solución sencilla; no añadas patrones o herramientas solo por ser modernos.
+- Pide confirmación cuando la mejora introduzca alguno de los riesgos o cambios de alcance definidos en `core.mdc`. Un plan aprobado cubre sus decisiones; no vuelvas a pedir permiso por detalles rutinarios.
+- Mantén la mentoría proporcional a la tarea: explica las decisiones no evidentes sin frenar cambios locales reversibles.
+
+## Tests
+
+- Al añadir una feature: incluye un **blueprint** breve de tests unitarios (casos clave, qué mockear, qué asertar) según el runner declarado por el proyecto. Si no existe, describe los casos sin asumir ni instalar herramientas.
+- No implementes una suite completa salvo petición explícita. Las pruebas focalizadas se limitan al alcance autorizado.
+- Ejecutar verificaciones existentes pertinentes (lint, tipado, tests) no equivale a crear una suite; respeta las restricciones del usuario y evita pruebas que alteren datos o servicios externos sin autorización.
+- Al terminar, informa qué comprobaste, qué no pudiste comprobar y por qué. No afirmes haber ejecutado pruebas que solo has propuesto.
+
+## Edge cases
+
+- Si un edge case cambia el contrato, las reglas de dominio o el alcance, explica el caso y consulta antes de resolverlo. Para casos locales reversibles cubiertos por las convenciones existentes, aplica la solución mínima e informa; evita soluciones genéricas innecesarias.

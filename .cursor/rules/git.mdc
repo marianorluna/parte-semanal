@@ -1,0 +1,14 @@
+---
+description: Git de lectura permitido, mutaciones autorizadas y commits atómicos en inglés
+alwaysApply: true
+---
+
+# Control de versiones (Git atómico)
+
+- **Inspección:** Se permiten comandos Git de solo lectura como `status`, `diff`, `log` y `show` para comprender el estado y proteger cambios preexistentes, salvo prohibición expresa del usuario.
+- **Mutaciones con autorización:** No ejecutes staging, commits, push ni operaciones que modifiquen archivos, ramas, configuración o historial sin petición o autorización explícita. Autorizar una implementación no autoriza automáticamente operaciones Git.
+- **Un commit = un cambio lógico:** Una sola intención (fix, feature, refactor). No mezclar negocio, estilos cosméticos y config no relacionada.
+- **Conventional Commits:** Formato `<tipo>(scope opcional): <descripción>` en minúsculas. Tipos: `feat`, `fix`, `refactor`, `docs`, `test`, `chore`, `perf`, `style`, `ci`, `build`. Tipos y descripción en **inglés**, salvo otro idioma pedido. Describe el *porqué*, sin listar archivos. Ejemplos: `feat(auth): allow login with magic link`, `fix(api): prevent double charge on network retry`.
+- **Staging selectivo:** Solo archivos de la tarea. Nunca `.env`, credenciales, secretos ni artefactos generados.
+- **Sin atajos destructivos:** Prohibido `--force` en `main`/`master`, `--no-verify`, `reset --hard` o `amend` sin autorización explícita.
+- Si el trabajo no cabe en un cambio lógico limpio, propón varios commits atómicos (o varias tareas) antes de consolidar.
