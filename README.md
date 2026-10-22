@@ -9,36 +9,78 @@ El trabajador registra sus horas por día, proyecto y tarea. El encargado revisa
 
 ## Estado
 
-Documentación y arquitectura definidas. **Sin código de aplicación todavía**: el plan de implementación por fases está en [`docs/dev-prompts.md`](docs/dev-prompts.md) y el estado vigente en [`AGENTS.md`](AGENTS.md) §4.
+MVP funcional implementado y verificado en local: autenticación con roles, rejilla semanal con autoguardado, bandeja de aprobación, dashboard, administración, exportaciones, auditoría y datos de demo cargables y purgables. El estado vigente de la sesión vive en [`AGENTS.md`](AGENTS.md) §4.
 
 ## Empezar aquí
 
 | Documento | Para qué |
 |-----------|----------|
 | [`AGENTS.md`](AGENTS.md) | Stack, dominio y estado de sesión (fuente única) |
-| [`docs/dev-prompts.md`](docs/dev-prompts.md) | Prompts de implementación, fase a fase |
+| [`docs/onboarding.md`](docs/onboarding.md) | Arranque local paso a paso |
 | [`docs/architecture.md`](docs/architecture.md) | Módulos, capas, modelo de datos y despliegue |
 | [`docs/decisions.md`](docs/decisions.md) | ADRs: por qué se decidió cada cosa |
-| [`docs/onboarding.md`](docs/onboarding.md) | Arranque local (comandos reales al crear el código) |
+| [`docs/dev-prompts.md`](docs/dev-prompts.md) | Prompts de implementación, fase a fase |
 | [`docs/start.md`](docs/start.md) | Índice del boilerplate y mapa SSOT |
 
-## Estructura prevista
+## Arranque rápido
 
-```
-parte-diario/
-├── src/
-│   ├── app/            # rutas Next: transporte y composición
-│   ├── modules/        # identidad, organizacion, partes, reporting, auditoria
-│   ├── db/             # esquema Drizzle, migraciones y seed
-│   ├── shared/         # errores, fechas, horas <-> minutos, validación
-│   └── config/         # validación de variables de entorno
-├── Dockerfile          # imagen de producción (Coolify)
-├── compose.yml         # Postgres de desarrollo
-├── docs/
-└── AGENTS.md
+Requisitos: Node 22 o superior, npm y Docker (para el Postgres local).
+
+```bash
+cp .env.example .env          # ajusta DATABASE_URL, AUTH_SECRET y APP_URL
+docker compose up -d          # Postgres 16 en localhost:5432
+npm install
+npm run db:migrate            # aplica las migraciones versionadas
+npm run db:seed               # datos mínimos para entrar
+npm run dev                   # http://localhost:3000
 ```
 
-El detalle de capas y responsabilidades está en [`docs/architecture.md`](docs/architecture.md).
+### Datos de demostración
+
+```bash
+npm run db:seed:demo                  # 1 ADMIN, 6 ENCARGADO y 43 TRABAJADOR con 6 semanas de partes
+npm run db:seed:demo -- --refresh     # purga y recarga las semanas relativas a hoy
+npm run db:seed:demo:purge            # borra solo la empresa DEMO
+```
+
+- Todas las cuentas usan el dominio `@demo.local` y la contraseña `DEMO_PASSWORD` (`Demo1234!` por defecto).
+- La empresa demo se identifica por `empresa.codigo = 'DEMO'`; la purga corre en una transacción y nunca toca otras empresas.
+- Con `NODE_ENV=production`, las dos órdenes exigen `--yes` y muestran un resumen de lo que van a modificar o borrar.
+- El seed nunca se ejecuta solo durante el despliegue.
+
+### Verificaciones
+
+```bash
+npm run lint
+npm run typecheck
+npm run test
+```
+
+## Rutas principales
+
+| Ruta | Rol | Qué hace |
+|------|-----|----------|
+| `/login` | público | Acceso con email y contraseña |
+| `/mi-semana` | TRABAJADOR | Rejilla semanal, autoguardado, envío |
+| `/control/partes` | ENCARGADO, ADMIN | Bandeja de aprobación y rechazo con motivo |
+| `/control/dashboard` | ENCARGADO, ADMIN | Horas por proyecto, tendencia y pendientes |
+| `/partes/[id]/imprimir` | según alcance | Vista imprimible con marca de agua según estado |
+| `/admin/usuarios` | ADMIN | Alta, edición, activación y reseteo de contraseña |
+| `/admin/proyectos` | ADMIN | Proyectos, tareas y asignaciones |
+| `/admin/auditoria` | ADMIN | Registro append-only filtrable y paginado |
+| `/admin/demo` | ADMIN | Herramientas de carga y purga del demo (solo fuera de producción) |
+| `/api/health` | público | Sonda de salud con comprobación real de base de datos |
+
+## Despliegue
+
+La imagen se construye con el `Dockerfile` multi-stage (`output: 'standalone'`, usuario no root, `TZ=Europe/Madrid`). En Coolify:
+
+1. Servicio Postgres 16 en la red interna, sin puerto público.
+2. Variables: `DATABASE_URL` (URL interna), `APP_URL`, `AUTH_SECRET`, `AUTH_TRUST_HOST`, `TZ`, `NODE_ENV`.
+3. Pre-despliegue: `npm run db:migrate`.
+4. Backup diario a almacenamiento fuera del VPS.
+
+Detalle de la decisión en [ADR-006](docs/decisions.md).
 
 ## Reglas del proyecto
 

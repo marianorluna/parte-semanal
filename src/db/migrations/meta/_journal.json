@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1792696820788,
+      "tag": "0000_rare_forge",
+      "breakpoints": true
+    }
+  ]
+}

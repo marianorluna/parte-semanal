@@ -1,0 +1,101 @@
+@import 'tailwindcss';
+
+/*
+ * Paleta de marca tomada del logotipo de Levitec:
+ * - `marca`: petróleo profundo del fondo del logo (#015151 medido en la imagen).
+ * - `acento`: verde menta del brillo del logo (#009878 medido en la imagen).
+ * Se definen como tokens para que cualquier vista use los mismos nombres.
+ */
+@theme {
+  --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+    sans-serif;
+
+  --color-marca-50: #eef7f7;
+  --color-marca-100: #d3eae9;
+  --color-marca-200: #a8d5d4;
+  --color-marca-300: #75b9b7;
+  --color-marca-400: #429a98;
+  --color-marca-500: #1c7f7d;
+  --color-marca-600: #036a69;
+  --color-marca-700: #005453;
+  --color-marca-800: #014544;
+  --color-marca-900: #043a39;
+  --color-marca-950: #002221;
+
+  --color-acento-50: #eafaf4;
+  --color-acento-100: #cbf3e6;
+  --color-acento-200: #98e6d0;
+  --color-acento-300: #5dd2b5;
+  --color-acento-400: #2bba99;
+  --color-acento-500: #009878;
+  --color-acento-600: #008067;
+  --color-acento-700: #016754;
+  --color-acento-800: #045245;
+  --color-acento-900: #05443a;
+  --color-acento-950: #00261f;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-marca-50 text-slate-900 antialiased;
+  }
+
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-marca-600;
+  }
+}
+
+@layer components {
+  .campo {
+    @apply w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-base shadow-sm
+      placeholder:text-slate-400 focus:border-marca-600 focus:ring-2 focus:ring-marca-100
+      disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500;
+  }
+
+  .boton,
+  .boton-primario,
+  .boton-secundario,
+  .boton-peligro {
+    @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-semibold
+      transition-colors disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .boton-primario {
+    @apply bg-marca-700 text-white hover:bg-marca-800;
+  }
+
+  .boton-secundario {
+    @apply border border-slate-300 bg-white text-slate-700 hover:bg-slate-100;
+  }
+
+  .boton-peligro {
+    @apply border border-red-300 bg-white text-red-700 hover:bg-red-50;
+  }
+
+  .tarjeta {
+    @apply rounded-lg border border-marca-100 bg-white shadow-sm;
+  }
+
+  .etiqueta {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
+}
+
+@media print {
+  .no-imprimir {
+    display: none !important;
+  }
+
+  body {
+    background: #fff;
+  }
+
+  @page {
+    size: A4 portrait;
+    margin: 14mm;
+  }
+}

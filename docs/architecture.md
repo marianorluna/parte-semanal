@@ -90,6 +90,17 @@ No crees carpetas vacías: cada módulo nace con su primer caso de uso real.
 3. **Autorización:** siempre en servidor. La UI oculta lo que no corresponde, pero no es la defensa. Cada consulta que recibe un id comprueba el alcance, no solo el rol (evitar IDOR).
 4. **Concurrencia:** `version` en `parte`; `UPDATE ... WHERE id = ? AND version = ?`; en conflicto, `CONFLICTO_VERSION`.
 
+## Identidad visual
+
+La paleta sale del logotipo (`public/logo-levitec-sum.webp`) y vive como tokens en `src/app/globals.css`:
+
+| Token | Uso | Base |
+|-------|-----|------|
+| `marca-*` | Cabecera, botones primarios, enlaces, foco, cabeceras de tabla | Petróleo `#015151` |
+| `acento-*` | Éxito, aprobado, marca demo, realces del día actual | Menta `#009878` |
+
+Las utilidades `.campo`, `.boton-primario`, `.tarjeta` y `.etiqueta` ya consumen esos tokens: una vista nueva no necesita colores propios. No se usa la paleta `sky` ni `blue` de Tailwind; ámbar y rojo quedan reservados para aviso y error.
+
 ## Contrato de errores
 
 ```json

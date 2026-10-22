@@ -58,24 +58,27 @@ Las versiones exactas de dependencias viven en manifiestos y lockfiles; aquí se
 
 Resumen operativo para retomar el trabajo, no historial de sesiones.
 
-- **Última sesión:** 2026-10-22 - SSOT especializados (stack, dominio, arquitectura y ADR-001 a ADR-007) y plan de prompts por fases en [`docs/dev-prompts.md`](docs/dev-prompts.md). Sin código de aplicación todavía.
-- **Foco actual:** MVP del parte semanal, desplegado en Coolify. Ejecutar los prompts 1.1 a 1.10 de [`docs/dev-prompts.md`](docs/dev-prompts.md#6-fase-1---mvp-hoy-y-mañana).
+- **Última sesión:** 2026-10-22 - MVP funcional completo y verificado en local: auth con roles, rejilla semanal, bandeja de aprobación, dashboard, CRUD de administración, CSV e imprimible, auditoría y seed demo con purga.
+- **Foco actual:** Cierre del MVP. Pendiente el despliegue real en Coolify sobre `https://horas.levitec.marianorluna.com` y el smoke test en el VPS.
 - **Checklist:**
   - [x] Especializar `AGENTS.md` §2-§4
   - [x] Definir arquitectura modular y modelo de datos del MVP
-  - [x] Registrar ADR-001 a ADR-007
+  - [x] Registrar ADR-001 a ADR-008
   - [x] Redactar prompts por fases
-  - [ ] Prompt 1.1 - scaffold, `Dockerfile` y Postgres local
-  - [ ] Prompt 1.2 - despliegue temprano en Coolify con dominio y TLS
-  - [ ] Prompt 1.3 - autenticación, roles y alcance
-  - [ ] Prompt 1.4 - dominio, esquema y seed
-  - [ ] Prompt 1.5 - API del parte
-  - [ ] Prompt 1.6 - rejilla semanal del trabajador
-  - [ ] Prompt 1.7 - bandeja y aprobación del encargado
-  - [ ] Prompt 1.8 - dashboard
-  - [ ] Prompt 1.9 - CSV e imprimible
-  - [ ] Prompt 1.10 - auditoría, endurecimiento y go-live
-  - [ ] Actualizar `README.md` y `docs/onboarding.md` con los comandos reales
+  - [x] Scaffold Next.js, `Dockerfile` y Postgres local
+  - [x] Autenticación con argon2id, roles y alcance por proyecto
+  - [x] Dominio, esquema Drizzle, migraciones y casos de uso con concurrencia por `version`
+  - [x] Seed demo idempotente de 50 usuarios con purga transaccional
+  - [x] Rejilla `/mi-semana` con autoguardado, totales y envío
+  - [x] Bandeja `/control/partes` con aprobación y rechazo con motivo
+  - [x] Dashboard con horas por proyecto, tendencia y top 5
+  - [x] CRUD de usuarios, proyectos, tareas y asignaciones
+  - [x] CSV con BOM y vista imprimible con marca de agua
+  - [x] Auditoría append-only y pantalla de consulta
+  - [x] Endurecimiento: cabeceras, cookies y errores sin trazas
+  - [x] `README.md`, `docs/onboarding.md` y ADR-008 del seed demo
+  - [ ] Despliegue en Coolify con dominio, TLS y migraciones de pre-despliegue
+  - [ ] Smoke test completo en producción y restauración de un backup
 - **Bloqueadores:** acceso a Coolify y al DNS de `marianorluna.com`, y permisos del repositorio en GitHub. Si el DNS no está listo, el MVP se valida con la URL temporal de Coolify y se cambia el dominio después.
 
 ### Protocolo de cierre de sesión
@@ -104,3 +107,13 @@ Actualiza esta sección solo cuando el usuario solicite cerrar la sesión o el m
 | `.env.example` | Nombres de variables de entorno (sin secretos) |
 
 Si el agente pierde el hilo: menciona `@AGENTS.md` y/o `@docs/architecture.md` en el chat.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+## This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

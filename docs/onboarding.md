@@ -2,8 +2,6 @@
 
 Guía para levantar el proyecto desde cero.
 
-Antes de usarla, sustituye los comandos y requisitos de ejemplo por los reales. Elimina secciones irrelevantes o marca «No aplica» (por ejemplo, BD o servidor en una biblioteca); los placeholders no son comandos ejecutables ni decisiones. Las versiones exactas y la resolución de dependencias se mantienen en los manifiestos, lockfiles y archivos de runtime del proyecto, no en listas duplicadas aquí.
-
 ## Stack y producto
 
 - **Stack:** [`AGENTS.md` §2](../AGENTS.md#2-stack-del-proyecto)
@@ -14,19 +12,18 @@ Antes de usarla, sustituye los comandos y requisitos de ejemplo por los reales. 
 
 ## Requisitos previos
 
-- [ ] [Instalar el runtime indicado en AGENTS.md y respetar el archivo de versión del proyecto, si existe]
-- [ ] [Preparar el gestor de paquetes declarado por el proyecto]
-- [ ] [Preparar la base de datos indicada en AGENTS.md, si aplica]
-- [ ] [Preparar las herramientas de contenedores declaradas, si aplica]
-- [ ] Acceso al repositorio en GitHub / GitLab
+- [ ] Node 22 o superior (`node -v`) y npm
+- [ ] Docker con `docker compose` para el Postgres local
+- [ ] Acceso al repositorio en GitHub
+- [ ] `openssl` para generar el secreto de Auth.js
 
 ---
 
 ## 1. Clonar el repositorio
 
 ```bash
-git clone [URL_DEL_REPO]
-cd [NOMBRE_DEL_PROYECTO]
+git clone <URL_DEL_REPO>
+cd parte-diario
 ```
 
 ---
@@ -37,16 +34,25 @@ cd [NOMBRE_DEL_PROYECTO]
 cp .env.example .env
 ```
 
-Abre `.env`, descomenta y adapta solo las variables que necesite el proyecto. Obtén los secretos por el canal seguro del equipo o genéralos según los requisitos del mecanismo elegido; nunca reutilices un valor de ejemplo. Las variables públicas del frontend son visibles para el cliente y no deben contener secretos.
+Descomenta y ajusta al menos:
 
-Comprueba que los archivos con secretos están excluidos y que las plantillas versionadas solo contienen ejemplos sin secretos. `.gitignore` no protege archivos ya versionados: ante una exposición, rota los secretos afectados.
+```dotenv
+DATABASE_URL=postgresql://parte_diario:parte_diario@localhost:5432/parte_diario
+APP_URL=http://localhost:3000
+AUTH_SECRET=<salida de: openssl rand -base64 32>
+AUTH_TRUST_HOST=true
+TZ=Europe/Madrid
+DEMO_PASSWORD=Demo1234!
+```
+
+`AUTH_SECRET` es obligatorio: sin él la app no arranca. Nunca reutilices el valor de un entorno real ni commitees `.env`.
 
 ---
 
 ## 3. Instalar dependencias
 
 ```bash
-[npm install | pnpm install | yarn | pip install -r requirements.txt]
+npm install
 ```
 
 ---
@@ -54,44 +60,67 @@ Comprueba que los archivos con secretos están excluidos y que las plantillas ve
 ## 4. Base de datos
 
 ```bash
-[npx prisma migrate dev | python manage.py migrate | otro]
+docker compose up -d
+docker compose ps          # el healthcheck debe estar en healthy
+npm run db:migrate         # aplica las migraciones de drizzle/
 ```
+
+Comandos auxiliares:
+
+| Comando | Uso |
+|---------|-----|
+| `npm run db:generate` | Genera una migración tras cambiar el esquema |
+| `npm run db:studio` | Abre Drizzle Studio |
+| `npm run db:seed` | Datos mínimos (empresa y usuarios reales de local) |
+| `npm run db:seed:demo` | Carga el demo completo (50 usuarios, 10 proyectos, 6 semanas) |
+| `npm run db:seed:demo -- --refresh` | Purga y recarga el demo relativo a la semana actual |
+| `npm run db:seed:demo:purge` | Borra solo la empresa `DEMO` |
 
 ---
 
 ## 5. Levantar el servidor de desarrollo
 
 ```bash
-[npm run dev | pnpm dev | python main.py | otro]
+npm run dev
 ```
 
-La app debería estar disponible en `[http://localhost:PUERTO]`.
+La app queda en `http://localhost:3000`. `/api/health` responde `{"status":"ok","database":"ok"}` cuando la base de datos está accesible.
+
+### Cuentas del demo
+
+| Rol | Email | Contraseña |
+|-----|-------|------------|
+| ADMIN | `admin@demo.local` | `Demo1234!` (o `DEMO_PASSWORD`) |
+| ENCARGADO | `encargado1@demo.local` ... `encargado6@demo.local` | igual |
+| TRABAJADOR | `trabajador01@demo.local` ... `trabajador43@demo.local` | igual |
 
 ---
 
 ## 6. Verificar que todo funciona
 
-Completa estos campos con comandos que existan en el proyecto; si la herramienta aún no está configurada, indica «Pendiente», sin inventar comandos ni instalarla implícitamente.
+```bash
+npm run lint
+npm run typecheck
+npm run test
+```
 
-- **Lint:** [comando real o No aplica/Pendiente]
-- **Formato (comprobación sin escritura):** [comando real o No aplica/Pendiente]
-- **Tipado:** [comando real o No aplica/Pendiente]
-- **Tests:** [comando real del runner declarado o No aplica/Pendiente]
-
-- [ ] El punto de entrada del producto funciona (UI, CLI, biblioteca o servicio, según corresponda).
-- [ ] Las verificaciones disponibles terminan correctamente; se identifican las pendientes o bloqueadas.
-- [ ] El agente de Cursor aplica las reglas generales y las contextuales pertinentes; el idioma es una comprobación parcial, no prueba de toda la configuración.
-- [ ] El flujo principal se comprueba con datos de prueba en un entorno local controlado, sin modificar servicios compartidos o producción.
+- [ ] `/api/health` devuelve 200 con `database: ok`.
+- [ ] El login de un trabajador demo abre `/mi-semana` con la semana actual y asignaciones.
+- [ ] El login de un encargado muestra partes enviados en `/control/partes`.
+- [ ] `npm run db:seed:demo` dos veces seguidas no duplica filas.
+- [ ] `npm run db:seed:demo:purge` deja la base sin filas `DEMO` y conserva otras empresas.
 
 ---
 
 ## Solución de problemas frecuentes
 
 | Síntoma | Causa probable | Solución |
-|---------|---------------|---------|
+|---------|---------------|----------|
 | `Cannot find module` | Dependencias no instaladas | Ejecutar el paso 3 de nuevo |
-| Error de conexión a BD | `.env` mal configurado o BD no levantada | Revisar `DATABASE_URL` y arrancar el servicio de BD |
-| Puerto ocupado | Otro proceso usa el mismo puerto | Cambiar el puerto mediante la configuración del proyecto o identificar y detener solo un proceso propio que sea seguro parar |
+| Error de conexión a BD | `.env` mal configurado o contenedor parado | Revisar `DATABASE_URL` y `docker compose up -d` |
+| `AUTH_SECRET` ausente | Falta la variable | Generarla con `openssl rand -base64 32` |
+| Puerto 3000 o 5432 ocupado | Otro proceso usa el puerto | Parar solo el proceso propio que sea seguro parar o cambiar el puerto |
+| El demo no aparece en el dashboard | Semanas antiguas cargadas | `npm run db:seed:demo -- --refresh` |
 
 ---
 

@@ -1,0 +1,85 @@
+import type { EstadoParte } from '@/db/schema'
+import type { FechaIso, SemanaIso } from '../domain/fechas'
+import type { ImputacionEntrada } from '../domain/parte'
+
+export type ParteResumen = {
+  id: string
+  empresaId: string
+  empleadoId: string
+  isoYear: number
+  isoWeek: number
+  weekStart: FechaIso
+  estado: EstadoParte
+  totalMinutos: number
+  version: number
+  enviadoAt: Date | null
+  revisadoPor: string | null
+  revisadoAt: Date | null
+  motivoRechazo: string | null
+}
+
+export type ImputacionGuardada = {
+  id: string
+  fecha: FechaIso
+  tareaId: string
+  minutos: number
+  nota: string | null
+}
+
+export type ParteCompleto = ParteResumen & {
+  imputaciones: ImputacionGuardada[]
+}
+
+export type TareaAsignada = {
+  proyectoId: string
+  proyectoCodigo: string
+  proyectoNombre: string
+  tareaId: string
+  tareaCodigo: string
+  tareaNombre: string
+}
+
+export type ParteEnLista = ParteResumen & {
+  empleadoNombre: string
+  empleadoCodigo: string
+  revisadoPorNombre: string | null
+}
+
+export type FiltrosControl = {
+  empresaId: string
+  isoYear: number
+  isoWeek: number
+  estado?: EstadoParte
+  proyectoId?: string
+  empleadoId?: string
+  /** null = sin restricción (ADMIN). */
+  proyectosPermitidos: string[] | null
+  pagina: number
+  porPagina: number
+}
+
+export type ResultadoControl = {
+  filas: ParteEnLista[]
+  total: number
+  totalMinutos: number
+}
+
+export type RepositorioPartes = {
+  buscarPorSemana(empleadoId: string, isoYear: number, isoWeek: number): Promise<ParteCompleto | null>
+  crearBorrador(
+    empresaId: string,
+    empleadoId: string,
+    semana: SemanaIso,
+  ): Promise<ParteCompleto>
+  guardarBorrador(parteId: string, versionEsperada: number, filas: ImputacionEntrada[]): Promise<number>
+  enviar(parteId: string, versionEsperada: number, actorId: string): Promise<void>
+  aprobar(parteId: string, versionEsperada: number, actorId: string): Promise<void>
+  rechazar(parteId: string, versionEsperada: number, actorId: string, motivo: string): Promise<void>
+  reabrir(parteId: string, versionEsperada: number, actorId: string, motivo: string): Promise<void>
+  obtenerDetalle(parteId: string): Promise<ParteCompleto | null>
+  tareasPorIds(ids: string[]): Promise<TareaAsignada[]>
+  tareasAsignadas(empleadoId: string, desde: FechaIso, hasta: FechaIso): Promise<TareaAsignada[]>
+  listarParaControl(filtros: FiltrosControl): Promise<ResultadoControl>
+  contarPendientes(empresaId: string, proyectosPermitidos: string[] | null): Promise<number>
+  proyectosDeEmpleado(empleadoId: string): Promise<string[]>
+}

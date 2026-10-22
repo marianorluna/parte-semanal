@@ -116,4 +116,16 @@ Registro de las decisiones técnicas relevantes del proyecto. Una entrada por de
 - **Decisión propuesta:** `pg-boss` sobre la misma base de datos, con una interfaz `JobQueue` en `application` para poder cambiar de implementación sin tocar el dominio.
 - **Consecuencias:** Una dependencia menos y jobs en la misma transacción que el cambio de estado. La cola compite por recursos con la BD: si el volumen de informes crece, se separa en su propio Postgres o se migra a BullMQ detrás del mismo puerto.
 
+### ADR-008 - Demo aislado por empresa marcada y purga transaccional
+
+- **Fecha:** 2026-10-22
+- **Estado:** Aceptada
+- **Contexto:** Hacen falta datos realistas (50 usuarios, 10 proyectos, 6 semanas de partes) para probar la app y enseñarla antes de cargar datos reales. Ese juego de datos debe poder desaparecer sin tocar nada real, sin migraciones especiales y sin un segundo entorno de base de datos que operar.
+- **Opciones consideradas:**
+  1. Base de datos de demo separada con un segundo `DATABASE_URL` - aislamiento total, pero duplica migraciones, configuración y backups, y no permite probar el flujo contra el mismo esquema en un único despliegue.
+  2. Columna `es_demo` en cada tabla - marcado explícito por fila, a cambio de tocar el esquema de negocio con una preocupación puramente operativa y de arrastrarla en todas las consultas.
+  3. Marcador de empresa (`empresa.codigo = 'DEMO'`) más emails `@demo.local` - usa una clave natural ya existente, sin columnas nuevas; la purga borra por empresa y sus dependencias en cascada.
+- **Decisión:** Opción 3. `npm run db:seed:demo` es idempotente (crea o actualiza la empresa `DEMO`, sus proyectos, tareas, usuarios, empleados, asignaciones y seis semanas relativas a la semana ISO actual, con RNG de semilla fija). `npm run db:seed:demo:purge` borra solo esa empresa en una única transacción y en orden seguro de claves foráneas. `--refresh` purga y recarga. Con `NODE_ENV=production` ambas órdenes exigen `--yes` y muestran el resumen de lo que van a tocar; el seed nunca forma parte del despliegue.
+- **Consecuencias:** No hay cambios de esquema ni consultas condicionadas por el demo, y el desarrollador reproduce la misma carga siempre. La responsabilidad de mantener el marcador recae en el seed: cualquier dato nuevo del demo debe colgar de la empresa `DEMO` para que la purga lo alcance. Si algún día se abre un portal de subcontratas con demo propio, el patrón se extiende con un `codigo` por escenario en lugar de rehacer el mecanismo.
+
 ---
