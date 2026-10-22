@@ -28,7 +28,7 @@ Requisitos: Node 22 o superior, npm y Docker (para el Postgres local).
 
 ```bash
 cp .env.example .env          # ajusta DATABASE_URL, AUTH_SECRET y APP_URL
-docker compose up -d          # Postgres 16 en localhost:5432
+docker compose up -d db       # Postgres 16 en localhost:5432
 npm install
 npm run db:migrate            # aplica las migraciones versionadas
 npm run db:seed               # datos mínimos para entrar
@@ -73,14 +73,18 @@ npm run test
 
 ## Despliegue
 
-La imagen se construye con el `Dockerfile` multi-stage (`output: 'standalone'`, usuario no root, `TZ=Europe/Madrid`). En Coolify:
+`compose.yml` define el **stack completo**: la aplicación Next.js (imagen del `Dockerfile` multi-stage, `output: 'standalone'`, usuario no root, `TZ=Europe/Madrid`) y un PostgreSQL 16 con volumen persistente, comunicados por la red interna del stack. El `db` no publica su puerto hacia fuera: solo escucha en el loopback del host para el desarrollo local.
 
-1. Servicio Postgres 16 en la red interna, sin puerto público.
-2. Variables: `DATABASE_URL` (URL interna), `APP_URL`, `AUTH_SECRET`, `AUTH_TRUST_HOST`, `TZ`, `NODE_ENV`.
-3. Pre-despliegue: `npm run db:migrate`.
-4. Backup diario a almacenamiento fuera del VPS.
+Las migraciones se aplican **solas** al arrancar el contenedor (`docker/entrypoint.mjs` ejecuta el runner idempotente antes de `server.js`). Ya no existe un comando de pre-despliegue que recordar.
 
-Detalle de la decisión en [ADR-006](docs/decisions.md).
+En Coolify basta con un único recurso **Docker Compose**:
+
+1. Build pack `Docker Compose`, archivo `compose.yml`, rama `main`; Coolify construye el servicio `app` y crea el `db` con su volumen.
+2. Variables del recurso: `POSTGRES_PASSWORD` (contraseña fuerte y sin caracteres que rompan una URL; `openssl rand -hex 24`), `AUTH_SECRET`, `APP_URL` y, si quieres que Coolify asigne el dominio, `SERVICE_FQDN_APP_3000`.
+3. Dominio `https://horas.levitec.marianorluna.com` sobre el servicio `app`, puerto 3000; TLS lo gestiona el proxy de Coolify.
+4. Backup diario del volumen `parte_diario_pgdata` a almacenamiento fuera del VPS.
+
+Si el healthcheck `/api/health` no responde, Coolify no enruta tráfico y conserva la versión anterior. Detalle de la decisión en [ADR-006](docs/decisions.md).
 
 ## Reglas del proyecto
 

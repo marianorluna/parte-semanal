@@ -40,7 +40,6 @@ Descomenta y ajusta al menos:
 DATABASE_URL=postgresql://parte_diario:parte_diario@localhost:5432/parte_diario
 APP_URL=http://localhost:3000
 AUTH_SECRET=<salida de: openssl rand -base64 32>
-AUTH_TRUST_HOST=true
 TZ=Europe/Madrid
 DEMO_PASSWORD=Demo1234!
 ```
@@ -59,10 +58,13 @@ npm install
 
 ## 4. Base de datos
 
+El `compose.yml` contiene el stack completo, pero en local solo necesitas el
+servicio `db` porque la app corre con `npm run dev`:
+
 ```bash
-docker compose up -d
+docker compose up -d db
 docker compose ps          # el healthcheck debe estar en healthy
-npm run db:migrate         # aplica las migraciones de drizzle/
+npm run db:migrate         # aplica las migraciones de src/db/migrations
 ```
 
 Comandos auxiliares:
@@ -71,10 +73,20 @@ Comandos auxiliares:
 |---------|-----|
 | `npm run db:generate` | Genera una migración tras cambiar el esquema |
 | `npm run db:studio` | Abre Drizzle Studio |
-| `npm run db:seed` | Datos mínimos (empresa y usuarios reales de local) |
 | `npm run db:seed:demo` | Carga el demo completo (50 usuarios, 10 proyectos, 6 semanas) |
 | `npm run db:seed:demo -- --refresh` | Purga y recarga el demo relativo a la semana actual |
 | `npm run db:seed:demo:purge` | Borra solo la empresa `DEMO` |
+
+Para probar la imagen de producción sin Coolify:
+
+```bash
+docker compose up --build -d   # app + db con el mismo compose del despliegue
+docker compose ps              # ambos servicios en healthy
+docker compose logs -f app     # migraciones del entrypoint y arranque de Next
+```
+
+La app queda accesible por la red interna (`app:3000`), no en un puerto del
+host: es el proxy de Coolify el que la publica en producción.
 
 ---
 
@@ -117,7 +129,7 @@ npm run test
 | Síntoma | Causa probable | Solución |
 |---------|---------------|----------|
 | `Cannot find module` | Dependencias no instaladas | Ejecutar el paso 3 de nuevo |
-| Error de conexión a BD | `.env` mal configurado o contenedor parado | Revisar `DATABASE_URL` y `docker compose up -d` |
+| Error de conexión a BD | `.env` mal configurado o contenedor parado | Revisar `DATABASE_URL` y `docker compose up -d db` |
 | `AUTH_SECRET` ausente | Falta la variable | Generarla con `openssl rand -base64 32` |
 | Puerto 3000 o 5432 ocupado | Otro proceso usa el puerto | Parar solo el proceso propio que sea seguro parar o cambiar el puerto |
 | El demo no aparece en el dashboard | Semanas antiguas cargadas | `npm run db:seed:demo -- --refresh` |

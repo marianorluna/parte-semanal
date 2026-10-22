@@ -159,15 +159,18 @@ Internet
   ▼
 Traefik (Coolify) ── TLS Let's Encrypt
   ▼
-contenedor app (Next.js standalone, Node 22)
-  │  red interna de Coolify (Postgres no publicado)
-  ▼
-contenedor postgres:16 ── volumen persistente
-  │
-  └─ backup programado → almacenamiento externo (S3 / Backblaze B2)
+stack Docker Compose (compose.yml)
+  ├─ contenedor app (Next.js standalone, Node 22)
+  │    │  red interna del stack (Postgres no publicado)
+  │    ▼
+  └─ contenedor postgres:16 ── volumen persistente
+       │
+       └─ backup programado → almacenamiento externo (S3 / Backblaze B2)
 ```
 
-Pipeline: `push` a `main` → webhook → build del `Dockerfile` → comando de pre-despliegue `npm run db:migrate` → healthcheck `GET /api/health` → tráfico. Si el healthcheck falla, Coolify mantiene la versión anterior.
+Pipeline: `push` a `main` → webhook → build del `Dockerfile` → arranque del contenedor → entrypoint aplica las migraciones pendientes → healthcheck `GET /api/health` → tráfico. Si el healthcheck falla, Coolify mantiene la versión anterior.
+
+Un solo recurso de Coolify levanta app y base de datos: el volumen `parte_diario_pgdata` sobrevive a los redespliegues, y el entrypoint (`docker/entrypoint.mjs`) hace que no exista un paso manual de migración.
 
 Reglas de despliegue:
 
@@ -180,8 +183,8 @@ Reglas de despliegue:
 
 | Entorno | App | Base de datos | Datos |
 |---------|-----|---------------|-------|
-| Local | `npm run dev` | `compose.yml`, Postgres 16 | Seed de desarrollo |
-| Producción | Coolify, dominio propio | Servicio Postgres de Coolify | Datos reales de obra |
+| Local | `npm run dev` | Servicio `db` de `compose.yml` | Seed de desarrollo |
+| Producción | Stack `compose.yml` en Coolify, dominio propio | Servicio `db` del mismo stack | Datos reales de obra |
 
 No hay staging todavía; se crea en la fase 2 con datos anonimizados.
 

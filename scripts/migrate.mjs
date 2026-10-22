@@ -40,7 +40,7 @@ async function esperarBaseDeDatos() {
 async function main() {
   await esperarBaseDeDatos()
 
-  const sql = postgres(url, { max: 1 })
+  const sql = postgres(url, { max: 1, onnotice: () => {} })
   try {
     await sql`
       create table if not exists migracion_aplicada (

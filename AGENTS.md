@@ -28,7 +28,7 @@ Las versiones exactas de dependencias viven en manifiestos y lockfiles; aquí se
 - **Cola de trabajos:** `pg-boss` sobre la misma base de datos (fase 2). Sin Redis.
 - **Lenguaje:** TypeScript estricto (`strict`, `noUncheckedIndexedAccess`). Prohibido `any`.
 - **Testing:** Vitest (dominio y casos de uso) / Playwright (e2e, fase 2).
-- **Despliegue:** repositorio GitHub → Coolify en VPS propio (`Dockerfile` multi-stage, Node 22). Postgres 16 como servicio de Coolify en el mismo VPS. Dominio `https://horas.levitec.marianorluna.com` con TLS gestionado por Coolify. Backups programados fuera del VPS.
+- **Despliegue:** repositorio GitHub → Coolify en VPS propio. Un único recurso Docker Compose (`compose.yml`) levanta la app (imagen del `Dockerfile` multi-stage, Node 22) y Postgres 16 con volumen persistente; las migraciones se aplican en el entrypoint del contenedor. Dominio `https://horas.levitec.marianorluna.com` con TLS gestionado por Coolify. Backups programados fuera del VPS.
 
 ---
 
@@ -77,7 +77,7 @@ Resumen operativo para retomar el trabajo, no historial de sesiones.
   - [x] Auditoría append-only y pantalla de consulta
   - [x] Endurecimiento: cabeceras, cookies y errores sin trazas
   - [x] `README.md`, `docs/onboarding.md` y ADR-008 del seed demo
-  - [ ] Despliegue en Coolify con dominio, TLS y migraciones de pre-despliegue
+  - [ ] Despliegue en Coolify con dominio, TLS y migraciones automáticas en el arranque
   - [ ] Smoke test completo en producción y restauración de un backup
 - **Bloqueadores:** acceso a Coolify y al DNS de `marianorluna.com`, y permisos del repositorio en GitHub. Si el DNS no está listo, el MVP se valida con la URL temporal de Coolify y se cambia el dominio después.
 
