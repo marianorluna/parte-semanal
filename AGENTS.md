@@ -58,23 +58,23 @@ Las versiones exactas de dependencias viven en manifiestos y lockfiles; aquí se
 
 Resumen operativo para retomar el trabajo, no historial de sesiones.
 
-- **Última sesión:** 2026-10-22 — SSOT especializados (stack, dominio, arquitectura y ADR-001 a ADR-007) y plan de prompts por fases en [`docs/dev-prompts.md`](docs/dev-prompts.md). Sin código de aplicación todavía.
-- **Foco actual:** MVP del parte semanal, desplegado en Coolify. Ejecutar los prompts 1.1 a 1.10 de [`docs/dev-prompts.md`](docs/dev-prompts.md#6-fase-1--mvp-hoy-y-mañana).
+- **Última sesión:** 2026-10-22 - SSOT especializados (stack, dominio, arquitectura y ADR-001 a ADR-007) y plan de prompts por fases en [`docs/dev-prompts.md`](docs/dev-prompts.md). Sin código de aplicación todavía.
+- **Foco actual:** MVP del parte semanal, desplegado en Coolify. Ejecutar los prompts 1.1 a 1.10 de [`docs/dev-prompts.md`](docs/dev-prompts.md#6-fase-1---mvp-hoy-y-mañana).
 - **Checklist:**
   - [x] Especializar `AGENTS.md` §2-§4
   - [x] Definir arquitectura modular y modelo de datos del MVP
   - [x] Registrar ADR-001 a ADR-007
   - [x] Redactar prompts por fases
-  - [ ] Prompt 1.1 — scaffold, `Dockerfile` y Postgres local
-  - [ ] Prompt 1.2 — despliegue temprano en Coolify con dominio y TLS
-  - [ ] Prompt 1.3 — autenticación, roles y alcance
-  - [ ] Prompt 1.4 — dominio, esquema y seed
-  - [ ] Prompt 1.5 — API del parte
-  - [ ] Prompt 1.6 — rejilla semanal del trabajador
-  - [ ] Prompt 1.7 — bandeja y aprobación del encargado
-  - [ ] Prompt 1.8 — dashboard
-  - [ ] Prompt 1.9 — CSV e imprimible
-  - [ ] Prompt 1.10 — auditoría, endurecimiento y go-live
+  - [ ] Prompt 1.1 - scaffold, `Dockerfile` y Postgres local
+  - [ ] Prompt 1.2 - despliegue temprano en Coolify con dominio y TLS
+  - [ ] Prompt 1.3 - autenticación, roles y alcance
+  - [ ] Prompt 1.4 - dominio, esquema y seed
+  - [ ] Prompt 1.5 - API del parte
+  - [ ] Prompt 1.6 - rejilla semanal del trabajador
+  - [ ] Prompt 1.7 - bandeja y aprobación del encargado
+  - [ ] Prompt 1.8 - dashboard
+  - [ ] Prompt 1.9 - CSV e imprimible
+  - [ ] Prompt 1.10 - auditoría, endurecimiento y go-live
   - [ ] Actualizar `README.md` y `docs/onboarding.md` con los comandos reales
 - **Bloqueadores:** acceso a Coolify y al DNS de `marianorluna.com`, y permisos del repositorio en GitHub. Si el DNS no está listo, el MVP se valida con la URL temporal de Coolify y se cambia el dominio después.
 
@@ -94,11 +94,11 @@ Actualiza esta sección solo cuando el usuario solicite cerrar la sesión o el m
 
 | Recurso | Dueño |
 |---------|-------|
-| `docs/start.md` | **Índice / empieza aquí** — qué tocar, SSOT, orden de especialización |
+| `docs/start.md` | **Índice / empieza aquí** - qué tocar, SSOT, orden de especialización |
 | **Este archivo** (`AGENTS.md`) | Stack (§2), producto/dominio (§3), estado de sesión (§4) |
 | `.cursor/rules/` | Cómo programar y qué está prohibido |
 | `docs/architecture.md` | Patrón, capas, carpetas, flujos client ↔ server |
-| `docs/decisions.md` | ADRs — porqués ya tomados |
+| `docs/decisions.md` | ADRs - porqués ya tomados |
 | `docs/dev-prompts.md` | Prompts de implementación por fases (MVP y siguientes) |
 | `docs/onboarding.md` | Cómo arrancar el proyecto en local |
 | `.env.example` | Nombres de variables de entorno (sin secretos) |

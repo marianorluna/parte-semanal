@@ -13,3 +13,4 @@ alwaysApply: true
 - **Configuración:** Usa el mecanismo del runtime para valores que varían por entorno. Se permiten constantes legítimas y valores predeterminados no sensibles, configurables y documentados; no conviertas cada constante en una variable de entorno.
 - **Async moderno:** `async/await` (o equivalente idiomático). Evita callback hell y cadenas largas de `.then()`.
 - **Documentación:** Consulta Context7 o las fuentes oficiales para la versión que usa el proyecto antes de elegir APIs o mecanismos de integración. No asumas que la documentación de la última versión aplica a la instalada; si no puedes verificar compatibilidad, indícalo.
+- **Redacción:** Usa siempre el guion normal `-`. Prohibidos el guion largo (U+2014) y el guion medio (U+2013) en documentos, comentarios, textos de interfaz, mensajes de error y mensajes de commit. Aplica también a rangos de fechas y cifras (`8-10 semanas`).

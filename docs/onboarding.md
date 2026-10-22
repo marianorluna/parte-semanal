@@ -1,4 +1,4 @@
-# Onboarding — Setup local
+# Onboarding - Setup local
 
 Guía para levantar el proyecto desde cero.
 

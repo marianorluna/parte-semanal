@@ -1,4 +1,4 @@
-# Parte semanal de horas — Levitec
+# Parte semanal de horas - Levitec
 
 Aplicación interna para declarar, controlar y explotar las horas imputadas a proyecto.
 

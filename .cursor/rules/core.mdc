@@ -18,7 +18,7 @@ alwaysApply: true
 
 ## Review loop (antes de codear)
 
-1. **Impacto:** una frase — archivos a tocar y efecto en la arquitectura.
+1. **Impacto:** una frase - archivos a tocar y efecto en la arquitectura.
 2. **Patrón:** sigue el existente o justifica uno nuevo; en cambios simples, indica «sin patrón adicional».
 3. **Validación:** APIs compatibles, tipado y capas respetados; indica las comprobaciones pertinentes.
 

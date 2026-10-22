@@ -1,12 +1,12 @@
-# Start — punto de entrada
+# Start - punto de entrada
 
-**Punto de entrada — lee esto primero al especializar el template.**
+**Punto de entrada - lee esto primero al especializar el template.**
 
 Guía de qué copiar tal cual y qué rellenar antes de arrancar cualquier proyecto.
 
 ---
 
-## Fuente canónica (SSOT) — no duplicar
+## Fuente canónica (SSOT) - no duplicar
 
 Cada dato vive en **un solo archivo**. El resto solo enlaza.
 
@@ -26,7 +26,7 @@ Mantén la declaración de stack y producto únicamente en `AGENTS.md`. Si cambi
 
 ---
 
-## Base general — revisable según el proyecto
+## Base general - revisable según el proyecto
 
 Estos archivos ofrecen valores predeterminados independientes del stack. No requieren una reescritura inicial, pero revisa su adecuación al equipo, al proyecto y al flujo de trabajo; no son reglas inmutables.
 
@@ -43,7 +43,7 @@ Estos archivos ofrecen valores predeterminados independientes del stack. No requ
 
 Estos archivos contienen **placeholders**, no decisiones ya tomadas. Rellénalos antes de implementar; elimina las secciones irrelevantes o marca «No aplica» y usa «Pendiente» para decisiones aún abiertas. No inventes un frontend, backend o base de datos si el producto no los necesita.
 
-### Prioridad 1 — Rellenar el primer día
+### Prioridad 1 - Rellenar el primer día
 
 | Archivo | Qué rellenar | Impacto si no lo haces |
 |---------|-------------|----------------------|
@@ -54,7 +54,7 @@ Estos archivos contienen **placeholders**, no decisiones ya tomadas. Rellénalos
 | `docs/architecture.md` | Patrón arquitectónico y árbol de carpetas real | El agente puede crear archivos en rutas incorrectas |
 | `.env.example` | Variables reales del proyecto (sin valores secretos) | Los devs no saben qué configurar; riesgo de `.env` mal formado |
 
-### Prioridad 2 — Ajustar antes de la primera feature
+### Prioridad 2 - Ajustar antes de la primera feature
 
 | Archivo | Qué ajustar | Detalle |
 |---------|------------|---------|
@@ -71,7 +71,7 @@ Usa rutas que existan en el proyecto: por ejemplo, `src/ui/**` solo si esa carpe
 
 Referencia: [reglas de Cursor](https://cursor.com/docs/context/rules).
 
-### Prioridad 3 — Mantener vivo durante el desarrollo
+### Prioridad 3 - Mantener vivo durante el desarrollo
 
 | Archivo | Qué actualizar y cuándo |
 |---------|------------------------|
@@ -112,13 +112,13 @@ La versión de **este template** vive en `AGENTS.md` (`Template versión`). No l
 ```
 cursor-project-template/
 │
-├── ✅ BASE GENERAL — REVISAR SEGÚN EL PROYECTO
+├── ✅ BASE GENERAL - REVISAR SEGÚN EL PROYECTO
 │   ├── .cursor/rules/core.mdc
 │   ├── .cursor/rules/code-style.mdc
 │   ├── .cursor/rules/git.mdc
 │   └── .cursor/rules/mentoring.mdc
 │
-├── ✏️  RELLENAR (fuentes canónicas — Prioridad 1)
+├── ✏️  RELLENAR (fuentes canónicas - Prioridad 1)
 │   ├── AGENTS.md              ← stack + negocio + estado (SSOT)
 │   ├── docs/architecture.md   ← patrón + árbol de carpetas (SSOT)
 │   └── .env.example           ← variables del proyecto

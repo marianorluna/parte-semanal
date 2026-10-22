@@ -10,7 +10,7 @@ Mapa técnico del proyecto. El estilo de código y las prohibiciones están en `
 ## Patrón
 
 - **Arquitectura:** monolito modular con puertos y adaptadores por módulo. Un solo despliegue (contenedor Next.js) y una sola base de datos.
-- **Principio rector:** Separation of Concerns — el dominio no conoce Next.js, Drizzle ni HTTP. Ver [`ADR-001`](./decisions.md#adr-001--monolito-modular-con-un-solo-despliegue) y [`ADR-002`](./decisions.md#adr-002--stack-nextjs-app-router--postgres--drizzle).
+- **Principio rector:** Separation of Concerns - el dominio no conoce Next.js, Drizzle ni HTTP. Ver [`ADR-001`](./decisions.md#adr-001---monolito-modular-con-un-solo-despliegue) y [`ADR-002`](./decisions.md#adr-002---stack-nextjs-app-router--postgres--drizzle).
 - **Regla de dependencia:** `app → application → domain`; `infrastructure` implementa los puertos que declara `application`. El dominio no importa de `app/`, `db/` ni `next/*`.
 - **Límite entre módulos:** un módulo solo puede usar la API pública de otro (`modules/<modulo>/index.ts`). Nada de importar repositorios o tablas ajenas.
 
@@ -162,7 +162,7 @@ Reglas de despliegue:
 
 - Migraciones **aditivas y compatibles hacia atrás** (expand/contract). Un rollback de imagen no revierte la base de datos.
 - Variables de entorno en Coolify, nunca en el repo. No hay `NEXT_PUBLIC_*` con datos sensibles; hoy no se necesita ninguna.
-- Un solo proceso con `output: 'standalone'`. Sin Redis: los jobs usan Postgres (`pg-boss`, ver [`ADR-007`](./decisions.md#adr-007--cola-de-trabajos-en-postgres-con-pg-boss)).
+- Un solo proceso con `output: 'standalone'`. Sin Redis: los jobs usan Postgres (`pg-boss`, ver [`ADR-007`](./decisions.md#adr-007---cola-de-trabajos-en-postgres-con-pg-boss)).
 - Backups fuera del VPS: un backup en el mismo disco no sobrevive a la pérdida del servidor. Restauración probada antes del go-live.
 
 ## Entornos

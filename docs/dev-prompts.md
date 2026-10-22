@@ -21,13 +21,13 @@ Plan ejecutable para construir el parte semanal de horas. Cada prompt es un camb
 
 | # | Decisión | Elegido | ADR | Coste de revertir |
 |---|----------|---------|-----|-------------------|
-| D1 | Arquitectura | Monolito modular, un despliegue | [ADR-001](./decisions.md#adr-001--monolito-modular-con-un-solo-despliegue) | Medio |
-| D2 | Stack | Next.js App Router + TS estricto + Postgres 16 + Drizzle | [ADR-002](./decisions.md#adr-002--stack-nextjs-app-router--postgres--drizzle) | Medio |
-| D3 | Granularidad | Día × tarea en minutos enteros; aprobación por semana ISO | [ADR-003](./decisions.md#adr-003--granularidad-diaria-por-tarea-en-minutos-enteros) | **Alto** |
-| D4 | Inquilinos | Mono-inquilino con `empresa_id` reservado | [ADR-004](./decisions.md#adr-004--mono-inquilino-con-empresa_id-reservado) | Medio |
-| D5 | Aprobación | Un nivel, con reapertura auditada | [ADR-005](./decisions.md#adr-005--aprobación-de-un-nivel) | Bajo |
-| D6 | Despliegue | VPS + Coolify + Postgres en el mismo servidor, dominio propio | [ADR-006](./decisions.md#adr-006--despliegue-en-vps-con-coolify-y-postgres-autogestionado) | Bajo |
-| D7 | Jobs | `pg-boss` sobre Postgres, sin Redis | [ADR-007](./decisions.md#adr-007--cola-de-trabajos-en-postgres-con-pg-boss) | Bajo |
+| D1 | Arquitectura | Monolito modular, un despliegue | [ADR-001](./decisions.md#adr-001---monolito-modular-con-un-solo-despliegue) | Medio |
+| D2 | Stack | Next.js App Router + TS estricto + Postgres 16 + Drizzle | [ADR-002](./decisions.md#adr-002---stack-nextjs-app-router--postgres--drizzle) | Medio |
+| D3 | Granularidad | Día × tarea en minutos enteros; aprobación por semana ISO | [ADR-003](./decisions.md#adr-003---granularidad-diaria-por-tarea-en-minutos-enteros) | **Alto** |
+| D4 | Inquilinos | Mono-inquilino con `empresa_id` reservado | [ADR-004](./decisions.md#adr-004---mono-inquilino-con-empresa_id-reservado) | Medio |
+| D5 | Aprobación | Un nivel, con reapertura auditada | [ADR-005](./decisions.md#adr-005---aprobación-de-un-nivel) | Bajo |
+| D6 | Despliegue | VPS + Coolify + Postgres en el mismo servidor, dominio propio | [ADR-006](./decisions.md#adr-006---despliegue-en-vps-con-coolify-y-postgres-autogestionado) | Bajo |
+| D7 | Jobs | `pg-boss` sobre Postgres, sin Redis | [ADR-007](./decisions.md#adr-007---cola-de-trabajos-en-postgres-con-pg-boss) | Bajo |
 
 Consecuencia directa de D6: **no hay backend separado**. La app Next.js y la base de datos son dos contenedores de Coolify en la misma red interna, y el dominio se publica con TLS automático. Nada de Vercel, Neon ni Supabase en esta etapa.
 
@@ -56,17 +56,17 @@ Consecuencia directa de D6: **no hay backend separado**. La app Next.js y la bas
 
 | Hora | Slice | Prompt | Si vas tarde |
 |------|-------|--------|--------------|
-| 09:00–09:45 | Scaffold + Dockerfile + BD local | 1.1 | No negociable |
-| 09:45–10:30 | Despliegue temprano en Coolify | 1.2 | No negociable |
-| 10:30–11:15 | Auth, roles y alcance | 1.3 | No negociable |
-| 11:15–12:00 | Dominio, esquema y seed | 1.4 | No negociable |
-| 12:00–13:15 | API del parte | 1.5 | No negociable |
-| 13:15–14:15 | Rejilla semanal | 1.6 | Solo un proyecto por empleado |
-| 14:15–15:00 | Bandeja y aprobación | 1.7 | No negociable |
-| 15:00–15:45 | Dashboard | 1.8 | Reduce a 3 KPIs |
-| 15:45–16:15 | CSV e imprimible | 1.9 | Solo imprimible |
-| 16:15–17:00 | Auditoría y endurecimiento | 1.10 | Auditoría mínima sí |
-| 17:00–18:00 | Prueba con usuarios reales | — | No negociable |
+| 09:00-09:45 | Scaffold + Dockerfile + BD local | 1.1 | No negociable |
+| 09:45-10:30 | Despliegue temprano en Coolify | 1.2 | No negociable |
+| 10:30-11:15 | Auth, roles y alcance | 1.3 | No negociable |
+| 11:15-12:00 | Dominio, esquema y seed | 1.4 | No negociable |
+| 12:00-13:15 | API del parte | 1.5 | No negociable |
+| 13:15-14:15 | Rejilla semanal | 1.6 | Solo un proyecto por empleado |
+| 14:15-15:00 | Bandeja y aprobación | 1.7 | No negociable |
+| 15:00-15:45 | Dashboard | 1.8 | Reduce a 3 KPIs |
+| 15:45-16:15 | CSV e imprimible | 1.9 | Solo imprimible |
+| 16:15-17:00 | Auditoría y endurecimiento | 1.10 | Auditoría mínima sí |
+| 17:00-18:00 | Prueba con usuarios reales | - | No negociable |
 
 Si a las 14:00 el flujo de envío no funciona, paras de añadir alcance. Un flujo completo sin dashboard vale más que un dashboard sin flujo.
 
@@ -74,7 +74,7 @@ Si a las 14:00 el flujo de envío no funciona, paras de añadir alcance. Un fluj
 
 ---
 
-## 5. Fase 0 — Fundación (completada el 2026-10-22)
+## 5. Fase 0 - Fundación (completada el 2026-10-22)
 
 Ya ejecutada en el repositorio, sin código de aplicación:
 
@@ -87,9 +87,9 @@ No repitas estos pasos. Si una decisión cambia, actualiza el ADR correspondient
 
 ---
 
-## 6. Fase 1 — MVP (hoy y mañana)
+## 6. Fase 1 - MVP (hoy y mañana)
 
-### Prompt 1.1 — Scaffold, Dockerfile y Postgres local
+### Prompt 1.1 - Scaffold, Dockerfile y Postgres local
 
 ```text
 Contexto: @AGENTS.md @docs/architecture.md @docs/decisions.md
@@ -126,7 +126,7 @@ Fuera de alcance: auth, entidades, UI de negocio, PDF, Excel, CI.
 Al terminar: comandos exactos para levantar todo desde cero, salida de cada verificación y peso de la imagen.
 ```
 
-### Prompt 1.2 — Despliegue temprano en Coolify
+### Prompt 1.2 - Despliegue temprano en Coolify
 
 ```text
 Contexto: @AGENTS.md §2 @docs/architecture.md (Despliegue) @docs/decisions.md (ADR-006)
@@ -164,7 +164,7 @@ Fuera de alcance: CI, staging, monitorización, WAF.
 Al terminar: URL pública, evidencia de cada comprobación y qué queda pendiente (por ejemplo, restaurar un backup).
 ```
 
-### Prompt 1.3 — Autenticación, roles y alcance
+### Prompt 1.3 - Autenticación, roles y alcance
 
 ```text
 Contexto: @AGENTS.md §3 @docs/architecture.md (Contrato de errores)
@@ -174,7 +174,7 @@ Usa Auth.js con Credentials. No implementes criptografía propia.
 
 Modelo:
 - usuario(id, empresa_id, email único en minúsculas, password_hash, nombre, rol, empleado_id nullable, activo)
-- usuario_proyecto(usuario_id, proyecto_id) — alcance del ENCARGADO
+- usuario_proyecto(usuario_id, proyecto_id) - alcance del ENCARGADO
 - rol enum TRABAJADOR | ENCARGADO | ADMIN
 
 Haz:
@@ -199,7 +199,7 @@ Fuera de alcance: registro público, recuperación de contraseña, MFA, SSO, inv
 Al terminar: matriz rol × ruta implementada y cómo comprobarla a mano.
 ```
 
-### Prompt 1.4 — Dominio, esquema y seed real
+### Prompt 1.4 - Dominio, esquema y seed real
 
 ```text
 Contexto: @AGENTS.md §3 @docs/architecture.md (Modelo de datos)
@@ -241,7 +241,7 @@ Fuera de alcance: UI, festivos, ausencias, costes, tipos de hora.
 Al terminar: lista de casos de uso con su firma y salida de los tests.
 ```
 
-### Prompt 1.5 — API del parte
+### Prompt 1.5 - API del parte
 
 ```text
 Contexto: @AGENTS.md §3 @docs/architecture.md @src/modules/partes
@@ -271,7 +271,7 @@ un doble clic en enviar no duplica.
 Fuera de alcance: dashboard, exportaciones, notificaciones.
 ```
 
-### Prompt 1.6 — Rejilla semanal del trabajador
+### Prompt 1.6 - Rejilla semanal del trabajador
 
 ```text
 Contexto: @AGENTS.md §3 @src/modules/partes
@@ -298,7 +298,7 @@ recargar conserva los datos; el autoguardado no dispara peticiones en cascada.
 Fuera de alcance: offline, plantillas, copiar semana anterior, adjuntos.
 ```
 
-### Prompt 1.7 — Bandeja y aprobación del encargado
+### Prompt 1.7 - Bandeja y aprobación del encargado
 
 ```text
 Contexto: @AGENTS.md §3 @src/modules/partes
@@ -322,7 +322,7 @@ toda mutación queda en auditoría; aprobar 5 partes no exige más de 5 clics en
 Fuera de alcance: email, push, SLA, aprobación en dos niveles.
 ```
 
-### Prompt 1.8 — Dashboard mínimo
+### Prompt 1.8 - Dashboard mínimo
 
 ```text
 Contexto: @AGENTS.md §3 @src/modules/reporting
@@ -347,7 +347,7 @@ Criterios: el encargado solo agrega sus proyectos; respuesta por debajo de 500 m
 Fuera de alcance: euros, productividad, exportaciones, comparativas interanuales, tiempo real.
 ```
 
-### Prompt 1.9 — CSV e imprimible
+### Prompt 1.9 - CSV e imprimible
 
 ```text
 Contexto: @AGENTS.md
@@ -369,7 +369,7 @@ una exportación no puede incluir datos de proyectos fuera del alcance.
 Fuera de alcance: ExcelJS, Gotenberg, plantillas configurables, envío por email.
 ```
 
-### Prompt 1.10 — Auditoría, endurecimiento y go-live
+### Prompt 1.10 - Auditoría, endurecimiento y go-live
 
 ```text
 Contexto: @AGENTS.md @docs/architecture.md @docs/onboarding.md @docs/decisions.md
@@ -398,11 +398,11 @@ Al terminar: informe de qué se verificó, qué no y por qué.
 
 ---
 
-## 7. Fase 2 — Próxima semana
+## 7. Fase 2 - Próxima semana
 
 Ordenado por valor, no por facilidad. Si dispones de cinco días, haz 2.1 a 2.5 y deja el resto para la siguiente.
 
-### Prompt 2.1 — Calendario laboral y festivos
+### Prompt 2.1 - Calendario laboral y festivos
 
 ```text
 Tarea: calendario y jornada teórica por ámbito.
@@ -417,7 +417,7 @@ Tests: precedencia, festivo en domingo, empleado sin calendario, vigencia solapa
 Fuera de alcance: convenios colectivos completos.
 ```
 
-### Prompt 2.2 — Motor de cómputo versionado
+### Prompt 2.2 - Motor de cómputo versionado
 
 ```text
 Tarea: convertir minutos registrados en horas computables según reglas con vigencia.
@@ -432,7 +432,7 @@ Tests: reglas solapadas, tope diario, nocturna que cruza medianoche, cambio de h
 Fuera de alcance: interpretación automática de convenios reales.
 ```
 
-### Prompt 2.3 — Ausencias, vacaciones y bajas
+### Prompt 2.3 - Ausencias, vacaciones y bajas
 
 ```text
 Tarea: ausencias integradas en el parte y en el cómputo.
@@ -445,7 +445,7 @@ Tests: solape, ausencia que cruza semana, anulación tras aprobación, día parc
 Fuera de alcance: integración con Seguridad Social, IT y recaídas.
 ```
 
-### Prompt 2.4 — Coste hora y presupuesto
+### Prompt 2.4 - Coste hora y presupuesto
 
 ```text
 Tarea: coste real por proyecto con histórico correcto.
@@ -458,7 +458,7 @@ Tests: vigencia solapada, cambio de coste a mitad de semana, imputación sin cos
 Fuera de alcance: contabilidad analítica completa, centros de coste, maquinaria.
 ```
 
-### Prompt 2.5 — Informes y exportaciones reales
+### Prompt 2.5 - Informes y exportaciones reales
 
 ```text
 Tarea: informes generados en segundo plano.
@@ -472,7 +472,7 @@ Criterios: 10.000 filas sin bloquear la petición; job fallido visible y reinten
 ningún dato fuera del alcance del usuario.
 ```
 
-### Prompt 2.6 — Bloqueo, cierre mensual y reapertura
+### Prompt 2.6 - Bloqueo, cierre mensual y reapertura
 
 ```text
 Tarea: ciclo de vida completo y cierre de nómina.
@@ -483,7 +483,7 @@ Periodo cerrado no admite escritura, ni siquiera de admin, sin reapertura explí
 Tests: semana que cruza mes, reapertura tras cierre mensual, doble cierre, recálculo de agregados.
 ```
 
-### Prompt 2.7 — Notificaciones y recordatorios
+### Prompt 2.7 - Notificaciones y recordatorios
 
 ```text
 Tarea: avisos que muevan el proceso.
@@ -494,7 +494,7 @@ Idempotencia por (evento, destinatario, periodo) para no duplicar envíos.
 Fuera de alcance: push, WhatsApp, SMS.
 ```
 
-### Prompt 2.8 — API pública y webhooks
+### Prompt 2.8 - API pública y webhooks
 
 ```text
 Tarea: preparar el intercambio de información sin acoplar el dominio.
@@ -507,7 +507,7 @@ los formatos de A3, Sage ni Factorial.
 Tests: reintento sin duplicar, firma inválida, clave caducada, webhook caído que no bloquea la transacción.
 ```
 
-### Prompt 2.9 — CI y staging
+### Prompt 2.9 - CI y staging
 
 ```text
 Tarea: red de seguridad y entorno previo a producción.
@@ -520,7 +520,7 @@ Criterios: un PR roto no se puede mergear; restauración verificada al menos una
 
 ---
 
-## 8. Fase 3 — Backlog priorizado
+## 8. Fase 3 - Backlog priorizado
 
 Cada fila es un prompt independiente. No mezclar con lo anterior.
 
@@ -543,7 +543,7 @@ Cada fila es un prompt independiente. No mezclar con lo anterior.
 
 ## 9. Prompts transversales
 
-### T1 — Blueprint de tests antes de implementar
+### T1 - Blueprint de tests antes de implementar
 
 ```text
 Antes de escribir código, dame el blueprint de tests de esta feature: casos clave, qué mockear,
@@ -551,7 +551,7 @@ qué asertar y qué no merece test. Usa Vitest para dominio y casos de uso, y Pl
 un flujo de UI que lo justifique. No escribas la suite completa salvo que lo pida.
 ```
 
-### T2 — Revisión de seguridad de un cambio
+### T2 - Revisión de seguridad de un cambio
 
 ```text
 Revisa el diff actual buscando: autorización ausente en acciones y endpoints, IDOR por no comprobar alcance,
@@ -559,7 +559,7 @@ validación de entrada faltante, secretos o trazas expuestas, inyección en cons
 imprimible y rate limit. Devuelve hallazgos con archivo:línea y severidad. No modifiques archivos.
 ```
 
-### T3 — Revisión de rendimiento con datos reales
+### T3 - Revisión de rendimiento con datos reales
 
 ```text
 Con 50.000 imputaciones y 500 empleados sembrados, mide las cinco consultas más lentas del dashboard
@@ -567,7 +567,7 @@ y de la bandeja. Propón índices o agregados y muestra EXPLAIN ANALYZE antes y 
 No cambies el esquema sin explicar la migración y su compatibilidad hacia atrás.
 ```
 
-### T4 — Registrar una decisión como ADR
+### T4 - Registrar una decisión como ADR
 
 ```text
 Registra en docs/decisions.md un ADR con la plantilla existente para la decisión tomada en este cambio:
@@ -575,14 +575,14 @@ contexto, opciones con pros y contras, decisión y consecuencias. Si cierra un �
 en docs/architecture.md, márcalo con el número de ADR. No dupliques el stack, que vive en AGENTS.md.
 ```
 
-### T5 — Cierre de sesión
+### T5 - Cierre de sesión
 
 ```text
 Aplica el protocolo de cierre de AGENTS.md §4: actualiza última sesión, foco, checklist y bloqueadores.
 Resume qué se verificó, qué no se pudo verificar y por qué. No toques código.
 ```
 
-### T6 — Operación en Coolify
+### T6 - Operación en Coolify
 
 ```text
 Guíame paso a paso para <desplegar / hacer rollback / restaurar un backup / rotar un secreto> en Coolify,
