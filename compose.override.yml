@@ -1,0 +1,14 @@
+# Override EXCLUSIVO de desarrollo local.
+#
+# Docker Compose lo fusiona de forma automática con `compose.yml` cuando no se
+# pasa `-f`, así que `docker compose up -d db` publica Postgres en el loopback
+# del host para que `npm run dev` pueda conectarse.
+#
+# Coolify NO lo aplica: despliega con `-f compose.yml`, así que el stack de
+# producción no publica el puerto del `db` (en un VPS el 5432 suele estar
+# ocupado por el Postgres propio de Coolify y el bind hace fallar el stack).
+
+services:
+  db:
+    ports:
+      - '127.0.0.1:${DB_PORT:-5432}:5432'

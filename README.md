@@ -73,7 +73,7 @@ npm run test
 
 ## Despliegue
 
-`compose.yml` define el **stack completo**: la aplicación Next.js (imagen del `Dockerfile` multi-stage, `output: 'standalone'`, usuario no root, `TZ=Europe/Madrid`) y un PostgreSQL 16 con volumen persistente, comunicados por la red interna del stack. El `db` no publica su puerto hacia fuera: solo escucha en el loopback del host para el desarrollo local.
+`compose.yml` define el **stack completo**: la aplicación Next.js (imagen del `Dockerfile` multi-stage, `output: 'standalone'`, usuario no root, `TZ=Europe/Madrid`) y un PostgreSQL 16 con volumen persistente, comunicados por la red interna del stack. El `db` **no publica ningún puerto del host**: solo se llega a él por `db:5432` dentro de la red del stack. El puerto para `npm run dev` vive en `compose.override.yml`, que Compose fusiona automáticamente en local (`127.0.0.1:${DB_PORT:-5432}`) y que Coolify ignora porque arranca con `-f compose.yml`. Así el stack desplegado no choca con el Postgres del propio Coolify, que suele ocupar el 5432 del servidor.
 
 Las migraciones se aplican **solas** al arrancar el contenedor (`docker/entrypoint.mjs` ejecuta el runner idempotente antes de `server.js`). Ya no existe un comando de pre-despliegue que recordar.
 

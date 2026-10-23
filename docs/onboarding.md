@@ -59,7 +59,8 @@ npm install
 ## 4. Base de datos
 
 El `compose.yml` contiene el stack completo, pero en local solo necesitas el
-servicio `db` porque la app corre con `npm run dev`:
+servicio `db` porque la app corre con `npm run dev`. El puerto del host lo
+aporta `compose.override.yml`, que Compose carga solo cuando no se pasa `-f`:
 
 ```bash
 docker compose up -d db
@@ -86,7 +87,10 @@ docker compose logs -f app     # migraciones del entrypoint y arranque de Next
 ```
 
 La app queda accesible por la red interna (`app:3000`), no en un puerto del
-host: es el proxy de Coolify el que la publica en producción.
+host: es el proxy de Coolify el que la publica en producción. Este comando
+fusiona `compose.override.yml`, así que el `db` sí expone `127.0.0.1:5432` para
+tu cliente SQL. Para emular el stack exacto de producción usa
+`docker compose -f compose.yml up --build -d` (sin puertos publicados del `db`).
 
 ---
 

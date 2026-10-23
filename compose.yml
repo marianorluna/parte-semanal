@@ -6,6 +6,12 @@
 #
 # Local: `docker compose up -d db` levanta solo la base de datos para `npm run
 # dev`. Con `docker compose up --build` se prueba la imagen de producción.
+#
+# Este archivo es el que despliega Coolify, así que debe valer tal cual en el
+# servidor: el `db` no publica puertos del host (en un VPS el 5432 suele estar
+# ocupado por el Postgres del propio Coolify). El puerto para `npm run dev`
+# vive en `compose.override.yml`, que Compose carga solo en local y Coolify
+# ignora porque invoca `-f compose.yml`.
 
 name: parte-diario
 
@@ -27,10 +33,8 @@ services:
       timeout: 5s
       retries: 10
       start_period: 10s
-    # Escucha solo en el loopback del host: permite `npm run dev` y un cliente
-    # SQL local sin exponer Postgres a Internet. En Coolify no se necesita.
-    ports:
-      - '127.0.0.1:${DB_PORT:-5432}:5432'
+    # Sin `ports`: en producción solo se llega al `db` por la red interna del
+    # stack (`db:5432`). Para publicarlo en local, `compose.override.yml`.
 
   app:
     build:

@@ -56,7 +56,8 @@ parte-diario/
 │   │   └── validation/
 │   └── config/env.ts                     # validación Zod de variables de entorno
 ├── Dockerfile                            # multi-stage, salida standalone
-├── compose.yml                           # Postgres de desarrollo local
+├── compose.yml                           # stack completo (lo despliega Coolify)
+├── compose.override.yml                  # puerto del Postgres solo en local
 ├── drizzle.config.ts
 ├── docs/
 └── AGENTS.md
