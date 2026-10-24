@@ -41,7 +41,10 @@ export function PanelRapido({
   onRellenarSemana,
   onDeshacer,
 }: Props) {
-  const [fecha, setFecha] = useState(diaInicial)
+  const [fecha, setFecha] = useState(() => {
+    const solicitado = dias.find((candidato) => candidato.fecha === diaInicial && candidato.laborable)
+    return solicitado?.fecha ?? dias.find((candidato) => candidato.laborable)?.fecha ?? dias[0]?.fecha ?? ''
+  })
   const [proyectoId, setProyectoId] = useState(grupos[0]?.proyectoId ?? '')
   const [tareaId, setTareaId] = useState(grupos[0]?.tareas[0]?.tareaId ?? '')
   const [horas, setHoras] = useState('')
@@ -150,14 +153,17 @@ export function PanelRapido({
               key={candidato.fecha}
               type="button"
               onClick={() => setFecha(candidato.fecha)}
-              disabled={deshabilitado}
+              disabled={deshabilitado || !candidato.laborable}
               aria-pressed={activo}
+              title={candidato.laborable ? undefined : (candidato.motivo ?? 'Día no laborable')}
               className={`flex min-h-11 min-w-0 flex-col items-center justify-center rounded-md border px-1 py-1.5 text-xs font-semibold transition-colors ${
                 activo
                   ? 'border-marca-700 bg-marca-700 text-white'
-                  : candidato.esHoy
-                    ? 'border-acento-400 bg-acento-50 text-marca-900 hover:bg-acento-100'
-                    : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-100'
+                  : !candidato.laborable
+                    ? 'cursor-not-allowed border-slate-100 bg-slate-50 text-slate-300'
+                    : candidato.esHoy
+                      ? 'border-acento-400 bg-acento-50 text-marca-900 hover:bg-acento-100'
+                      : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-100'
               }`}
             >
               <span className="max-w-full truncate capitalize">{candidato.dia}</span>
@@ -234,7 +240,7 @@ export function PanelRapido({
             onClick={rellenarSemana}
             disabled={deshabilitado}
             aria-describedby="rellenar-semana-ayuda"
-            title="Copia estas horas en los días laborables vacíos: de lunes a viernes"
+            title="Copia estas horas en los días laborables vacíos del calendario"
             className="boton-acento boton-campo w-full text-sm whitespace-nowrap sm:w-auto sm:flex-1 lg:flex-none"
           >
             <svg
@@ -323,7 +329,8 @@ export function PanelRapido({
         </p>
       ) : null}
       <p id="rellenar-semana-ayuda" className="text-[11px] text-slate-400">
-        «Rellenar semana» copia estas horas de lunes a viernes y respeta los días que ya tengan horas.
+        «Rellenar semana» copia estas horas en los días laborables de la semana y respeta los días que ya tengan
+        horas.
       </p>
     </section>
   )

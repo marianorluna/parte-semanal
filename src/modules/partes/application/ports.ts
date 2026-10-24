@@ -39,6 +39,28 @@ export type TareaAsignada = {
   tareaNombre: string
 }
 
+/** Día resuelto del calendario laboral, listo para la rejilla y la validación. */
+export type DiaCalendarioParte = {
+  fecha: FechaIso
+  diaSemana: number
+  laborable: boolean
+  /** Texto ya formateado para la interfaz: `Fin de semana`, `Festivo: ...`. */
+  motivo: string | null
+  /** Festivo real (no fin de semana): habilita las reglas FESTIVO. */
+  esFestivo: boolean
+  horasTeoricasMin: number | null
+  /** Ausencia aprobada del día; la jornada completa ya marca `laborable: false`. */
+  ausencia: { id: string; nombre: string; minutos: number | null } | null
+}
+
+export type CalendarioSemana = {
+  calendarioId: string | null
+  calendarioVersion: number | null
+  dias: DiaCalendarioParte[]
+  capacidadMin: number | null
+  porDefecto: boolean
+}
+
 export type ParteEnLista = ParteResumen & {
   empleadoNombre: string
   empleadoCodigo: string
@@ -74,7 +96,12 @@ export type RepositorioPartes = {
     semana: SemanaIso,
   ): Promise<ParteCompleto>
   guardarBorrador(parteId: string, versionEsperada: number, filas: ImputacionEntrada[]): Promise<number>
-  enviar(parteId: string, versionEsperada: number, actorId: string): Promise<void>
+  enviar(
+    parteId: string,
+    versionEsperada: number,
+    actorId: string,
+    calendario?: { id: string | null; version: number | null },
+  ): Promise<void>
   aprobar(parteId: string, versionEsperada: number, actorId: string): Promise<void>
   rechazar(parteId: string, versionEsperada: number, actorId: string, motivo: string): Promise<void>
   reabrir(parteId: string, versionEsperada: number, actorId: string, motivo: string): Promise<void>

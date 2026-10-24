@@ -12,7 +12,6 @@ import {
   MINUTOS_POR_DIA,
   sumarMinutos,
 } from '@/modules/partes/domain/horas'
-import { esFinDeSemana } from '@/modules/partes/domain/fechas'
 import { etiquetaEstado } from '@/modules/partes/domain/parte'
 import { EstadoBadge } from '@/components/EstadoBadge'
 import { guardarSemanaAction, enviarSemanaAction } from './actions'
@@ -23,6 +22,13 @@ export type DiaSemana = {
   fecha: string
   dia: string
   esHoy: boolean
+  /** Día laborable según el calendario de la empresa. */
+  laborable: boolean
+  /** Motivo ya formateado: `Fin de semana`, `Festivo: ...`, `Vacaciones`. */
+  motivo: string | null
+  horasTeoricasMin: number | null
+  /** Ausencia aprobada del día; en jornada completa el día ya no es laborable. */
+  ausencia: { nombre: string; minutos: number | null } | null
 }
 
 type Props = {
@@ -37,6 +43,7 @@ type Props = {
   editable: boolean
   navegacion: { anterior: string; siguiente: string; actual: string }
   nombreEmpleado: string
+  calendario: { capacidadMin: number | null; porDefecto: boolean }
 }
 
 function clave(fecha: string, tareaId: string): string {
@@ -84,6 +91,7 @@ export function RejillaSemanal({
   editable,
   navegacion,
   nombreEmpleado,
+  calendario,
 }: Props) {
   const router = useRouter()
   const [valores, setValores] = useState<Record<string, string>>(inicial)
@@ -164,15 +172,27 @@ export function RejillaSemanal({
   }, [celdas, dias, diasConExceso, nombresTarea])
 
   const total = sumarMinutos(celdas.map((celda) => celda.minutos))
+  const diasConHoras = useMemo(
+    () => new Set(celdas.filter((celda) => celda.texto.trim() !== '').map((celda) => celda.fecha)),
+    [celdas],
+  )
+  const permiteDia = useMemo(() => {
+    const mapa: Record<string, boolean> = {}
+    for (const dia of dias) mapa[dia.fecha] = dia.laborable || diasConHoras.has(dia.fecha)
+    return mapa
+  }, [dias, diasConHoras])
+
   const avisos: string[] = []
   for (const dia of dias) {
     if ((totalDia[dia.fecha] ?? 0) > 12 * 60) avisos.push(`${dia.dia} supera 12 horas`)
   }
   if (total > 48 * 60) avisos.push('La semana supera 48 horas')
-  const hayErrores = celdas.some((celda) => celda.error !== null) || diasConExceso.length > 0
+  const hayErrores = celdas.some((celda) => celda.error !== null)
+  const desviacion = calendario.capacidadMin === null ? null : total - calendario.capacidadMin
+
   // Con un valor inválido o un conflicto de versión no se permite guardar:
   // el parte quedaría con datos erróneos o sobre una versión obsoleta.
-  const guardadoBloqueado = hayErrores || hayConflicto
+  const guardadoBloqueado = hayErrores || hayConflicto || diasConExceso.length > 0
 
   const guardar = useCallback(
     async (silencioso = false): Promise<number | null> => {
@@ -238,6 +258,14 @@ export function RejillaSemanal({
     const llave = clave(fecha, tareaId)
     const actual = horasAMinutos(valores[llave] ?? '')
 
+    const dia = dias.find((candidato) => candidato.fecha === fecha)
+    if (dia && !dia.laborable && !diasConHoras.has(fecha)) {
+      return {
+        ok: false,
+        error: `El ${dia.dia} no es laborable${dia.motivo ? ` (${dia.motivo})` : ''}. Si hubo trabajo, pide a administración que lo marque como laborable.`,
+      }
+    }
+
     if (!actual.ok) {
       return {
         ok: false,
@@ -263,7 +291,6 @@ export function RejillaSemanal({
     setError('')
     setResaltadas(new Set([llave]))
 
-    const dia = dias.find((candidato) => candidato.fecha === fecha)
     return {
       ok: true,
       mensaje: `Añadido ${formatearHorasReloj(minutos)} al ${dia?.dia ?? fecha}. Total del día: ${formatearHorasReloj(nuevoTotalDia)}.`,
@@ -293,7 +320,7 @@ export function RejillaSemanal({
       return { ok: false, error: 'Una tarea no puede superar las 24 horas en un día.' }
     }
 
-    const laborables = dias.filter((dia) => !esFinDeSemana(dia.fecha))
+    const laborables = dias.filter((dia) => dia.laborable)
     if (laborables.length === 0) {
       return { ok: false, error: 'Esta semana no tiene días laborables que rellenar.' }
     }
@@ -461,16 +488,28 @@ export function RejillaSemanal({
                     <th
                       key={dia.fecha}
                       scope="col"
+                      title={dia.motivo ?? undefined}
                       className={`w-20 border-l border-marca-100 px-2 py-2 text-center font-semibold ${
-                        dia.esHoy ? 'bg-acento-100 text-marca-900' : 'text-slate-700'
+                        dia.esHoy ? 'bg-acento-100 text-marca-900' : dia.laborable ? 'text-slate-700' : 'bg-slate-100 text-slate-400'
                       }`}
                     >
                       <span className="block text-xs uppercase">{dia.dia}</span>
                       <span className="block text-[11px] font-normal text-slate-500">
                         {dia.fecha.slice(8, 10)}
                       </span>
-                      <span className="mt-0.5 block text-[10px] font-semibold text-acento-800">
-                        {dia.esHoy ? 'hoy' : '\u00a0'}
+                      <span
+                        className={`mt-0.5 block truncate text-[10px] font-semibold ${
+                          dia.laborable ? 'text-acento-800' : 'text-slate-400'
+                        }`}
+                        title={dia.ausencia?.nombre ?? undefined}
+                      >
+                        {dia.ausencia
+                          ? dia.ausencia.nombre
+                          : dia.laborable
+                            ? dia.esHoy
+                              ? 'hoy'
+                              : '\u00a0'
+                            : 'libre'}
                       </span>
                     </th>
                   ))}
@@ -492,6 +531,7 @@ export function RejillaSemanal({
                     totalTarea={totalTarea}
                     deshabilitado={deshabilitado}
                     resaltadas={resaltadas}
+                    permiteDia={permiteDia}
                     cambiar={cambiar}
                   />
                 ))}
@@ -528,6 +568,7 @@ export function RejillaSemanal({
                 totalDia={totalDia[dia.fecha] ?? 0}
                 deshabilitado={deshabilitado}
                 resaltadas={resaltadas}
+                permite={permiteDia[dia.fecha] ?? true}
                 cambiar={cambiar}
                 tieneError={
                   diasConExceso.includes(dia.fecha) ||
@@ -536,6 +577,28 @@ export function RejillaSemanal({
               />
             ))}
           </div>
+
+          {calendario.capacidadMin !== null ? (
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+              <span>
+                Jornada teórica: <strong className="text-slate-800">{formatearHorasReloj(calendario.capacidadMin)}</strong>
+                {' · '}registradas <strong className="text-slate-800">{formatearHorasReloj(total)}</strong>
+              </span>
+              {desviacion !== null && desviacion !== 0 ? (
+                <span className={desviacion > 0 ? 'font-semibold text-amber-700' : 'font-semibold text-marca-700'}>
+                  {desviacion > 0 ? '+' : '-'}
+                  {formatearHorasReloj(Math.abs(desviacion))} {desviacion > 0 ? 'por encima' : 'por debajo'}
+                </span>
+              ) : (
+                <span className="font-semibold text-acento-800">En jornada</span>
+              )}
+            </div>
+          ) : calendario.porDefecto ? (
+            <p className="rounded-md border border-dashed border-slate-300 px-3 py-2 text-xs text-slate-500">
+              Sin calendario laboral configurado: se aplica lunes a viernes. Administración puede definir festivos y
+              jornada teórica en Calendario.
+            </p>
+          ) : null}
         </>
       )}
 
@@ -672,6 +735,7 @@ function GrupoFilas({
   totalTarea,
   deshabilitado,
   resaltadas,
+  permiteDia,
   cambiar,
 }: {
   grupo: GrupoProyecto
@@ -680,6 +744,7 @@ function GrupoFilas({
   totalTarea: Record<string, number>
   deshabilitado: boolean
   resaltadas: ReadonlySet<string>
+  permiteDia: Record<string, boolean>
   cambiar: (fecha: string, tareaId: string, texto: string) => void
 }) {
   return (
@@ -708,6 +773,8 @@ function GrupoFilas({
             const errorCelda = errorDeCelda(texto)
             const invalida = texto !== '' && errorCelda !== null
             const destacada = resaltadas.has(llave)
+            const permite = permiteDia[dia.fecha] ?? true
+            const bloqueada = deshabilitado || !permite
 
             const aspecto = invalida
               ? 'border-red-400 bg-red-50 text-red-800 focus:border-red-500 focus:ring-red-200'
@@ -715,14 +782,19 @@ function GrupoFilas({
                 ? 'border-acento-500 bg-acento-100 ring-2 ring-acento-400'
                 : deshabilitado
                   ? 'border-transparent bg-transparent text-slate-500'
-                  : texto !== ''
-                    ? 'border-slate-300 bg-white text-slate-900 focus:border-marca-500 focus:ring-marca-200'
-                    : 'border-dashed border-slate-400 bg-white text-slate-900 hover:border-marca-400 hover:bg-marca-50 focus:border-marca-500 focus:bg-white focus:ring-marca-200'
+                  : !permite
+                    ? 'border-transparent bg-slate-50 text-slate-400'
+                    : texto !== ''
+                      ? 'border-slate-300 bg-white text-slate-900 focus:border-marca-500 focus:ring-marca-200'
+                      : 'border-dashed border-slate-400 bg-white text-slate-900 hover:border-marca-400 hover:bg-marca-50 focus:border-marca-500 focus:bg-white focus:ring-marca-200'
 
             return (
               <td
                 key={dia.fecha}
-                className={`border-l border-slate-100 px-1 py-1 ${dia.esHoy ? 'bg-acento-50' : ''}`}
+                title={!dia.laborable ? (dia.motivo ?? undefined) : undefined}
+                className={`border-l border-slate-100 px-1 py-1 ${dia.esHoy ? 'bg-acento-50' : ''} ${
+                  dia.laborable ? '' : 'bg-slate-50/70'
+                }`}
               >
                 <input
                   type="text"
@@ -738,9 +810,9 @@ function GrupoFilas({
                       moverFoco(evento.currentTarget, evento.shiftKey ? -1 : 1)
                     }
                   }}
-                  disabled={deshabilitado}
-                  title={errorCelda ?? undefined}
-                  placeholder={deshabilitado ? '' : '0'}
+                  disabled={bloqueada}
+                  title={errorCelda ?? (!dia.laborable ? (dia.motivo ?? undefined) : undefined)}
+                  placeholder={bloqueada ? '' : '0'}
                   className={`w-full rounded border px-1 py-1 text-center text-sm font-medium transition-colors placeholder:font-normal placeholder:text-slate-300 focus:outline-none focus:ring-2 ${aspecto}`}
                 />
               </td>
@@ -791,6 +863,7 @@ function TarjetaDia({
   resaltadas,
   cambiar,
   tieneError,
+  permite,
 }: {
   dia: DiaSemana
   grupos: GrupoProyecto[]
@@ -800,6 +873,8 @@ function TarjetaDia({
   resaltadas: ReadonlySet<string>
   cambiar: (fecha: string, tareaId: string, texto: string) => void
   tieneError: boolean
+  /** Día laborable o con horas ya registradas que se pueden corregir. */
+  permite: boolean
 }) {
   // Sin decisión explícita del usuario, el día de hoy y cualquier día con un
   // valor inválido se muestran abiertos: en móvil la celda vive dentro de la
@@ -808,16 +883,22 @@ function TarjetaDia({
   const abierta = abiertaManual ?? (dia.esHoy || tieneError)
 
   return (
-    <div className="tarjeta p-3">
+    <div className={`tarjeta p-3 ${dia.laborable ? '' : 'bg-slate-50'}`}>
       <button
         type="button"
         onClick={() => setAbiertaManual(!abierta)}
         aria-expanded={abierta}
         className="flex min-h-11 w-full items-center justify-between gap-2 text-left"
       >
-        <h2 className={`text-sm font-semibold capitalize ${dia.esHoy ? 'text-acento-800' : 'text-slate-800'}`}>
+        <h2 className={`text-sm font-semibold capitalize ${dia.esHoy ? 'text-acento-800' : dia.laborable ? 'text-slate-800' : 'text-slate-500'}`}>
           {dia.dia} {dia.fecha.slice(8, 10)}/{dia.fecha.slice(5, 7)}
           {dia.esHoy ? <span className="ml-2 text-[11px] font-normal text-acento-700">hoy</span> : null}
+          {!dia.laborable ? (
+            <span className="ml-2 text-[11px] font-normal text-slate-400">{dia.motivo ?? 'no laborable'}</span>
+          ) : null}
+          {dia.ausencia ? (
+            <span className="ml-2 text-[11px] font-normal text-amber-700">{dia.ausencia.nombre}</span>
+          ) : null}
         </h2>
         <span className="flex items-center gap-2 text-xs text-slate-500">
           {formatearHorasReloj(totalDia)}
@@ -827,6 +908,11 @@ function TarjetaDia({
 
       {abierta ? (
         <div className="mt-2 space-y-2">
+          {!permite ? (
+            <p className="rounded border border-dashed border-slate-300 px-2 py-1.5 text-[11px] text-slate-500">
+              Día no laborable. No se pueden añadir horas nuevas.
+            </p>
+          ) : null}
           {grupos.flatMap((grupo) =>
             grupo.tareas.map((tarea) => {
               const llave = clave(dia.fecha, tarea.tareaId)
@@ -848,7 +934,7 @@ function TarjetaDia({
                     title={errorCelda ?? undefined}
                     value={texto}
                     onChange={(evento) => cambiar(dia.fecha, tarea.tareaId, evento.target.value)}
-                    disabled={deshabilitado}
+                    disabled={deshabilitado || !permite}
                     className={`campo h-11 w-24 text-center ${
                       elementoResaltado
                         ? 'border-acento-500 bg-acento-100 ring-2 ring-acento-400'
@@ -856,7 +942,7 @@ function TarjetaDia({
                           ? 'border-red-400 bg-red-50'
                           : ''
                     }`}
-                    placeholder="0"
+                    placeholder={permite ? '0' : ''}
                   />
                 </label>
               )

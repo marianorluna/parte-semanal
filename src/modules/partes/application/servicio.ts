@@ -7,16 +7,44 @@ import {
   hoyEnZona,
   semanaIso,
   semanaIsoDe,
+  sumarDias,
 } from '../domain/fechas'
 import { type ImputacionEntrada, validarParte } from '../domain/parte'
 import { puedeRevisarParte } from '../domain/permisos'
 import { agruparTareas, type GrupoProyecto } from './agrupacion'
-import type { ParteCompleto, RepositorioPartes } from './ports'
+import type { CalendarioSemana, ParteCompleto, RepositorioPartes } from './ports'
 
 export type DepsPartes = {
   repo: RepositorioPartes
   proyectosPermitidos: (usuario: UsuarioSesion) => Promise<string[] | null>
   proyectosDeParte: (parteId: string) => Promise<string[]>
+  /** Calendario laboral resuelto de la semana; sin calendario, lunes-viernes. */
+  calendario: {
+    semana: (empleadoId: string, semana: SemanaIso) => Promise<CalendarioSemana>
+  }
+  /**
+   * Efectos posteriores a la aprobación (cómputo, coste, outbox). Se ejecutan
+   * fuera de la transacción del estado: si fallan, la aprobación se mantiene y
+   * el administrador puede recalcular.
+   */
+  alAprobar?: (parteId: string, usuario: UsuarioSesion) => Promise<void>
+  /**
+   * Efectos de la reapertura: retirar snapshots de cómputo y coste para que no
+   * cuenten como cerrados mientras el parte vuelve a edición.
+   */
+  alReabrir?: (parteId: string, usuario: UsuarioSesion) => Promise<void>
+  /**
+   * Fechas cerradas del empleado. La UI deshabilita, pero el servidor vuelve a
+   * comprobarlo: un periodo cerrado no admite escritura ni para administración.
+   */
+  cierre?: {
+    fechasBloqueadas: (
+      empresaId: string,
+      empleadoId: string,
+      desde: FechaIso,
+      hasta: FechaIso,
+    ) => Promise<FechaIso[]>
+  }
   ahora?: () => Date
 }
 
@@ -24,6 +52,7 @@ export type VistaSemana = {
   semana: SemanaIso
   parte: ParteCompleto
   grupos: GrupoProyecto[]
+  calendario: CalendarioSemana
 }
 
 function semanaDesde(isoYear?: number, isoWeek?: number): SemanaIso {
@@ -91,7 +120,10 @@ export async function obtenerSemana(
   const existente = await deps.repo.buscarPorSemana(empleadoId, semana.isoYear, semana.isoWeek)
   const parte = existente ?? (await deps.repo.crearBorrador(usuario.empresaId, empleadoId, semana))
 
-  const asignadas = await deps.repo.tareasAsignadas(empleadoId, semana.weekStart, semana.weekEnd)
+  const [asignadas, calendario] = await Promise.all([
+    deps.repo.tareasAsignadas(empleadoId, semana.weekStart, semana.weekEnd),
+    deps.calendario.semana(empleadoId, semana),
+  ])
 
   const idsImputados = [...new Set(parte.imputaciones.map((i) => i.tareaId))]
   const yaIncluidas = new Set(asignadas.map((t) => t.tareaId))
@@ -102,6 +134,7 @@ export async function obtenerSemana(
     semana,
     parte,
     grupos: agruparTareas([...asignadas, ...extra]),
+    calendario,
   }
 }
 
@@ -134,7 +167,13 @@ export async function guardarSemana(
     throw new AppError('SIN_PERMISO', 'Hay una tarea que no está asignada a este empleado')
   }
 
-  const validacion = validarParte(semana.weekStart, input.filas, { permitirVacio: true })
+  const validacion = validarParte(semana.weekStart, input.filas, {
+    permitirVacio: true,
+    diasNoLaborables: (await deps.calendario.semana(empleadoId, semana)).dias
+      .filter((dia) => !dia.laborable)
+      .map((dia) => dia.fecha),
+    fechasConHorasPrevias: parte.imputaciones.map((imputacion) => imputacion.fecha),
+  })
   if (!validacion.ok) {
     const fieldErrors: Record<string, string> = {}
     for (const error of validacion.errores) {

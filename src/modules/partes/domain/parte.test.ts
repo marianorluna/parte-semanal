@@ -59,6 +59,52 @@ describe('validarParte', () => {
     expect(resultado.ok).toBe(true)
     if (resultado.ok) expect(resultado.totalMinutos).toBe(0)
   })
+
+  it('rechaza horas nuevas en un día no laborable', () => {
+    const resultado = validarParte(
+      weekStart,
+      [{ fecha: '2026-10-24', tareaId: TAREA_A, minutos: 240 }],
+      { permitirVacio: true, diasNoLaborables: ['2026-10-24', '2026-10-25'] },
+    )
+
+    expect(resultado.ok).toBe(false)
+    if (!resultado.ok) {
+      expect(resultado.errores[0]?.fecha).toBe('2026-10-24')
+      expect(resultado.errores[0]?.mensaje).toContain('no es laborable')
+    }
+  })
+
+  it('conserva y permite corregir horas ya registradas en un día no laborable', () => {
+    const resultado = validarParte(
+      weekStart,
+      [{ fecha: '2026-10-24', tareaId: TAREA_A, minutos: 180 }],
+      {
+        permitirVacio: true,
+        diasNoLaborables: ['2026-10-24'],
+        fechasConHorasPrevias: ['2026-10-24'],
+      },
+    )
+
+    expect(resultado.ok).toBe(true)
+    if (resultado.ok) expect(resultado.minutosPorDia['2026-10-24']).toBe(180)
+  })
+
+  it('permite añadir otra tarea a un día no laborable que ya tenía horas', () => {
+    const resultado = validarParte(
+      weekStart,
+      [
+        { fecha: '2026-10-24', tareaId: TAREA_A, minutos: 120 },
+        { fecha: '2026-10-24', tareaId: TAREA_B, minutos: 120 },
+      ],
+      {
+        permitirVacio: true,
+        diasNoLaborables: ['2026-10-24'],
+        fechasConHorasPrevias: ['2026-10-24'],
+      },
+    )
+
+    expect(resultado.ok).toBe(true)
+  })
 })
 
 describe('estados del parte', () => {

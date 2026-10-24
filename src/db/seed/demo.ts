@@ -3,8 +3,10 @@ import { db } from '@/db/client'
 import {
   asignacion,
   auditoria,
+  calendario,
   empleado,
   empresa,
+  festivo,
   imputacion,
   parte,
   proyecto,
@@ -17,6 +19,7 @@ import { env } from '@/config/env'
 import { CUENTAS_ACCESO_RAPIDO } from '@/modules/identidad/application/cuentas-demo'
 import { emailCorporativo } from '@/modules/identidad/domain/email-corporativo'
 import { hashPassword } from '@/modules/identidad/application/password'
+import { festivosDeReferencia } from '@/modules/calendario/domain/festivos-espana'
 import { hoyEnZona, semanaIsoDe, sumarDias, type FechaIso } from '@/modules/partes/domain/fechas'
 
 export const CODIGO_EMPRESA_DEMO = 'DEMO'
@@ -198,6 +201,38 @@ export async function cargarDemo(opciones: { refrescar?: boolean } = {}): Promis
 
   if (!empresaCreada) throw new Error('No se pudo crear la empresa demo')
   const empresaId = empresaCreada.id
+
+  // Calendario laboral de la empresa demo: Madrid, lunes a viernes, 8 h/día,
+  // con los festivos de referencia del año en curso ya precargados.
+  const anioActual = Number(hoy.slice(0, 4))
+  const [calendarioDemo] = await db
+    .insert(calendario)
+    .values({
+      empresaId,
+      nombre: 'Calendario Levitec Demo',
+      ambito: 'CCAA',
+      codigo: 'DEMO-MD',
+      comunidad: 'MD',
+      diasSemana: [1, 2, 3, 4, 5],
+      horasDiariasMin: 480,
+      vigenteDesde: `${anioActual}-01-01`,
+      esPredeterminado: true,
+      activo: true,
+    })
+    .returning({ id: calendario.id })
+
+  if (!calendarioDemo) throw new Error('No se pudo crear el calendario demo')
+
+  await db.insert(festivo).values(
+    festivosDeReferencia(anioActual, 'MD').map((referencia) => ({
+      calendarioId: calendarioDemo.id,
+      fecha: referencia.fecha,
+      nombre: referencia.nombre,
+      ambito: referencia.ambito,
+      esLaborable: false,
+      origen: 'SEED' as const,
+    })),
+  )
 
   const proyectosCreados = await db
     .insert(proyecto)

@@ -23,12 +23,15 @@ export default async function MiSemanaPage({ searchParams }: Props) {
   const hoy = hoyEnZona(process.env.TZ ?? 'Europe/Madrid')
   const semanaHoy = semanaIsoDe(hoy)
 
-  const dias: DiaSemana[] = Array.from({ length: 7 }, (_, indice) => {
-    const fecha = new Date(`${vista.semana.weekStart}T00:00:00.000Z`)
-    fecha.setUTCDate(fecha.getUTCDate() + indice)
-    const iso = fecha.toISOString().slice(0, 10)
-    return { fecha: iso, dia: nombreDia(iso), esHoy: iso === hoy }
-  })
+  const dias: DiaSemana[] = vista.calendario.dias.map((dia) => ({
+    fecha: dia.fecha,
+    dia: nombreDia(dia.fecha),
+    esHoy: dia.fecha === hoy,
+    laborable: dia.laborable,
+    motivo: dia.motivo,
+    horasTeoricasMin: dia.horasTeoricasMin,
+    ausencia: dia.ausencia ? { nombre: dia.ausencia.nombre, minutos: dia.ausencia.minutos } : null,
+  }))
 
   const inicial: Record<string, string> = {}
   for (const imputacion of vista.parte.imputaciones) {
@@ -49,6 +52,10 @@ export default async function MiSemanaPage({ searchParams }: Props) {
       versionInicial={vista.parte.version}
       estado={vista.parte.estado}
       motivoRechazo={vista.parte.motivoRechazo}
+      calendario={{
+        capacidadMin: vista.calendario.capacidadMin,
+        porDefecto: vista.calendario.porDefecto,
+      }}
       editable={esEditable(vista.parte.estado) && Boolean(usuario.empleadoId)}
       navegacion={{
         anterior: `/mi-semana?y=${anterior.isoYear}&w=${anterior.isoWeek}`,

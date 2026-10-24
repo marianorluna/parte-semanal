@@ -212,7 +212,12 @@ export const repositorioPartes = {
     return nuevaVersion
   },
 
-  async enviar(parteId: string, versionEsperada: number, actorId: string): Promise<void> {
+  async enviar(
+    parteId: string,
+    versionEsperada: number,
+    actorId: string,
+    calendario?: { id: string | null; version: number | null },
+  ): Promise<void> {
     await db.transaction(async (tx) => {
       const actual = (await tx.select().from(parte).where(eq(parte.id, parteId)).limit(1))[0]
       if (!actual) throw new AppError('NO_ENCONTRADO', 'El parte no existe')
@@ -234,6 +239,8 @@ export const repositorioPartes = {
           enviadoAt: new Date(),
           updatedAt: new Date(),
           motivoRechazo: null,
+          calendarioId: calendario?.id ?? actual.calendarioId,
+          calendarioVersion: calendario?.version ?? actual.calendarioVersion,
         })
         .where(eq(parte.id, parteId))
 

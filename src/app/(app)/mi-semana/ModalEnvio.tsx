@@ -71,7 +71,7 @@ export function ModalEnvio({
     .filter((fila) => fila.minutos > 0)
 
   const diasSinHoras = dias.filter(
-    (dia, indice) => indice < 5 && !celdas.some((celda) => celda.fecha === dia.fecha && celda.minutos > 0),
+    (dia) => dia.laborable && !celdas.some((celda) => celda.fecha === dia.fecha && celda.minutos > 0),
   )
 
   return (

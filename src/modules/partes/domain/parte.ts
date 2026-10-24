@@ -38,6 +38,16 @@ export type ImputacionEntrada = {
 
 export type ErrorValidacion = { fecha: FechaIso; tareaId: string; mensaje: string }
 
+export type OpcionesValidacion = {
+  permitirVacio?: boolean
+  /**
+   * Días que el calendario marca como no laborables. Se rechazan solo si no
+   * tenían horas previas: corregir o retirar horas históricas sigue permitido.
+   */
+  diasNoLaborables?: readonly FechaIso[]
+  fechasConHorasPrevias?: readonly FechaIso[]
+}
+
 export type ValidacionParte =
   | { ok: true; totalMinutos: number; minutosPorDia: Record<FechaIso, number> }
   | { ok: false; errores: ErrorValidacion[] }
@@ -49,16 +59,26 @@ export type ValidacionParte =
 export function validarParte(
   weekStart: FechaIso,
   imputaciones: readonly ImputacionEntrada[],
-  opciones: { permitirVacio?: boolean } = {},
+  opciones: OpcionesValidacion = {},
 ): ValidacionParte {
   const errores: ErrorValidacion[] = []
   const minutosPorDia: Record<FechaIso, number> = {}
   const duplicadas = new Set<string>()
+  const noLaborables = new Set(opciones.diasNoLaborables ?? [])
+  const conHorasPrevias = new Set(opciones.fechasConHorasPrevias ?? [])
 
   for (const imputacion of imputaciones) {
     const dia = diasEntre(weekStart, imputacion.fecha)
     if (!Number.isInteger(dia) || dia < 0 || dia > 6) {
       errores.push({ ...imputacion, mensaje: 'La fecha no pertenece a esta semana' })
+      continue
+    }
+
+    if (noLaborables.has(imputacion.fecha) && !conHorasPrevias.has(imputacion.fecha)) {
+      errores.push({
+        ...imputacion,
+        mensaje: 'Ese día no es laborable según el calendario: solo se conservan las horas ya registradas',
+      })
       continue
     }
 

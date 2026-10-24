@@ -17,6 +17,14 @@ import {
 
 export const rolEnum = pgEnum('rol', ['TRABAJADOR', 'ENCARGADO', 'ADMIN'])
 export const estadoParteEnum = pgEnum('estado_parte', ['BORRADOR', 'ENVIADO', 'APROBADO', 'RECHAZADO'])
+export const ambitoCalendarioEnum = pgEnum('ambito_calendario', [
+  'NACIONAL',
+  'CCAA',
+  'PROVINCIA',
+  'LOCAL',
+  'EMPRESA',
+])
+export const origenFestivoEnum = pgEnum('origen_festivo', ['SEED', 'ADMIN', 'IMPORTACION'])
 export const tipoNotificacionEnum = pgEnum('tipo_notificacion', [
   'RECORDATORIO_PARTE',
   'EQUIPO_PENDIENTE',
@@ -146,6 +154,137 @@ export const asignacion = pgTable(
   ],
 )
 
+export const calendario = pgTable(
+  'calendario',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    empresaId: uuid('empresa_id')
+      .notNull()
+      .references(() => empresa.id, { onDelete: 'cascade' }),
+    nombre: text('nombre').notNull(),
+    /** Ámbito de los festivos que aporta este calendario. */
+    ambito: ambitoCalendarioEnum('ambito').notNull().default('EMPRESA'),
+    /** Código estable: `ES`, `ES-MD`, `ES-MD-28079`, `EMPRESA`. */
+    codigo: text('codigo').notNull(),
+    /** Comunidad autónoma (ISO 3166-2:ES) cuando el ámbito es CCAA o inferior. */
+    comunidad: text('comunidad'),
+    /** Días de la semana laborables, 1 = lunes ... 7 = domingo. */
+    diasSemana: integer('dias_semana').array().notNull().default(sql`'{1,2,3,4,5}'`),
+    /** Jornada diaria de referencia en minutos. Null = sin jornada teórica. */
+    horasDiariasMin: integer('horas_diarias_min'),
+    vigenteDesde: date('vigente_desde').notNull(),
+    vigenteHasta: date('vigente_hasta'),
+    /** Calendario que se aplica a un empleado sin asignación explícita. */
+    esPredeterminado: boolean('es_predeterminado').notNull().default(false),
+    activo: boolean('activo').notNull().default(true),
+    version: integer('version').notNull().default(1),
+    createdAt,
+  },
+  (t) => [
+    uniqueIndex('calendario_empresa_codigo_uq').on(t.empresaId, t.codigo),
+    index('calendario_empresa_idx').on(t.empresaId),
+    check(
+      'calendario_vigencia_ck',
+      sql`${t.vigenteHasta} is null or ${t.vigenteDesde} <= ${t.vigenteHasta}`,
+    ),
+    check(
+      'calendario_jornada_ck',
+      sql`${t.horasDiariasMin} is null or (${t.horasDiariasMin} > 0 and ${t.horasDiariasMin} <= 1440)`,
+    ),
+    check(
+      'calendario_dias_ck',
+      sql`${t.diasSemana} <@ '{1,2,3,4,5,6,7}'::integer[]`,
+    ),
+  ],
+)
+
+export const festivo = pgTable(
+  'festivo',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    calendarioId: uuid('calendario_id')
+      .notNull()
+      .references(() => calendario.id, { onDelete: 'cascade' }),
+    fecha: date('fecha').notNull(),
+    nombre: text('nombre').notNull(),
+    /** Ámbito de origen del festivo; decide precedencia al resolver. */
+    ambito: ambitoCalendarioEnum('ambito').notNull().default('EMPRESA'),
+    /** Un festivo con `esLaborable` true abre un día que el calendario cerraba. */
+    esLaborable: boolean('es_laborable').notNull().default(false),
+    origen: origenFestivoEnum('origen').notNull().default('ADMIN'),
+    createdAt,
+  },
+  (t) => [
+    uniqueIndex('festivo_calendario_fecha_uq').on(t.calendarioId, t.fecha),
+    index('festivo_calendario_idx').on(t.calendarioId, t.fecha),
+  ],
+)
+
+export const excepcionCalendario = pgTable(
+  'excepcion_calendario',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    calendarioId: uuid('calendario_id')
+      .notNull()
+      .references(() => calendario.id, { onDelete: 'cascade' }),
+    fecha: date('fecha').notNull(),
+    /** true abre el día (sábado puntual), false lo cierra (puente). */
+    laborable: boolean('laborable').notNull(),
+    motivo: text('motivo').notNull(),
+    createdAt,
+  },
+  (t) => [
+    uniqueIndex('excepcion_calendario_fecha_uq').on(t.calendarioId, t.fecha),
+    index('excepcion_calendario_idx').on(t.calendarioId, t.fecha),
+  ],
+)
+
+export const empleadoCalendario = pgTable(
+  'empleado_calendario',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    empleadoId: uuid('empleado_id')
+      .notNull()
+      .references(() => empleado.id, { onDelete: 'cascade' }),
+    calendarioId: uuid('calendario_id')
+      .notNull()
+      .references(() => calendario.id, { onDelete: 'restrict' }),
+    desde: date('desde').notNull(),
+    hasta: date('hasta'),
+    createdAt,
+  },
+  (t) => [
+    index('empleado_calendario_empleado_idx').on(t.empleadoId, t.desde),
+    check('empleado_calendario_rango_ck', sql`${t.hasta} is null or ${t.desde} <= ${t.hasta}`),
+  ],
+)
+
+export const jornadaTeorica = pgTable(
+  'jornada_teorica',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    calendarioId: uuid('calendario_id')
+      .notNull()
+      .references(() => calendario.id, { onDelete: 'cascade' }),
+    /** Null = jornada de referencia del calendario para toda la empresa. */
+    empleadoId: uuid('empleado_id').references(() => empleado.id, { onDelete: 'cascade' }),
+    desde: date('desde').notNull(),
+    hasta: date('hasta'),
+    horasSemanalesMin: integer('horas_semanales_min').notNull(),
+    horasDiariasMin: integer('horas_diarias_min'),
+    createdAt,
+  },
+  (t) => [
+    index('jornada_teorica_calendario_idx').on(t.calendarioId, t.desde),
+    index('jornada_teorica_empleado_idx').on(t.empleadoId, t.desde),
+    check('jornada_teorica_rango_ck', sql`${t.hasta} is null or ${t.desde} <= ${t.hasta}`),
+    check(
+      'jornada_teorica_minutos_ck',
+      sql`${t.horasSemanalesMin} > 0 and (${t.horasDiariasMin} is null or ${t.horasDiariasMin} > 0)`,
+    ),
+  ],
+)
+
 export const parte = pgTable(
   'parte',
   {
@@ -162,6 +301,10 @@ export const parte = pgTable(
     estado: estadoParteEnum('estado').notNull().default('BORRADOR'),
     totalMinutos: integer('total_minutos').notNull().default(0),
     version: integer('version').notNull().default(1),
+    // Snapshot del calendario aplicado. Un parte cerrado no cambia de calendario
+    // aunque después se editen festivos o excepciones.
+    calendarioId: uuid('calendario_id').references(() => calendario.id, { onDelete: 'set null' }),
+    calendarioVersion: integer('calendario_version'),
     enviadoAt: timestamp('enviado_at', { withTimezone: true }),
     revisadoPor: uuid('revisado_por').references(() => usuario.id, { onDelete: 'set null' }),
     revisadoAt: timestamp('revisado_at', { withTimezone: true }),
@@ -272,6 +415,13 @@ export const imputacionRelations = relations(imputacion, ({ one }) => ({
   tarea: one(tarea, { fields: [imputacion.tareaId], references: [tarea.id] }),
 }))
 
+export const calendarioRelations = relations(calendario, ({ many }) => ({
+  festivos: many(festivo),
+  excepciones: many(excepcionCalendario),
+}))
+
 export type EstadoParte = (typeof estadoParteEnum.enumValues)[number]
 export type Rol = (typeof rolEnum.enumValues)[number]
 export type TipoNotificacion = (typeof tipoNotificacionEnum.enumValues)[number]
+export type AmbitoCalendario = (typeof ambitoCalendarioEnum.enumValues)[number]
+export type OrigenFestivo = (typeof origenFestivoEnum.enumValues)[number]

@@ -15,6 +15,13 @@
       "when": 1792872619157,
       "tag": "0001_silky_big_bertha",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792878668047,
+      "tag": "0002_white_the_renegades",
+      "breakpoints": true
     }
   ]
 }
