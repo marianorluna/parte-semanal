@@ -135,6 +135,8 @@ npm run test
 | `Cannot find module` | Dependencias no instaladas | Ejecutar el paso 3 de nuevo |
 | Error de conexión a BD | `.env` mal configurado o contenedor parado | Revisar `DATABASE_URL` y `docker compose up -d db` |
 | `AUTH_SECRET` ausente | Falta la variable | Generarla con `openssl rand -base64 32` |
+| `AUTH_SECRET` de menos de 32 caracteres | El valor generado a mano es corto | Volver a generarla con `openssl rand -base64 32` (44 caracteres) |
+| Deploy en `Success` pero el dominio devuelve `503 no available server` y el contenedor `app` está en `Restarting` | El entrypoint aborta al arrancar (típicamente `AUTH_SECRET` corta o `POSTGRES_PASSWORD` con `+`, `/`, `@`) y Docker reinicia en bucle; Coolify no lo refleja porque `docker compose up -d` devolvió 0 | Abrir las **Runtime Logs** del contenedor `app` (no las Deployment Logs), corregir la variable y redesplegar |
 | Puerto 3000 o 5432 ocupado | Otro proceso usa el puerto | Parar solo el proceso propio que sea seguro parar o cambiar el puerto |
 | El demo no aparece en el dashboard | Semanas antiguas cargadas | `npm run db:seed:demo -- --refresh` |
 
