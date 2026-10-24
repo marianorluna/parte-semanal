@@ -94,8 +94,9 @@ export function requiereEmpleado(usuario: UsuarioSesion): string {
   return usuario.empleadoId
 }
 
+/** Página de aterrizaje por rol: única fuente para login, inicio y acceso denegado. */
 export function rutaInicial(usuario: UsuarioSesion): string {
   if (usuario.rol === 'ADMIN') return '/control/dashboard'
-  if (usuario.rol === 'ENCARGADO') return '/control/equipo'
+  if (usuario.rol === 'ENCARGADO') return '/control/partes'
   return '/mi-semana'
 }

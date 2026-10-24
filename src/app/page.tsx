@@ -1,13 +1,11 @@
 import { redirect } from 'next/navigation'
-import { auth } from '@/auth'
+import { rutaInicial, usuarioActual } from '@/modules/identidad/application/sesion'
 
 export const dynamic = 'force-dynamic'
 
 export default async function InicioPage() {
-  const sesion = await auth()
-  if (!sesion?.user) redirect('/login')
+  const usuario = await usuarioActual()
+  if (!usuario) redirect('/login')
 
-  if (sesion.user.rol === 'ADMIN') redirect('/admin/usuarios')
-  if (sesion.user.rol === 'ENCARGADO') redirect('/control/partes')
-  redirect('/mi-semana')
+  redirect(rutaInicial(usuario))
 }
