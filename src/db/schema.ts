@@ -83,6 +83,13 @@ export const formatoInformeEnum = pgEnum('formato_informe', ['CSV', 'XLSX', 'PDF
 /** Semanal (por semana ISO) o mensual (mes natural por empleado). */
 export const tipoPeriodoEnum = pgEnum('tipo_periodo', ['SEMANAL', 'MENSUAL'])
 
+export const estadoEmailEnum = pgEnum('estado_email', [
+  'PENDIENTE',
+  'ENVIADO',
+  'FALLIDO',
+  'SIN_PROVEEDOR',
+])
+
 /** `bytea` para el contenido del informe; ExcelJS y PDF producen Buffer. */
 const bytea = customType<{ data: Buffer; driverData: Buffer }>({
   dataType() {
@@ -776,6 +783,62 @@ export const auditoria = pgTable(
   ],
 )
 
+/**
+ * Preferencias de aviso por usuario y tipo. La ausencia de fila equivale a
+ * recibir tanto el aviso in-app como el correo: no rompe usuarios existentes.
+ */
+export const preferenciaAviso = pgTable(
+  'preferencia_aviso',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    usuarioId: uuid('usuario_id')
+      .notNull()
+      .references(() => usuario.id, { onDelete: 'cascade' }),
+    tipo: tipoNotificacionEnum('tipo').notNull(),
+    email: boolean('email').notNull().default(true),
+    inApp: boolean('in_app').notNull().default(true),
+    createdAt,
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('preferencia_aviso_usuario_tipo_uq').on(t.usuarioId, t.tipo)],
+)
+
+/**
+ * Bandeja de salida de correo. La clave de idempotencia (usuario + evento +
+ * periodo) impide duplicados cuando el cron se repite. El envío ocurre en la
+ * cola: si SMTP no está configurado, queda SIN_PROVEEDOR sin tumbar la acción.
+ */
+export const emailEnvio = pgTable(
+  'email_envio',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    empresaId: uuid('empresa_id')
+      .notNull()
+      .references(() => empresa.id, { onDelete: 'cascade' }),
+    usuarioId: uuid('usuario_id')
+      .notNull()
+      .references(() => usuario.id, { onDelete: 'cascade' }),
+    tipo: tipoNotificacionEnum('tipo').notNull(),
+    destinatario: text('destinatario').notNull(),
+    asunto: text('asunto').notNull(),
+    cuerpo: text('cuerpo').notNull(),
+    plantilla: text('plantilla').notNull(),
+    plantillaVersion: integer('plantilla_version').notNull().default(1),
+    estado: estadoEmailEnum('estado').notNull().default('PENDIENTE'),
+    claveIdempotencia: text('clave_idempotencia').notNull(),
+    intentos: integer('intentos').notNull().default(0),
+    ultimoError: text('ultimo_error'),
+    enviadoAt: timestamp('enviado_at', { withTimezone: true }),
+    createdAt,
+  },
+  (t) => [
+    uniqueIndex('email_envio_usuario_clave_uq').on(t.usuarioId, t.claveIdempotencia),
+    index('email_envio_empresa_created_idx').on(t.empresaId, t.createdAt),
+    index('email_envio_estado_idx').on(t.estado),
+    check('email_envio_intentos_ck', sql`${t.intentos} >= 0`),
+  ],
+)
+
 export const notificacion = pgTable(
   'notificacion',
   {
@@ -863,3 +926,4 @@ export type EstadoAusencia = (typeof estadoAusenciaEnum.enumValues)[number]
 export type TipoInforme = (typeof tipoInformeEnum.enumValues)[number]
 export type EstadoInforme = (typeof estadoInformeEnum.enumValues)[number]
 export type FormatoInforme = (typeof formatoInformeEnum.enumValues)[number]
+export type EstadoEmail = (typeof estadoEmailEnum.enumValues)[number]

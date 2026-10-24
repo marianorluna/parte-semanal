@@ -51,6 +51,12 @@ export default async function NotificacionesPage({ searchParams }: Props) {
 
         <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
           <Link
+            href="/notificaciones/preferencias"
+            className="boton-secundario px-3 py-1.5 text-xs"
+          >
+            Preferencias
+          </Link>
+          <Link
             href={soloNoLeidas ? '/notificaciones' : '/notificaciones?pendientes=1'}
             className="boton-secundario px-3 py-1.5 text-xs"
           >

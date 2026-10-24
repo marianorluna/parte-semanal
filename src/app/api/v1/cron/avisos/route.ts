@@ -1,12 +1,13 @@
 import { timingSafeEqual } from 'node:crypto'
 import { NextResponse, type NextRequest } from 'next/server'
 import { env } from '@/config/env'
-import { depsAvisos } from '@/composition'
+import { depsAvisos, depsEmail } from '@/composition'
 import {
   generarAvisos,
   type ModoAvisos,
   type OpcionesAvisos,
 } from '@/modules/notificaciones/application/servicio'
+import { encolarAvisos } from '@/modules/email/application/servicio'
 import type { VentanaAviso } from '@/modules/notificaciones/domain/claves'
 import { hoyEnZona, semanaIsoDe, sumarDias } from '@/modules/partes/domain/fechas'
 
@@ -76,8 +77,26 @@ async function ejecutar(request: NextRequest): Promise<NextResponse> {
 
   try {
     const resultado = await generarAvisos(depsAvisos, opciones)
+    const emails = dryRun
+      ? null
+      : await encolarAvisos(
+          depsEmail,
+          resultado.lote.map((aviso) => ({
+            empresaId: aviso.empresaId,
+            usuarioId: aviso.usuarioId,
+            email: aviso.email,
+            nombre: aviso.nombre,
+            tipo: aviso.tipo,
+            titulo: aviso.titulo,
+            cuerpo: aviso.cuerpo,
+            url: aviso.url,
+            claveIdempotencia: aviso.claveIdempotencia,
+          })),
+        )
     console.info(
-      `[cron/avisos] modo=${modo} ventana=${ventana} semana=${semana.isoYear}-W${semana.isoWeek} dryRun=${dryRun} creadas=${resultado.creadas} omitidas=${resultado.omitidas}`,
+      `[cron/avisos] modo=${modo} ventana=${ventana} semana=${semana.isoYear}-W${semana.isoWeek} dryRun=${dryRun} creadas=${resultado.creadas} omitidas=${resultado.omitidas}${
+        emails ? ` emails=${emails.creados}` : ''
+      }`,
     )
 
     return NextResponse.json(
@@ -96,6 +115,7 @@ async function ejecutar(request: NextRequest): Promise<NextResponse> {
         empresas: resultado.empresas,
         creadas: resultado.creadas,
         omitidas: resultado.omitidas,
+        emails,
         lote: resultado.lote,
       },
       { headers: { 'Cache-Control': 'no-store' } },

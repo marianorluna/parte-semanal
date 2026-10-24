@@ -24,6 +24,7 @@ export type OpcionesAvisos = {
 }
 
 export type NotificacionLote = {
+  empresaId: string
   usuarioId: string
   email: string
   nombre: string
@@ -31,6 +32,8 @@ export type NotificacionLote = {
   titulo: string
   cuerpo: string
   url: string | null
+  /** Clave del aviso in-app: base de la idempotencia del correo. */
+  claveIdempotencia: string
 }
 
 export type ResultadoAvisos = {
@@ -94,6 +97,7 @@ function describirLote(generado: Generado): NotificacionLote[] {
   return generado.entradas.map((entrada) => {
     const destinatario = generado.destinatarios.get(entrada.usuarioId)
     return {
+      empresaId: entrada.empresaId,
       usuarioId: entrada.usuarioId,
       email: destinatario?.email ?? '',
       nombre: destinatario?.nombre ?? '',
@@ -101,6 +105,7 @@ function describirLote(generado: Generado): NotificacionLote[] {
       titulo: entrada.titulo,
       cuerpo: entrada.cuerpo,
       url: entrada.url,
+      claveIdempotencia: entrada.claveIdempotencia,
     }
   })
 }

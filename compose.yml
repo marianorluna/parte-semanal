@@ -50,6 +50,11 @@ services:
       AUTH_SECRET: ${AUTH_SECRET:-}
       DEMO_PASSWORD: ${DEMO_PASSWORD:-Demo1234!}
       ACCESO_RAPIDO_DEMO: ${ACCESO_RAPIDO_DEMO:-false}
+      # Opcionales: sin CRON_SECRET el cron de avisos responde 503 y sin
+      # SMTP_URL los correos quedan SIN_PROVEEDOR. La app arranca igual.
+      CRON_SECRET: ${CRON_SECRET:-}
+      SMTP_URL: ${SMTP_URL:-}
+      SMTP_FROM: ${SMTP_FROM:-}
       TZ: ${TZ:-Europe/Madrid}
       NODE_ENV: production
     expose:

@@ -1,5 +1,9 @@
 import { z } from 'zod'
 
+/** Compose puede inyectar variables vacías: se tratan como no definidas. */
+const vacioComoUndefined = (valor: unknown): unknown =>
+  typeof valor === 'string' && valor.trim() === '' ? undefined : valor
+
 const envSchema = z.object({
   DATABASE_URL: z.string().min(1, 'DATABASE_URL es obligatoria'),
   APP_URL: z.string().url('APP_URL debe ser una URL válida').default('http://localhost:3000'),
@@ -17,7 +21,20 @@ const envSchema = z.object({
     .transform((valor) => valor === 'true' || valor === '1'),
   // Opcional a propósito: sin secreto el cron de avisos queda deshabilitado
   // (503) y el resto de la app funciona igual.
-  CRON_SECRET: z.string().min(16, 'CRON_SECRET debe tener al menos 16 caracteres').optional(),
+  CRON_SECRET: z.preprocess(
+    vacioComoUndefined,
+    z.string().min(16, 'CRON_SECRET debe tener al menos 16 caracteres').optional(),
+  ),
+  // Opcionales a propósito: sin SMTP_URL los avisos por email quedan en estado
+  // SIN_PROVEEDOR y el resto del producto funciona igual.
+  SMTP_URL: z.preprocess(
+    vacioComoUndefined,
+    z.string().url('SMTP_URL debe ser una URL de conexión SMTP válida').optional(),
+  ),
+  SMTP_FROM: z.preprocess(
+    vacioComoUndefined,
+    z.string().min(3, 'SMTP_FROM debe indicar el remitente').optional(),
+  ),
 })
 
 export type Env = z.infer<typeof envSchema>
@@ -37,6 +54,8 @@ const entornoDeCompilacion: Env = {
   DEMO_PASSWORD: 'Demo1234!',
   ACCESO_RAPIDO_DEMO: false,
   CRON_SECRET: undefined,
+  SMTP_URL: undefined,
+  SMTP_FROM: undefined,
 }
 
 export function env(): Env {
