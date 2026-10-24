@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Valores válidos para compilar y ejecutar los tests sin secretos reales.
+  DATABASE_URL: postgresql://parte_diario:parte_diario@127.0.0.1:5432/parte_diario
+  AUTH_SECRET: ci-sin-secreto-real-0000000000000000
+  APP_URL: http://localhost:3000
+  TZ: Europe/Madrid
+
+jobs:
+  calidad:
+    runs-on: ubuntu-latest
+    services:
+      db:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: parte_diario
+          POSTGRES_PASSWORD: parte_diario
+          POSTGRES_DB: parte_diario
+          TZ: Europe/Madrid
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U parte_diario -d parte_diario"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Migraciones sobre base limpia
+        run: npm run db:migrate
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Tipado
+        run: npm run typecheck
+
+      - name: Tests de dominio
+        run: npm run test
+
+      - name: Build
+        run: npm run build
