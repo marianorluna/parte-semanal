@@ -14,6 +14,7 @@ import {
 } from '@/db/schema'
 import type { EstadoParte } from '@/db/schema'
 import { env } from '@/config/env'
+import { CUENTAS_ACCESO_RAPIDO } from '@/modules/identidad/application/cuentas-demo'
 import { emailCorporativo } from '@/modules/identidad/domain/email-corporativo'
 import { hashPassword } from '@/modules/identidad/application/password'
 import { hoyEnZona, semanaIsoDe, sumarDias, type FechaIso } from '@/modules/partes/domain/fechas'
@@ -238,9 +239,13 @@ export async function cargarDemo(opciones: { refrescar?: boolean } = {}): Promis
   const admin = empleadosCreados[0]
   if (!admin) throw new Error('No se pudo crear el empleado de administración')
 
+  const emailDestacadoPorNombre = new Map(
+    CUENTAS_ACCESO_RAPIDO.map((cuenta) => [cuenta.nombre, cuenta.email]),
+  )
+
   const emailsUsados = new Set<string>()
   const emailUnico = (nombre: string): string => {
-    const email = emailCorporativo(nombre)
+    const email = emailDestacadoPorNombre.get(nombre) ?? emailCorporativo(nombre)
     if (emailsUsados.has(email)) {
       throw new Error(`Dos personas generan el mismo correo (${email}). Revisa los nombres del seed.`)
     }
