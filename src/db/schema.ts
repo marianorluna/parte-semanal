@@ -48,6 +48,13 @@ export const tipoHoraEnum = pgEnum('tipo_hora', [
 /** Contexto en el que una regla de cómputo es aplicable. */
 export const aplicaEnEnum = pgEnum('aplica_en', ['TODO', 'LABORABLE', 'FESTIVO'])
 
+export const estadoAusenciaEnum = pgEnum('estado_ausencia', [
+  'SOLICITADA',
+  'APROBADA',
+  'RECHAZADA',
+  'ANULADA',
+])
+
 const createdAt = timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
 
 export const empresa = pgTable('empresa', {
@@ -373,6 +380,81 @@ export const empleadoConvenio = pgTable(
   ],
 )
 
+export const tipoAusencia = pgTable(
+  'tipo_ausencia',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    empresaId: uuid('empresa_id')
+      .notNull()
+      .references(() => empresa.id, { onDelete: 'cascade' }),
+    codigo: text('codigo').notNull(),
+    nombre: text('nombre').notNull(),
+    /** Vacaciones y permisos retribuidos consumen saldo anual. */
+    computaSaldo: boolean('computa_saldo').notNull().default(false),
+    requiereAprobacion: boolean('requiere_aprobacion').notNull().default(true),
+    activo: boolean('activo').notNull().default(true),
+    createdAt,
+  },
+  (t) => [
+    uniqueIndex('tipo_ausencia_empresa_codigo_uq').on(t.empresaId, t.codigo),
+    index('tipo_ausencia_empresa_idx').on(t.empresaId),
+  ],
+)
+
+export const ausencia = pgTable(
+  'ausencia',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    empresaId: uuid('empresa_id')
+      .notNull()
+      .references(() => empresa.id, { onDelete: 'cascade' }),
+    empleadoId: uuid('empleado_id')
+      .notNull()
+      .references(() => empleado.id, { onDelete: 'cascade' }),
+    tipoId: uuid('tipo_id')
+      .notNull()
+      .references(() => tipoAusencia.id, { onDelete: 'restrict' }),
+    desde: date('desde').notNull(),
+    hasta: date('hasta').notNull(),
+    /** Null = jornada completa; con valor, solo esos minutos del día. */
+    minutos: integer('minutos'),
+    estado: estadoAusenciaEnum('estado').notNull().default('SOLICITADA'),
+    motivoSolicitud: text('motivo_solicitud'),
+    motivoResolucion: text('motivo_resolucion'),
+    resueltoPor: uuid('resuelto_por').references(() => usuario.id, { onDelete: 'set null' }),
+    resueltoAt: timestamp('resuelto_at', { withTimezone: true }),
+    createdAt,
+  },
+  (t) => [
+    index('ausencia_empleado_fechas_idx').on(t.empleadoId, t.desde),
+    index('ausencia_empresa_estado_idx').on(t.empresaId, t.estado),
+    check('ausencia_rango_ck', sql`${t.desde} <= ${t.hasta}`),
+    check('ausencia_minutos_ck', sql`${t.minutos} is null or (${t.minutos} > 0 and ${t.minutos} <= 1440)`),
+  ],
+)
+
+export const saldoVacaciones = pgTable(
+  'saldo_vacaciones',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    empleadoId: uuid('empleado_id')
+      .notNull()
+      .references(() => empleado.id, { onDelete: 'cascade' }),
+    /** Año natural del saldo. */
+    anio: integer('anio').notNull(),
+    minutosAsignados: integer('minutos_asignados').notNull(),
+    minutosArrastrados: integer('minutos_arrastrados').notNull().default(0),
+    createdAt,
+  },
+  (t) => [
+    uniqueIndex('saldo_vacaciones_empleado_anio_uq').on(t.empleadoId, t.anio),
+    check(
+      'saldo_vacaciones_minutos_ck',
+      sql`${t.minutosAsignados} >= 0 and ${t.minutosArrastrados} >= 0`,
+    ),
+  ],
+)
+
 export const parte = pgTable(
   'parte',
   {
@@ -560,3 +642,4 @@ export type AmbitoCalendario = (typeof ambitoCalendarioEnum.enumValues)[number]
 export type OrigenFestivo = (typeof origenFestivoEnum.enumValues)[number]
 export type TipoHora = (typeof tipoHoraEnum.enumValues)[number]
 export type AplicaEn = (typeof aplicaEnEnum.enumValues)[number]
+export type EstadoAusencia = (typeof estadoAusenciaEnum.enumValues)[number]

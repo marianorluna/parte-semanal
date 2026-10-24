@@ -21,16 +21,19 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   const enlaces: EnlaceNav[] = []
   if (usuario.empleadoId) enlaces.push({ href: '/mi-semana', etiqueta: 'Mi semana' })
+  if (usuario.empleadoId) enlaces.push({ href: '/mis-ausencias', etiqueta: 'Mis ausencias' })
   if (puedeControlar) {
     enlaces.push({ href: '/control/dashboard', etiqueta: 'Dashboard' })
     enlaces.push({ href: '/control/equipo', etiqueta: 'Equipo' })
     enlaces.push({ href: '/control/partes', etiqueta: 'Partes', contador: pendientes })
+    enlaces.push({ href: '/control/ausencias', etiqueta: 'Ausencias' })
   }
   if (usuario.rol === 'ADMIN') {
     enlaces.push({ href: '/admin/usuarios', etiqueta: 'Usuarios' })
     enlaces.push({ href: '/admin/proyectos', etiqueta: 'Proyectos' })
     enlaces.push({ href: '/admin/calendario', etiqueta: 'Calendario' })
     enlaces.push({ href: '/admin/convenios', etiqueta: 'Convenios' })
+    enlaces.push({ href: '/admin/ausencias', etiqueta: 'Tipos ausencia' })
     enlaces.push({ href: '/admin/auditoria', etiqueta: 'Auditoría' })
     enlaces.push({ href: '/admin/demo', etiqueta: 'Demo' })
   }

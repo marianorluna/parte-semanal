@@ -29,6 +29,13 @@
       "when": 1792879564528,
       "tag": "0003_curvy_jean_grey",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792879801137,
+      "tag": "0004_small_lockjaw",
+      "breakpoints": true
     }
   ]
 }
