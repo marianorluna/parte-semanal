@@ -1,11 +1,17 @@
-import { and, eq, inArray, sql } from 'drizzle-orm'
+import { and, eq, getTableColumns, inArray, sql } from 'drizzle-orm'
 import { db } from '@/db/client'
-import { empleado, proyecto, usuario, usuarioProyecto } from '@/db/schema'
+import { empleado, empresa, proyecto, usuario, usuarioProyecto } from '@/db/schema'
 import type { Rol } from '@/db/schema'
 import { AppError } from '@/shared/errors'
 
 export async function buscarUsuario(usuarioId: string) {
-  const filas = await db.select().from(usuario).where(eq(usuario.id, usuarioId)).limit(1)
+  const filas = await db
+    .select({ ...getTableColumns(usuario), empresaCodigo: empresa.codigo })
+    .from(usuario)
+    .innerJoin(empresa, eq(empresa.id, usuario.empresaId))
+    .where(eq(usuario.id, usuarioId))
+    .limit(1)
+
   return filas[0] ?? null
 }
 

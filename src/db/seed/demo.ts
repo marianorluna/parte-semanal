@@ -14,11 +14,11 @@ import {
 } from '@/db/schema'
 import type { EstadoParte } from '@/db/schema'
 import { env } from '@/config/env'
+import { emailCorporativo } from '@/modules/identidad/domain/email-corporativo'
 import { hashPassword } from '@/modules/identidad/application/password'
 import { hoyEnZona, semanaIsoDe, sumarDias, type FechaIso } from '@/modules/partes/domain/fechas'
 
 export const CODIGO_EMPRESA_DEMO = 'DEMO'
-export const DOMINIO_DEMO = '@demo.local'
 
 export type ResumenDemo = {
   empresaId: string
@@ -207,7 +207,7 @@ export async function cargarDemo(opciones: { refrescar?: boolean } = {}): Promis
   const totalEmpleados = 1 + NOMBRES_ENCARGADOS.length + NOMBRES_TRABAJADORES.length
 
   const nombreEmpleado = (indice: number): string => {
-    if (indice === 0) return 'Administración Demo'
+    if (indice === 0) return 'David Sierra'
     if (indice <= NOMBRES_ENCARGADOS.length) return NOMBRES_ENCARGADOS[indice - 1] ?? 'Encargado'
     return NOMBRES_TRABAJADORES[indice - 1 - NOMBRES_ENCARGADOS.length] ?? 'Trabajador'
   }
@@ -238,11 +238,21 @@ export async function cargarDemo(opciones: { refrescar?: boolean } = {}): Promis
   const admin = empleadosCreados[0]
   if (!admin) throw new Error('No se pudo crear el empleado de administración')
 
+  const emailsUsados = new Set<string>()
+  const emailUnico = (nombre: string): string => {
+    const email = emailCorporativo(nombre)
+    if (emailsUsados.has(email)) {
+      throw new Error(`Dos personas generan el mismo correo (${email}). Revisa los nombres del seed.`)
+    }
+    emailsUsados.add(email)
+    return email
+  }
+
   filasUsuarios.push({
     empresaId,
-    email: `admin${DOMINIO_DEMO}`,
+    email: emailUnico('David Sierra'),
     passwordHash: password,
-    nombre: 'Administración Demo',
+    nombre: 'David Sierra',
     rol: 'ADMIN',
     empleadoId: admin.id,
     activo: true,
@@ -253,7 +263,7 @@ export async function cargarDemo(opciones: { refrescar?: boolean } = {}): Promis
     if (!empleadoFila) return
     filasUsuarios.push({
       empresaId,
-      email: `encargado${indice + 1}${DOMINIO_DEMO}`,
+      email: emailUnico(nombre),
       passwordHash: password,
       nombre,
       rol: 'ENCARGADO',
@@ -267,7 +277,7 @@ export async function cargarDemo(opciones: { refrescar?: boolean } = {}): Promis
     if (!empleadoFila) return
     filasUsuarios.push({
       empresaId,
-      email: `trabajador${String(indice + 1).padStart(2, '0')}${DOMINIO_DEMO}`,
+      email: emailUnico(nombre),
       passwordHash: password,
       nombre,
       rol: 'TRABAJADOR',

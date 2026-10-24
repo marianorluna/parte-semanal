@@ -43,7 +43,7 @@ export function FormularioEditarUsuario({
           <select name="rol" defaultValue={rol} className="campo mt-1">
             <option value="TRABAJADOR">Trabajador</option>
             <option value="ENCARGADO">Encargado</option>
-            <option value="ADMIN">Administración</option>
+            <option value="ADMIN">Administrador</option>
           </select>
         </label>
 

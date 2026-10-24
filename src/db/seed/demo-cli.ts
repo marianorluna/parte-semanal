@@ -1,6 +1,7 @@
 import 'dotenv/config'
 import { sql } from '@/db/client'
 import { esProduccion } from '@/config/env'
+import { CUENTAS_ACCESO_RAPIDO } from '@/modules/identidad/application/cuentas-demo'
 import { cargarDemo, purgarDemo, resumenDemo } from './demo'
 
 const argumentos = process.argv.slice(2)
@@ -59,9 +60,9 @@ async function main() {
       `  partes: ${resumen.partes} en ${resumen.semanas} semanas`,
       `  imputaciones: ${resumen.imputaciones}`,
       '',
-      `Acceso administrador: admin@demo.local / ${process.env.DEMO_PASSWORD ?? 'Demo1234!'}`,
-      'Encargados: encargado1@demo.local ... encargado6@demo.local',
-      'Trabajadores: trabajador01@demo.local ... trabajador43@demo.local',
+      `Contraseña común: ${process.env.DEMO_PASSWORD ?? 'Demo1234!'}`,
+      ...CUENTAS_ACCESO_RAPIDO.map((cuenta) => `${cuenta.etiqueta}: ${cuenta.email}`),
+      'Resto de cuentas: inicial+apellido@levitec.es (misma contraseña)',
     ].join('\n'),
   )
 }

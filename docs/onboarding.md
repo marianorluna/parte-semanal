@@ -104,11 +104,17 @@ La app queda en `http://localhost:3000`. `/api/health` responde `{"status":"ok",
 
 ### Cuentas del demo
 
-| Rol | Email | Contraseña |
-|-----|-------|------------|
-| ADMIN | `admin@demo.local` | `Demo1234!` (o `DEMO_PASSWORD`) |
-| ENCARGADO | `encargado1@demo.local` ... `encargado6@demo.local` | igual |
-| TRABAJADOR | `trabajador01@demo.local` ... `trabajador43@demo.local` | igual |
+El correo sigue el formato inicial del nombre más los apellidos sobre `@levitec.es`.
+
+| Rol | Nombre | Email | Contraseña |
+|-----|--------|-------|------------|
+| ADMIN | David Sierra | `dsierra@levitec.es` | `Demo1234!` (o `DEMO_PASSWORD`) |
+| ENCARGADO | Fernando Nieto | `fnieto@levitec.es` | igual |
+| TRABAJADOR | Álvaro Méndez | `amendez@levitec.es` | igual |
+
+El resto de encargados y trabajadores usa el mismo patrón (`ralcaide@levitec.es`, `ipenalver@levitec.es`, ...).
+
+Con `ACCESO_RAPIDO_DEMO=true` en `.env`, el login muestra tres botones de acceso directo (ADMIN, ENCARGADO, TRABAJADOR). Es provisional para el periodo de pruebas; la contraseña se resuelve en el servidor y no viaja al navegador. Quita la variable para ocultarlos.
 
 ---
 

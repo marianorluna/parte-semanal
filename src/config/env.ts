@@ -9,6 +9,12 @@ const envSchema = z.object({
   TZ: z.string().default('Europe/Madrid'),
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   DEMO_PASSWORD: z.string().min(8).default('Demo1234!'),
+  // Interruptor provisional para enseñar los accesos rápidos del login durante
+  // las pruebas. Debe quedar apagado fuera de ese periodo.
+  ACCESO_RAPIDO_DEMO: z
+    .string()
+    .optional()
+    .transform((valor) => valor === 'true' || valor === '1'),
 })
 
 export type Env = z.infer<typeof envSchema>
@@ -26,6 +32,7 @@ const entornoDeCompilacion: Env = {
   TZ: 'Europe/Madrid',
   NODE_ENV: 'production',
   DEMO_PASSWORD: 'Demo1234!',
+  ACCESO_RAPIDO_DEMO: false,
 }
 
 export function env(): Env {

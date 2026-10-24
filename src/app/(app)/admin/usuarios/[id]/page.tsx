@@ -29,7 +29,7 @@ export default async function AdminUsuarioDetallePage({ params }: Props) {
         </Link>
         <h1 className="mt-1 text-xl font-semibold text-slate-900">{usuario.nombre}</h1>
         <p className="text-sm text-slate-600">{usuario.email}</p>
-        {usuario.email.endsWith('@demo.local') ? (
+        {usuario.empresaCodigo === 'DEMO' ? (
           <p className="mt-1 inline-block rounded bg-marca-100 px-2 py-0.5 text-xs font-semibold text-marca-800">
             Cuenta de demostración
           </p>

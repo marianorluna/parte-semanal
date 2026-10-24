@@ -43,10 +43,12 @@ npm run db:seed:demo -- --refresh     # purga y recarga las semanas relativas a 
 npm run db:seed:demo:purge            # borra solo la empresa DEMO
 ```
 
-- Todas las cuentas usan el dominio `@demo.local` y la contraseña `DEMO_PASSWORD` (`Demo1234!` por defecto).
+- Los usuarios del seed usan el dominio `@levitec.es` con el formato inicial del nombre + apellidos: `dsierra@levitec.es` (ADMIN), `fnieto@levitec.es` (ENCARGADO) y `amendez@levitec.es` (TRABAJADOR). Todos comparten la contraseña `DEMO_PASSWORD` (`Demo1234!` por defecto).
+- Con `ACCESO_RAPIDO_DEMO=true`, el login muestra tres botones que entran directamente con esas cuentas. La contraseña se resuelve en el servidor y nunca se envía al navegador. Es un recurso provisional de pruebas: sin la variable, los botones no se renderizan.
 - La empresa demo se identifica por `empresa.codigo = 'DEMO'`; la purga corre en una transacción y nunca toca otras empresas.
 - Con `NODE_ENV=production`, las dos órdenes exigen `--yes` y muestran un resumen de lo que van a modificar o borrar.
 - El seed nunca se ejecuta solo durante el despliegue.
+- Al terminar las pruebas, purga la demo antes de dar de alta usuarios reales: el formato de correo es el mismo y el email es único global.
 
 ### Verificaciones
 

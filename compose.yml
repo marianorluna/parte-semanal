@@ -49,6 +49,7 @@ services:
       APP_URL: ${APP_URL:-http://localhost:3000}
       AUTH_SECRET: ${AUTH_SECRET:-}
       DEMO_PASSWORD: ${DEMO_PASSWORD:-Demo1234!}
+      ACCESO_RAPIDO_DEMO: ${ACCESO_RAPIDO_DEMO:-false}
       TZ: ${TZ:-Europe/Madrid}
       NODE_ENV: production
     expose:

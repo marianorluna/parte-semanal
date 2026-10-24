@@ -35,7 +35,7 @@ export function FormularioNuevoUsuario({
         <select name="rol" defaultValue="TRABAJADOR" className="campo mt-1">
           <option value="TRABAJADOR">Trabajador</option>
           <option value="ENCARGADO">Encargado</option>
-          <option value="ADMIN">Administración</option>
+          <option value="ADMIN">Administrador</option>
         </select>
       </label>
 

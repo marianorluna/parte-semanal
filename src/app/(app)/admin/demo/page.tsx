@@ -1,14 +1,9 @@
 import { requireRol } from '@/modules/identidad/application/sesion'
+import { CUENTAS_ACCESO_RAPIDO } from '@/modules/identidad/application/cuentas-demo'
 import { resumenDemo } from '@/db/seed/demo'
 import { AccionesDemo } from './AccionesDemo'
 
 export const dynamic = 'force-dynamic'
-
-const CUENTAS = [
-  { rol: 'Administración', email: 'admin@demo.local' },
-  { rol: 'Encargado', email: 'encargado1@demo.local' },
-  { rol: 'Trabajador', email: 'trabajador01@demo.local' },
-]
 
 export default async function AdminDemoPage() {
   await requireRol('ADMIN')
@@ -42,14 +37,14 @@ export default async function AdminDemoPage() {
           Todas usan la contraseña configurada en <code>DEMO_PASSWORD</code> (por defecto <code>Demo1234!</code>).
         </p>
         <ul className="mt-3 space-y-1 text-sm">
-          {CUENTAS.map((cuenta) => (
+          {CUENTAS_ACCESO_RAPIDO.map((cuenta) => (
             <li key={cuenta.email} className="flex items-baseline justify-between gap-3 border-b border-slate-100 pb-1 last:border-0">
-              <span className="text-slate-600">{cuenta.rol}</span>
+              <span className="text-slate-600">{cuenta.etiqueta}</span>
               <code className="text-xs text-slate-800">{cuenta.email}</code>
             </li>
           ))}
           <li className="pt-1 text-xs text-slate-500">
-            Encargados: encargado1 ... encargado6 · Trabajadores: trabajador01 ... trabajador43
+            El resto de cuentas sigue el formato inicial+apellido@levitec.es (por ejemplo, ralcaide@levitec.es).
           </li>
         </ul>
       </div>

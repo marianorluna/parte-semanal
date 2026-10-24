@@ -1,5 +1,8 @@
 import { redirect } from 'next/navigation'
+import { env } from '@/config/env'
+import { CUENTAS_ACCESO_RAPIDO } from '@/modules/identidad/application/cuentas-demo'
 import { usuarioActual, rutaInicial } from '@/modules/identidad/application/sesion'
+import { AccesoRapido } from './AccesoRapido'
 import { FormularioLogin } from './FormularioLogin'
 
 export const dynamic = 'force-dynamic'
@@ -7,6 +10,8 @@ export const dynamic = 'force-dynamic'
 export default async function LoginPage() {
   const usuario = await usuarioActual()
   if (usuario) redirect(rutaInicial(usuario))
+
+  const cuentas = env().ACCESO_RAPIDO_DEMO ? CUENTAS_ACCESO_RAPIDO : []
 
   return (
     <main className="flex min-h-dvh items-center justify-center bg-marca-900 px-4 py-10">
@@ -24,6 +29,8 @@ export default async function LoginPage() {
         <p className="mt-4 text-center text-xs text-marca-300">
           Si no tienes acceso, solicítalo a administración.
         </p>
+
+        <AccesoRapido cuentas={cuentas} />
       </div>
     </main>
   )

@@ -79,7 +79,7 @@ export default async function AdminUsuariosPage({ searchParams }: Props) {
                   <Link href={`/admin/usuarios/${fila.id}`} className="font-medium text-slate-900 hover:text-marca-700">
                     {fila.nombre}
                   </Link>
-                  {fila.email.endsWith('@demo.local') ? (
+                  {fila.empresaCodigo === 'DEMO' ? (
                     <span className="ml-2 rounded bg-marca-100 px-1.5 py-0.5 text-[10px] font-semibold text-marca-800">
                       DEMO
                     </span>

@@ -3,6 +3,8 @@
 import { AuthError } from 'next-auth'
 import { z } from 'zod'
 import { signIn, signOut } from '@/auth'
+import { env } from '@/config/env'
+import { buscarCuentaDemo } from '@/modules/identidad/application/cuentas-demo'
 
 const esquema = z.object({
   email: z.string().trim().toLowerCase().email('Introduce un email válido'),
@@ -33,6 +35,28 @@ function registrarFallo(clave: string): void {
   registro.total += 1
 }
 
+async function entrar(email: string, password: string): Promise<EstadoLogin> {
+  if (superaElLimite(email)) {
+    return { error: 'Demasiados intentos. Espera unos minutos antes de volver a probar.' }
+  }
+
+  try {
+    await signIn('credentials', {
+      email,
+      password,
+      redirectTo: '/',
+    })
+    intentos.delete(email)
+    return {}
+  } catch (error) {
+    if (error instanceof AuthError) {
+      registrarFallo(email)
+      return { error: 'Email o contraseña incorrectos' }
+    }
+    throw error
+  }
+}
+
 export async function iniciarSesion(_estado: EstadoLogin, formData: FormData): Promise<EstadoLogin> {
   const parsed = esquema.safeParse({
     email: formData.get('email'),
@@ -43,26 +67,26 @@ export async function iniciarSesion(_estado: EstadoLogin, formData: FormData): P
     return { error: parsed.error.issues[0]?.message ?? 'Datos no válidos' }
   }
 
-  const clave = `${parsed.data.email}`
-  if (superaElLimite(clave)) {
-    return { error: 'Demasiados intentos. Espera unos minutos antes de volver a probar.' }
+  return entrar(parsed.data.email, parsed.data.password)
+}
+
+/**
+ * Acceso de prueba: resuelve email y contraseña en el servidor, de modo que la
+ * contraseña común del demo nunca viaja al navegador. Solo se aceptan las
+ * cuentas conocidas y únicamente con ACCESO_RAPIDO_DEMO activo.
+ */
+export async function iniciarSesionRapida(_estado: EstadoLogin, formData: FormData): Promise<EstadoLogin> {
+  if (!env().ACCESO_RAPIDO_DEMO) {
+    return { error: 'El acceso rápido está desactivado' }
   }
 
-  try {
-    await signIn('credentials', {
-      email: parsed.data.email,
-      password: parsed.data.password,
-      redirectTo: '/',
-    })
-    intentos.delete(clave)
-    return {}
-  } catch (error) {
-    if (error instanceof AuthError) {
-      registrarFallo(clave)
-      return { error: 'Email o contraseña incorrectos' }
-    }
-    throw error
+  const clave = formData.get('cuenta')
+  const cuenta = typeof clave === 'string' ? buscarCuentaDemo(clave) : null
+  if (!cuenta) {
+    return { error: 'Cuenta de prueba no válida' }
   }
+
+  return entrar(cuenta.email, env().DEMO_PASSWORD)
 }
 
 export async function cerrarSesion(): Promise<void> {

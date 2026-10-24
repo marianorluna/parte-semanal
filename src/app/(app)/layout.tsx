@@ -41,13 +41,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               <div className="text-right">
                 <p className="text-sm leading-tight font-medium text-white">{usuario.nombre}</p>
                 <p className="text-xs leading-tight text-marca-200">
-                  {usuario.rol === 'ADMIN' ? 'Administración' : usuario.rol === 'ENCARGADO' ? 'Encargado' : 'Trabajador'}
+                  {usuario.rol === 'ADMIN' ? 'Administrador' : usuario.rol === 'ENCARGADO' ? 'Encargado' : 'Trabajador'}
                 </p>
               </div>
               <form action={cerrarSesion}>
                 <button
                   type="submit"
-                  className="rounded-md border border-marca-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-marca-800"
+                  className="cursor-pointer rounded-md border border-marca-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-marca-800"
                 >
                   Salir
                 </button>

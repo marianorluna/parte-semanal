@@ -1,6 +1,6 @@
 import { and, eq, ilike, or } from 'drizzle-orm'
 import { db } from '@/db/client'
-import { empleado, imputacion, proyecto, tarea, usuario, usuarioProyecto } from '@/db/schema'
+import { empleado, empresa, imputacion, proyecto, tarea, usuario, usuarioProyecto } from '@/db/schema'
 import type { Rol } from '@/db/schema'
 import type { UsuarioSesion } from '../application/sesion'
 
@@ -26,6 +26,8 @@ export type UsuarioListado = {
   empleadoId: string | null
   empleadoNombre: string | null
   empleadoCodigo: string | null
+  /** Permite distinguir las cuentas del seed (empresa DEMO) sin mirar el correo. */
+  empresaCodigo: string
 }
 
 export async function proyectosAsignadosAUsuario(usuarioId: string): Promise<string[]> {
@@ -88,9 +90,11 @@ export async function listarUsuarios(empresaId: string, filtro?: string): Promis
       empleadoId: usuario.empleadoId,
       empleadoNombre: empleado.nombre,
       empleadoCodigo: empleado.codigo,
+      empresaCodigo: empresa.codigo,
     })
     .from(usuario)
     .leftJoin(empleado, eq(empleado.id, usuario.empleadoId))
+    .innerJoin(empresa, eq(empresa.id, usuario.empresaId))
     .where(and(...condiciones))
     .orderBy(usuario.rol, usuario.nombre)
 }
