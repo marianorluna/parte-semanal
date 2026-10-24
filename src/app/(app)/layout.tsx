@@ -33,6 +33,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     enlaces.push({ href: '/admin/proyectos', etiqueta: 'Proyectos' })
     enlaces.push({ href: '/admin/calendario', etiqueta: 'Calendario' })
     enlaces.push({ href: '/admin/convenios', etiqueta: 'Convenios' })
+    enlaces.push({ href: '/admin/costes', etiqueta: 'Costes' })
     enlaces.push({ href: '/admin/ausencias', etiqueta: 'Tipos ausencia' })
     enlaces.push({ href: '/admin/auditoria', etiqueta: 'Auditoría' })
     enlaces.push({ href: '/admin/demo', etiqueta: 'Demo' })

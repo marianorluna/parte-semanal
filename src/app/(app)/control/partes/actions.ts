@@ -2,9 +2,11 @@
 
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
-import { depsPartes } from '@/composition'
+import { depsPartes, depsComputo, depsCoste } from '@/composition'
 import { autorizar } from '@/modules/identidad/application/sesion'
 import { aprobarSemana, rechazarSemana, reabrirSemana } from '@/modules/partes/application/servicio'
+import { computarParte } from '@/modules/computo/application/servicio'
+import { costearParte } from '@/modules/coste/application/servicio'
 import { fallo, ok, type Respuesta } from '@/shared/errors'
 
 const itemSchema = z.object({
@@ -87,6 +89,27 @@ export async function aprobarLoteAction(input: unknown): Promise<Respuesta<Resul
     revalidatePath('/control/partes')
     revalidatePath('/control/dashboard')
     return ok({ aprobados, fallidos })
+  } catch (error) {
+    return fallo(error)
+  }
+}
+
+export async function recalcularComputoAction(
+  input: unknown,
+): Promise<Respuesta<{ minutosBase: number; minutosComputados: number; totalCents: number }>> {
+  try {
+    const usuario = await autorizar('ADMIN')
+    const datos = z.object({ parteId: z.string().uuid() }).parse(input)
+    void usuario
+
+    const resultado = await computarParte(depsComputo, datos.parteId)
+    const coste = await costearParte(depsCoste, datos.parteId)
+    revalidatePath(`/control/partes/${datos.parteId}`)
+    return ok({
+      minutosBase: resultado.resumen.minutosBase,
+      minutosComputados: resultado.resumen.minutosComputados,
+      totalCents: coste.totalCents,
+    })
   } catch (error) {
     return fallo(error)
   }

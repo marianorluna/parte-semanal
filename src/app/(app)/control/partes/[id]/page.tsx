@@ -6,8 +6,14 @@ import { formatearFecha, nombreDia, formatearRango } from '@/modules/partes/doma
 import { formatearHorasReloj } from '@/modules/partes/domain/horas'
 import { puedeRevisarParte } from '@/modules/partes/domain/permisos'
 import { historialParte, obtenerParteDetalle } from '@/modules/partes/infrastructure/consultas-detalle'
+import { depsComputo, depsCoste } from '@/composition'
+import { agruparPorTipo, resumenDeParte } from '@/modules/computo/application/servicio'
+import { ETIQUETAS_TIPO_HORA } from '@/modules/computo/domain/reglas'
+import { costeDeParte } from '@/modules/coste/application/servicio'
+import { formatearEuros } from '@/modules/coste/domain/coste'
 import { EstadoBadge } from '@/components/EstadoBadge'
 import { AccionesRevision } from './AccionesRevision'
+import { BotonRecalcular } from './BotonRecalcular'
 
 export const dynamic = 'force-dynamic'
 
@@ -32,6 +38,16 @@ export default async function ParteDetallePage({ params }: Props) {
   }
 
   const eventos = await historialParte(parte.id)
+  const computo = await resumenDeParte(depsComputo, parte.id)
+  const coste = await costeDeParte(depsCoste, parte.id)
+  const computadoPorImputacion = new Map<string, number>()
+  for (const tramo of computo.tramos) {
+    computadoPorImputacion.set(
+      tramo.imputacionId,
+      (computadoPorImputacion.get(tramo.imputacionId) ?? 0) + tramo.minutosComputados,
+    )
+  }
+  const porTipo = agruparPorTipo(computo.tramos)
 
   const porFecha = new Map<string, typeof parte.imputaciones>()
   for (const linea of parte.imputaciones) {
@@ -86,7 +102,12 @@ export default async function ParteDetallePage({ params }: Props) {
           </thead>
           <tbody>
             {[...porFecha.entries()].map(([fecha, lineas]) => (
-              <FragmentoFecha key={fecha} fecha={fecha} lineas={lineas} />
+              <FragmentoFecha
+                key={fecha}
+                fecha={fecha}
+                lineas={lineas}
+                computadoPorImputacion={computadoPorImputacion}
+              />
             ))}
             <tr className="border-t-2 border-slate-300 bg-marca-50 font-semibold">
               <td className="px-3 py-2" colSpan={3}>
@@ -121,6 +142,12 @@ export default async function ParteDetallePage({ params }: Props) {
                     <p className="truncate text-[11px] text-slate-500">
                       {linea.proyectoCodigo} · {linea.proyectoNombre}
                     </p>
+                    {computadoPorImputacion.get(linea.id) !== undefined &&
+                    computadoPorImputacion.get(linea.id) !== linea.minutos ? (
+                      <p className="text-[11px] font-medium text-marca-700">
+                        {formatearHorasReloj(computadoPorImputacion.get(linea.id) ?? 0)} computadas
+                      </p>
+                    ) : null}
                   </li>
                 ))}
               </ul>
@@ -132,6 +159,77 @@ export default async function ParteDetallePage({ params }: Props) {
           <span className="font-mono">{formatearHorasReloj(parte.totalMinutos)}</span>
         </div>
       </div>
+
+      {computo.tramos.length > 0 ? (
+        <div className="tarjeta p-4">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="text-sm font-semibold text-slate-900">Cómputo aplicado</h2>
+            <span className="text-xs text-slate-500">
+              {computo.convenioNombre ?? 'Sin convenio (factor 1)'}
+              {computo.convenioVersion ? ` · versión ${computo.convenioVersion}` : ''}
+            </span>
+          </div>
+          <dl className="mt-3 grid grid-cols-3 gap-3 text-sm">
+            <div>
+              <dt className="text-xs text-slate-500">Minutos base</dt>
+              <dd className="font-mono text-slate-800">{computo.resumen.minutosBase}</dd>
+            </div>
+            <div>
+              <dt className="text-xs text-slate-500">Computados</dt>
+              <dd className="font-mono font-semibold text-slate-900">{computo.resumen.minutosComputados}</dd>
+            </div>
+            <div>
+              <dt className="text-xs text-slate-500">Diferencia</dt>
+              <dd className="font-mono text-slate-800">
+                {computo.resumen.minutosComputados - computo.resumen.minutosBase > 0 ? '+' : ''}
+                {computo.resumen.minutosComputados - computo.resumen.minutosBase} min
+              </dd>
+            </div>
+          </dl>
+          <ul className="mt-3 flex flex-wrap gap-2 text-xs">
+            {porTipo.map((tipo) => (
+              <li key={tipo.tipoHora} className="etiqueta bg-marca-50 text-marca-800">
+                {ETIQUETAS_TIPO_HORA[tipo.tipoHora]} · {tipo.minutosBase} min → {tipo.minutosComputados}
+              </li>
+            ))}
+          </ul>
+          {computo.resumen.requiereAutorizacion ? (
+            <p className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+              Alguna regla exige autorización previa. Revisa la autorización antes de cerrar la nómina.
+            </p>
+          ) : null}
+        </div>
+      ) : parte.estado === 'APROBADO' ? (
+        <p className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          Este parte está aprobado pero no tiene snapshot de cómputo (anterior al motor de reglas).
+          Recalcula desde administración para fijarlo.
+        </p>
+      ) : null}
+
+      {coste.lineas.length > 0 ? (
+        <div className="tarjeta p-4">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="text-sm font-semibold text-slate-900">Coste aplicado</h2>
+            <span className="font-mono text-lg font-semibold text-slate-900">
+              {formatearEuros(coste.totalCents)}
+            </span>
+          </div>
+          <p className="mt-1 text-xs text-slate-500">
+            Congelado al aprobar con la tarifa vigente a cada fecha · {formatearHorasReloj(coste.minutos)} costeadas
+          </p>
+          {coste.sinTarifa > 0 ? (
+            <p className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+              {coste.sinTarifa} de {coste.lineas.length} líneas no tenían tarifa vigente y computan a 0.
+              Configura la tarifa en administración y recalcula el coste.
+            </p>
+          ) : null}
+        </div>
+      ) : parte.estado === 'APROBADO' ? (
+        <p className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          Este parte está aprobado pero no tiene snapshot de coste. Recalcula desde administración
+          para fijarlo.
+        </p>
+      ) : null}
 
       <div className="grid gap-4 md:grid-cols-2">
         <div className="tarjeta p-4">
@@ -179,33 +277,47 @@ export default async function ParteDetallePage({ params }: Props) {
 function FragmentoFecha({
   fecha,
   lineas,
+  computadoPorImputacion,
 }: {
   fecha: string
   lineas: { id: string; minutos: number; proyectoCodigo: string; proyectoNombre: string; tareaCodigo: string; tareaNombre: string; nota: string | null }[]
+  computadoPorImputacion: Map<string, number>
 }) {
   const total = lineas.reduce((suma, linea) => suma + linea.minutos, 0)
 
   return (
     <>
-      {lineas.map((linea, indice) => (
-        <tr key={linea.id} className="border-b border-slate-100 last:border-0">
-          <td className="px-3 py-2 align-top whitespace-nowrap">
-            {indice === 0 ? (
-              <>
-                <span className="block font-medium text-slate-800 capitalize">{nombreDia(fecha)}</span>
-                <span className="block text-xs text-slate-500">{formatearFecha(fecha)}</span>
-                <span className="block text-xs text-slate-500">{formatearHorasReloj(total)}</span>
-              </>
-            ) : null}
-          </td>
-          <td className="px-3 py-2">
-            <span className="block text-xs text-slate-500">{linea.proyectoCodigo}</span>
-            <span className="text-slate-800">{linea.proyectoNombre}</span>
-          </td>
-          <td className="px-3 py-2 text-slate-800">{linea.tareaNombre}</td>
-          <td className="px-3 py-2 text-right font-mono">{formatearHorasReloj(linea.minutos)}</td>
-        </tr>
-      ))}
+      {lineas.map((linea, indice) => {
+        const computado = computadoPorImputacion.get(linea.id)
+        const muestraComputado = computado !== undefined && computado !== linea.minutos
+
+        return (
+          <tr key={linea.id} className="border-b border-slate-100 last:border-0">
+            <td className="px-3 py-2 align-top whitespace-nowrap">
+              {indice === 0 ? (
+                <>
+                  <span className="block font-medium text-slate-800 capitalize">{nombreDia(fecha)}</span>
+                  <span className="block text-xs text-slate-500">{formatearFecha(fecha)}</span>
+                  <span className="block text-xs text-slate-500">{formatearHorasReloj(total)}</span>
+                </>
+              ) : null}
+            </td>
+            <td className="px-3 py-2">
+              <span className="block text-xs text-slate-500">{linea.proyectoCodigo}</span>
+              <span className="text-slate-800">{linea.proyectoNombre}</span>
+            </td>
+            <td className="px-3 py-2 text-slate-800">{linea.tareaNombre}</td>
+            <td className="px-3 py-2 text-right font-mono">
+              {formatearHorasReloj(linea.minutos)}
+              {muestraComputado ? (
+                <span className="block text-xs font-normal text-marca-700">
+                  → {formatearHorasReloj(computado)} computadas
+                </span>
+              ) : null}
+            </td>
+          </tr>
+        )
+      })}
     </>
   )
 }

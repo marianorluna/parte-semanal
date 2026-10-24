@@ -550,6 +550,105 @@ export const resultadoComputo = pgTable(
   ],
 )
 
+/**
+ * Tarifa de coste hora. El importe se guarda en céntimos enteros: nunca en
+ * coma flotante. Una tarifa puede ser de empleado o de categoría; la de
+ * empleado prevalece. El coste aplicable es el vigente a la fecha imputada.
+ */
+export const costeHora = pgTable(
+  'coste_hora',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    empresaId: uuid('empresa_id')
+      .notNull()
+      .references(() => empresa.id, { onDelete: 'restrict' }),
+    empleadoId: uuid('empleado_id').references(() => empleado.id, { onDelete: 'cascade' }),
+    categoria: text('categoria'),
+    importeHoraCents: integer('importe_hora_cents').notNull(),
+    desde: date('desde').notNull(),
+    hasta: date('hasta'),
+    activo: boolean('activo').notNull().default(true),
+    createdAt,
+  },
+  (t) => [
+    index('coste_hora_empresa_empleado_idx').on(t.empresaId, t.empleadoId),
+    check('coste_hora_importe_ck', sql`${t.importeHoraCents} >= 0`),
+    check(
+      'coste_hora_ambito_ck',
+      sql`${t.empleadoId} is not null or (${t.categoria} is not null and length(trim(${t.categoria})) > 0)`,
+    ),
+    check('coste_hora_vigencia_ck', sql`${t.hasta} is null or ${t.desde} <= ${t.hasta}`),
+  ],
+)
+
+/**
+ * Presupuesto versionado del proyecto. Cada versión es inmutable: aprobar una
+ * nueva no reescribe el histórico. La vigente es la de mayor `version`.
+ */
+export const presupuestoProyecto = pgTable(
+  'presupuesto_proyecto',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    proyectoId: uuid('proyecto_id')
+      .notNull()
+      .references(() => proyecto.id, { onDelete: 'cascade' }),
+    version: integer('version').notNull(),
+    importeCents: integer('importe_cents').notNull(),
+    horasPresupuesto: integer('horas_presupuesto'),
+    motivo: text('motivo'),
+    creadoPor: uuid('creado_por').references(() => usuario.id, { onDelete: 'set null' }),
+    createdAt,
+  },
+  (t) => [
+    uniqueIndex('presupuesto_proyecto_version_uq').on(t.proyectoId, t.version),
+    index('presupuesto_proyecto_idx').on(t.proyectoId),
+    check('presupuesto_proyecto_importe_ck', sql`${t.importeCents} >= 0`),
+    check('presupuesto_proyecto_version_ck', sql`${t.version} > 0`),
+    check('presupuesto_proyecto_horas_ck', sql`${t.horasPresupuesto} is null or ${t.horasPresupuesto} >= 0`),
+  ],
+)
+
+/**
+ * Snapshot de coste por imputación, escrito al aprobar el parte. Congela la
+ * tarifa aplicada: cambiar tarifas después no altera semanas cerradas.
+ * `tarifaId` puede quedar a null si la tarifa se elimina; el importe persiste.
+ */
+export const costeImputacion = pgTable(
+  'coste_imputacion',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    parteId: uuid('parte_id')
+      .notNull()
+      .references(() => parte.id, { onDelete: 'cascade' }),
+    imputacionId: uuid('imputacion_id')
+      .notNull()
+      .references(() => imputacion.id, { onDelete: 'cascade' }),
+    empleadoId: uuid('empleado_id')
+      .notNull()
+      .references(() => empleado.id, { onDelete: 'restrict' }),
+    tareaId: uuid('tarea_id')
+      .notNull()
+      .references(() => tarea.id, { onDelete: 'restrict' }),
+    proyectoId: uuid('proyecto_id')
+      .notNull()
+      .references(() => proyecto.id, { onDelete: 'restrict' }),
+    fecha: date('fecha').notNull(),
+    minutos: integer('minutos').notNull(),
+    costeHoraCents: integer('coste_hora_cents'),
+    importeCents: integer('importe_cents').notNull(),
+    sinTarifa: boolean('sin_tarifa').notNull().default(false),
+    tarifaId: uuid('tarifa_id').references(() => costeHora.id, { onDelete: 'set null' }),
+    createdAt,
+  },
+  (t) => [
+    uniqueIndex('coste_imputacion_imputacion_uq').on(t.imputacionId),
+    index('coste_imputacion_parte_idx').on(t.parteId),
+    index('coste_imputacion_proyecto_fecha_idx').on(t.proyectoId, t.fecha),
+    index('coste_imputacion_empleado_fecha_idx').on(t.empleadoId, t.fecha),
+    check('coste_imputacion_importe_ck', sql`${t.minutos} > 0 and ${t.importeCents} >= 0`),
+  ],
+)
+
 export const auditoria = pgTable(
   'auditoria',
   {
@@ -633,6 +732,15 @@ export const convenioRelations = relations(convenio, ({ many }) => ({
 export const resultadoComputoRelations = relations(resultadoComputo, ({ one }) => ({
   parte: one(parte, { fields: [resultadoComputo.parteId], references: [parte.id] }),
   imputacion: one(imputacion, { fields: [resultadoComputo.imputacionId], references: [imputacion.id] }),
+}))
+
+export const presupuestoProyectoRelations = relations(presupuestoProyecto, ({ one }) => ({
+  proyecto: one(proyecto, { fields: [presupuestoProyecto.proyectoId], references: [proyecto.id] }),
+}))
+
+export const costeImputacionRelations = relations(costeImputacion, ({ one }) => ({
+  parte: one(parte, { fields: [costeImputacion.parteId], references: [parte.id] }),
+  imputacion: one(imputacion, { fields: [costeImputacion.imputacionId], references: [imputacion.id] }),
 }))
 
 export type EstadoParte = (typeof estadoParteEnum.enumValues)[number]

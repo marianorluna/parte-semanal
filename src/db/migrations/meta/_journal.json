@@ -36,6 +36,13 @@
       "when": 1792879801137,
       "tag": "0004_small_lockjaw",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792880116510,
+      "tag": "0005_illegal_bug",
+      "breakpoints": true
     }
   ]
 }
