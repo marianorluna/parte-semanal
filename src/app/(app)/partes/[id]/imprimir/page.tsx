@@ -38,7 +38,7 @@ export default async function ImprimirPartePage({ params }: Props) {
 
   return (
     <div className="mx-auto max-w-3xl">
-      <div className="no-imprimir mb-4 flex items-center justify-between">
+      <div className="no-imprimir mb-4 flex flex-wrap items-center justify-between gap-2">
         <a href={`/control/partes/${parte.id}`} className="text-sm text-marca-700 hover:underline">
           Volver al parte
         </a>
@@ -50,7 +50,7 @@ export default async function ImprimirPartePage({ params }: Props) {
         </div>
       </div>
 
-      <article className="relative overflow-hidden bg-white p-8 ring-1 ring-slate-200">
+      <article className="relative overflow-hidden bg-white p-4 ring-1 ring-slate-200 sm:p-8">
         <div
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 flex items-center justify-center"
@@ -61,7 +61,7 @@ export default async function ImprimirPartePage({ params }: Props) {
         </div>
 
         <header className="relative border-b border-slate-300 pb-4">
-          <div className="flex items-start justify-between gap-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <p className="text-xs font-semibold tracking-widest text-marca-800 uppercase">Levitec</p>
               <h1 className="mt-1 text-xl font-bold text-slate-900">Parte semanal de horas</h1>
@@ -69,7 +69,7 @@ export default async function ImprimirPartePage({ params }: Props) {
                 Semana {parte.isoWeek} de {parte.isoYear}
               </p>
             </div>
-            <div className="text-right text-xs text-slate-600">
+            <div className="text-left text-xs text-slate-600 sm:text-right">
               <p>
                 <span className="font-semibold text-slate-800">Empleado:</span> {parte.empleadoNombre}
               </p>
@@ -86,7 +86,8 @@ export default async function ImprimirPartePage({ params }: Props) {
           </div>
         </header>
 
-        <table className="relative mt-4 w-full text-sm">
+        <div className="relative mt-4 overflow-x-auto print:overflow-visible">
+          <table className="relative w-full text-sm">
           <thead>
             <tr className="border-b border-slate-300 text-left text-xs tracking-wide text-slate-600 uppercase">
               <th className="py-1.5">Fecha</th>
@@ -126,7 +127,8 @@ export default async function ImprimirPartePage({ params }: Props) {
               <td className="py-3 text-right font-mono">{formatearHorasReloj(parte.totalMinutos)}</td>
             </tr>
           </tbody>
-        </table>
+          </table>
+        </div>
 
         <footer className="relative mt-10 grid grid-cols-2 gap-8 text-xs text-slate-600">
           <div>

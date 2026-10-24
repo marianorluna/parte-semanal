@@ -49,7 +49,7 @@ export default async function NotificacionesPage({ searchParams }: Props) {
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
           <Link
             href={soloNoLeidas ? '/notificaciones' : '/notificaciones?pendientes=1'}
             className="boton-secundario px-3 py-1.5 text-xs"
@@ -57,8 +57,8 @@ export default async function NotificacionesPage({ searchParams }: Props) {
             {soloNoLeidas ? 'Ver todos' : 'Solo sin leer'}
           </Link>
           {resultado.noLeidas > 0 ? (
-            <form action={marcarTodasLeidas}>
-              <button type="submit" className="boton-secundario px-3 py-1.5 text-xs">
+            <form action={marcarTodasLeidas} className="flex-1 sm:flex-none">
+              <button type="submit" className="boton-secundario w-full px-3 py-1.5 text-xs">
                 Marcar todas como leídas
               </button>
             </form>
@@ -90,15 +90,15 @@ export default async function NotificacionesPage({ searchParams }: Props) {
                     <p className="mt-1 text-[11px] text-slate-400">{formatearInstante(fila.createdAt)}</p>
                   </div>
 
-                  <div className="flex shrink-0 items-center gap-2">
+                  <div className="flex w-full shrink-0 items-center gap-2 sm:w-auto">
                     {fila.url ? (
-                      <Link href={fila.url} className="boton-primario px-3 py-1.5 text-xs">
+                      <Link href={fila.url} className="boton-primario flex-1 px-3 py-1.5 text-xs sm:flex-none">
                         Abrir
                       </Link>
                     ) : null}
                     {noLeida ? (
-                      <form action={marcarLeida.bind(null, fila.id)}>
-                        <button type="submit" className="boton-secundario px-3 py-1.5 text-xs">
+                      <form action={marcarLeida.bind(null, fila.id)} className="flex-1 sm:flex-none">
+                        <button type="submit" className="boton-secundario w-full px-3 py-1.5 text-xs">
                           Marcar leída
                         </button>
                       </form>

@@ -82,7 +82,7 @@ export function ModalEnvio({
         aria-modal="true"
         aria-labelledby="envio-titulo"
         tabIndex={-1}
-        className="max-h-[92dvh] w-full max-w-2xl overflow-y-auto rounded-t-xl bg-white p-5 shadow-xl outline-none sm:rounded-xl"
+        className="max-h-[92dvh] w-full max-w-2xl overflow-y-auto rounded-t-xl bg-white p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-xl outline-none sm:rounded-xl sm:pb-5"
       >
         <h2 id="envio-titulo" className="text-lg font-semibold text-slate-900">
           Revisar y enviar el parte

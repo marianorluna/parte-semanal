@@ -44,7 +44,7 @@ export default async function AdminUsuariosPage({ searchParams }: Props) {
         </div>
       </details>
 
-      <form className="flex gap-2" action="/admin/usuarios" method="get">
+      <form className="flex flex-col gap-2 sm:flex-row" action="/admin/usuarios" method="get">
         <input
           name="q"
           defaultValue={params.q ?? ''}
@@ -61,7 +61,7 @@ export default async function AdminUsuariosPage({ searchParams }: Props) {
         ) : null}
       </form>
 
-      <div className="tarjeta overflow-x-auto">
+      <div className="tarjeta hidden overflow-x-auto md:block">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-marca-200 bg-marca-50 text-left text-xs font-semibold tracking-wide text-marca-900 uppercase">
@@ -100,6 +100,43 @@ export default async function AdminUsuariosPage({ searchParams }: Props) {
           </tbody>
         </table>
       </div>
+
+      <ul className="space-y-3 md:hidden">
+        {usuarios.map((fila) => (
+          <li key={fila.id} className="tarjeta p-3">
+            <div className="flex items-start justify-between gap-2">
+              <Link href={`/admin/usuarios/${fila.id}`} className="min-w-0 hover:text-marca-700">
+                <span className="block truncate font-medium text-slate-900">{fila.nombre}</span>
+                <span className="block truncate text-xs text-slate-500">{fila.email}</span>
+              </Link>
+              <span
+                className={`etiqueta shrink-0 ${fila.activo ? 'bg-acento-100 text-acento-800' : 'bg-slate-200 text-slate-600'}`}
+              >
+                {fila.activo ? 'Activo' : 'Inactivo'}
+              </span>
+            </div>
+
+            <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
+              <div>
+                <dt className="text-slate-500">Rol</dt>
+                <dd className="text-slate-800">{fila.rol}</dd>
+              </div>
+              <div className="min-w-0">
+                <dt className="text-slate-500">Empleado</dt>
+                <dd className="truncate text-slate-800">
+                  {fila.empleadoNombre ? `${fila.empleadoCodigo} · ${fila.empleadoNombre}` : 'Sin empleado'}
+                </dd>
+              </div>
+            </dl>
+
+            {fila.empresaCodigo === 'DEMO' ? (
+              <span className="mt-2 inline-block rounded bg-marca-100 px-1.5 py-0.5 text-[10px] font-semibold text-marca-800">
+                DEMO
+              </span>
+            ) : null}
+          </li>
+        ))}
+      </ul>
     </section>
   )
 }

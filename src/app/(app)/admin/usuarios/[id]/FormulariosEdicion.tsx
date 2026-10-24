@@ -6,6 +6,7 @@ import {
   resetPasswordAction,
   type EstadoAdmin,
 } from '../actions'
+import { Select } from '@/components/Select'
 
 const inicial: EstadoAdmin = {}
 
@@ -38,14 +39,16 @@ export function FormularioEditarUsuario({
       </label>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <label className="text-xs font-medium text-slate-600">
-          Rol
-          <select name="rol" defaultValue={rol} className="campo mt-1">
-            <option value="TRABAJADOR">Trabajador</option>
-            <option value="ENCARGADO">Encargado</option>
-            <option value="ADMIN">Administrador</option>
-          </select>
-        </label>
+        <Select
+          etiqueta="Rol"
+          name="rol"
+          valorInicial={rol}
+          opciones={[
+            { valor: 'TRABAJADOR', etiqueta: 'Trabajador' },
+            { valor: 'ENCARGADO', etiqueta: 'Encargado' },
+            { valor: 'ADMIN', etiqueta: 'Administrador' },
+          ]}
+        />
 
         <label className="mt-5 flex items-center gap-2 text-sm text-slate-700">
           <input type="checkbox" name="activo" defaultChecked={activo} />

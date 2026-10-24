@@ -121,7 +121,7 @@ export function AccionesLote({
           onClick={() =>
             ejecutar(() => aprobarEnviadosAction({ partes: aprobables, isoYear, isoWeek }))
           }
-          className="boton-primario px-3 py-1.5 text-xs"
+          className="boton-primario boton-campo px-3 text-xs"
         >
           Aprobar los {aprobables.length} enviados
         </button>
@@ -132,7 +132,7 @@ export function AccionesLote({
           type="button"
           disabled={pendiente}
           onClick={() => ejecutar(() => recordarUsuariosAction({ usuarioIds: recordables, isoYear, isoWeek }))}
-          className="boton-secundario px-3 py-1.5 text-xs"
+          className="boton-secundario boton-campo px-3 text-xs"
         >
           Recordar a los {recordables.length} pendientes
         </button>

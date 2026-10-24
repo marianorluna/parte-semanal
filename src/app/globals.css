@@ -56,16 +56,33 @@
       disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500;
   }
 
+  /* Caja única para los controles que comparten fila: campos de una línea y
+     botones de formulario. Evita que la altura dependa de `py` o del tamaño de
+     letra de cada vista y mantiene alineadas etiquetas, campos y acciones. */
+  input.campo,
+  select.campo,
+  button.campo,
+  .boton-campo {
+    height: 2.5rem;
+  }
+
   .boton,
   .boton-primario,
   .boton-secundario,
-  .boton-peligro {
+  .boton-peligro,
+  .boton-acento {
     @apply inline-flex cursor-pointer items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-semibold
       transition-colors disabled:cursor-not-allowed disabled:opacity-50;
   }
 
   .boton-primario {
-    @apply bg-marca-700 text-white hover:bg-marca-800;
+    @apply border border-marca-700 bg-marca-700 text-white hover:border-marca-800 hover:bg-marca-800;
+  }
+
+  /* Acción destacada que no compite con el primario: mismo peso táctico,
+     distinto color de marca, para atajos que ahorran pasos. */
+  .boton-acento {
+    @apply border border-acento-700 bg-acento-600 text-white shadow-sm hover:bg-acento-700;
   }
 
   .boton-secundario {
@@ -82,6 +99,25 @@
 
   .etiqueta {
     @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
+}
+
+/* Objetivos táctiles y tipografía de 16 px en móvil (evita el zoom de iOS).
+   Fuera de @layer para que prevalezca sobre las utilidades de Tailwind. */
+@media (max-width: 767px) {
+  .campo,
+  input.campo,
+  select.campo,
+  textarea.campo {
+    min-height: 2.75rem;
+    font-size: 1rem;
+  }
+
+  .boton-primario,
+  .boton-secundario,
+  .boton-peligro,
+  .boton-acento {
+    min-height: 2.75rem;
   }
 }
 

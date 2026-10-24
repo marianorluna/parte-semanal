@@ -33,8 +33,8 @@ export function AccesoRapido({ cuentas }: Props) {
             disabled={pendiente}
             className="flex w-full cursor-pointer items-center justify-between gap-3 rounded-md border border-marca-600 bg-marca-800/60 px-3 py-2 text-left text-sm text-white transition-colors hover:bg-marca-800 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <span className="font-semibold">{cuenta.etiqueta}</span>
-            <span className="text-xs text-marca-200">{cuenta.email}</span>
+            <span className="shrink-0 font-semibold">{cuenta.etiqueta}</span>
+            <span className="min-w-0 truncate text-xs text-marca-200">{cuenta.email}</span>
           </button>
         ))}
       </form>

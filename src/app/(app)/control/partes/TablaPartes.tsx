@@ -114,12 +114,12 @@ export function TablaPartes({ filas }: { filas: FilaParte[] }) {
   return (
     <div className="space-y-3">
       {seleccion.size > 0 ? (
-        <div className="tarjeta sticky top-2 z-10 flex flex-wrap items-center gap-3 border-acento-300 bg-acento-50 p-3">
+        <div className="tarjeta sticky top-14 z-10 flex flex-wrap items-center gap-3 border-acento-300 bg-acento-50 p-3 lg:top-24">
           <span className="text-sm font-medium text-marca-900">{seleccion.size} seleccionados</span>
-          <button type="button" onClick={() => void aprobarSeleccion()} disabled={ocupado} className="boton-primario py-1.5 text-xs">
+          <button type="button" onClick={() => void aprobarSeleccion()} disabled={ocupado} className="boton-primario boton-campo text-xs">
             Aprobar seleccionados
           </button>
-          <button type="button" onClick={() => setMostrarMotivo((v) => !v)} disabled={ocupado} className="boton-peligro py-1.5 text-xs">
+          <button type="button" onClick={() => setMostrarMotivo((v) => !v)} disabled={ocupado} className="boton-peligro boton-campo text-xs">
             Rechazar seleccionados
           </button>
           {mostrarMotivo ? (
@@ -128,9 +128,9 @@ export function TablaPartes({ filas }: { filas: FilaParte[] }) {
                 value={motivo}
                 onChange={(evento) => setMotivo(evento.target.value)}
                 placeholder="Motivo del rechazo (se guarda en auditoría)"
-                className="campo flex-1 py-1.5 text-sm"
+                className="campo flex-1 text-sm"
               />
-              <button type="button" onClick={() => void rechazarSeleccion()} disabled={ocupado} className="boton-peligro py-1.5 text-xs">
+              <button type="button" onClick={() => void rechazarSeleccion()} disabled={ocupado} className="boton-peligro boton-campo text-xs">
                 Confirmar rechazo
               </button>
             </div>
@@ -141,7 +141,7 @@ export function TablaPartes({ filas }: { filas: FilaParte[] }) {
       {mensaje ? <p className="rounded-md bg-acento-50 px-3 py-2 text-sm text-acento-800">{mensaje}</p> : null}
       {error ? <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
 
-      <div className="tarjeta overflow-x-auto">
+      <div className="tarjeta hidden overflow-x-auto md:block">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-marca-200 bg-marca-50 text-left text-xs font-semibold tracking-wide text-marca-900 uppercase">
@@ -202,6 +202,57 @@ export function TablaPartes({ filas }: { filas: FilaParte[] }) {
           </tbody>
         </table>
       </div>
+
+      <ul className="space-y-3 md:hidden">
+        {filas.map((fila) => (
+          <li key={fila.id} className="tarjeta p-3">
+            <div className="flex items-start gap-3">
+              <input
+                type="checkbox"
+                aria-label={`Seleccionar parte de ${fila.empleadoNombre}`}
+                checked={seleccion.has(fila.id)}
+                onChange={() => alternar(fila.id)}
+                disabled={fila.estado !== 'ENVIADO'}
+                className="mt-1 h-5 w-5 shrink-0"
+              />
+              <div className="min-w-0 flex-1">
+                <Link href={`/control/partes/${fila.id}`} className="block font-medium text-slate-900 hover:text-marca-700">
+                  <span className="block truncate">{fila.empleadoNombre}</span>
+                  <span className="block text-xs font-normal text-slate-500">{fila.empleadoCodigo}</span>
+                </Link>
+
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <span className="font-mono text-sm text-slate-800">{formatearHorasReloj(fila.totalMinutos)}</span>
+                  <EstadoBadge estado={fila.estado} />
+                </div>
+
+                {fila.motivoRechazo ? (
+                  <p className="mt-1 line-clamp-2 text-xs text-red-700">{fila.motivoRechazo}</p>
+                ) : null}
+
+                <div className="mt-3 flex gap-2">
+                  <Link
+                    href={`/control/partes/${fila.id}`}
+                    className="boton-secundario flex-1 px-2 py-1.5 text-xs"
+                  >
+                    Ver
+                  </Link>
+                  {fila.estado === 'ENVIADO' ? (
+                    <button
+                      type="button"
+                      onClick={() => void aprobarUno(fila)}
+                      disabled={ocupado}
+                      className="boton-primario flex-1 px-2 py-1.5 text-xs"
+                    >
+                      Aprobar
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+          </li>
+        ))}
+      </ul>
     </div>
   )
 }

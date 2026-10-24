@@ -2,7 +2,6 @@ import Link from 'next/link'
 import { requireRol } from '@/modules/identidad/application/sesion'
 import { listarProyectos, proyectosPermitidos } from '@/modules/identidad/infrastructure/repositorio-identidad'
 import { hoyEnZona, formatearRango, semanaIso, semanaIsoDe, sumarDias } from '@/modules/partes/domain/fechas'
-import { formatearHorasReloj } from '@/modules/partes/domain/horas'
 import {
   CLASES_CUMPLIMIENTO,
   ESTADOS_CUMPLIMIENTO,
@@ -17,26 +16,14 @@ import {
   partesDeEmpleados,
   proyectosAsignadosEnSemana,
 } from '@/modules/reporting/infrastructure/consultas'
-import { AccionesLote, BotonAprobar, BotonRecordar } from './AccionesEquipo'
+import { Select } from '@/components/Select'
+import { AccionesLote } from './AccionesEquipo'
+import { TablaEquipo, type FilaEquipo } from './TablaEquipo'
 
 export const dynamic = 'force-dynamic'
 
 type Props = {
   searchParams: Promise<{ y?: string; w?: string; proyecto?: string; estado?: string }>
-}
-
-type Fila = {
-  empleadoId: string
-  usuarioId: string
-  nombre: string
-  email: string
-  codigo: string
-  rol: string
-  proyectos: string[]
-  estado: EstadoCumplimiento
-  parteId: string | null
-  version: number | null
-  minutos: number
 }
 
 export default async function EquipoPage({ searchParams }: Props) {
@@ -80,7 +67,7 @@ export default async function EquipoPage({ searchParams }: Props) {
     proyectosPorEmpleado.set(asignacion.empleadoId, lista)
   }
 
-  const filas: Fila[] = miembros
+  const filas: FilaEquipo[] = miembros
     .map((miembro) => {
       const parte = partePorEmpleado.get(miembro.empleadoId)
       return {
@@ -168,29 +155,33 @@ export default async function EquipoPage({ searchParams }: Props) {
         <form method="get" className="flex flex-wrap items-end gap-2">
           <input type="hidden" name="y" value={semana.isoYear} />
           <input type="hidden" name="w" value={semana.isoWeek} />
-          <label className="text-xs font-medium text-slate-600">
-            Proyecto
-            <select name="proyecto" defaultValue={proyectoId ?? ''} className="campo mt-1 block py-1.5 text-sm">
-              <option value="">Todos</option>
-              {proyectos.map((proyecto) => (
-                <option key={proyecto.id} value={proyecto.id}>
-                  {proyecto.codigo} · {proyecto.nombre}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="text-xs font-medium text-slate-600">
-            Estado
-            <select name="estado" defaultValue={estadoFiltro ?? ''} className="campo mt-1 block py-1.5 text-sm">
-              <option value="">Todos</option>
-              {ESTADOS_CUMPLIMIENTO.map((estado) => (
-                <option key={estado} value={estado}>
-                  {ETIQUETAS_CUMPLIMIENTO[estado]}
-                </option>
-              ))}
-            </select>
-          </label>
-          <button type="submit" className="boton-secundario px-3 py-1.5 text-xs">
+          <Select
+            etiqueta="Proyecto"
+            name="proyecto"
+            valorInicial={proyectoId ?? ''}
+            className="py-1.5 text-sm"
+            opciones={[
+              { valor: '', etiqueta: 'Todos' },
+              ...proyectos.map((proyecto) => ({
+                valor: proyecto.id,
+                etiqueta: `${proyecto.codigo} · ${proyecto.nombre}`,
+              })),
+            ]}
+          />
+          <Select
+            etiqueta="Estado"
+            name="estado"
+            valorInicial={estadoFiltro ?? ''}
+            className="py-1.5 text-sm"
+            opciones={[
+              { valor: '', etiqueta: 'Todos' },
+              ...ESTADOS_CUMPLIMIENTO.map((estado) => ({
+                valor: estado,
+                etiqueta: ETIQUETAS_CUMPLIMIENTO[estado],
+              })),
+            ]}
+          />
+          <button type="submit" className="boton-secundario boton-campo px-3 text-xs">
             Filtrar
           </button>
         </form>
@@ -203,68 +194,7 @@ export default async function EquipoPage({ searchParams }: Props) {
         />
       </div>
 
-      <div className="tarjeta overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-marca-200 bg-marca-50 text-left text-xs font-semibold tracking-wide text-marca-900 uppercase">
-              <th className="px-3 py-2">Empleado</th>
-              <th className="px-3 py-2">Proyectos</th>
-              <th className="px-3 py-2">Estado</th>
-              <th className="px-3 py-2 text-right">Horas</th>
-              <th className="px-3 py-2 text-right">Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {visibles.map((fila) => (
-              <tr key={fila.empleadoId} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
-                <td className="px-3 py-2">
-                  <span className="block font-medium text-slate-900">{fila.nombre}</span>
-                  <span className="block text-xs text-slate-500">
-                    {fila.codigo}
-                    {fila.rol !== 'TRABAJADOR' ? ` · ${fila.rol === 'ADMIN' ? 'Administrador' : 'Encargado'}` : ''}
-                  </span>
-                </td>
-                <td className="max-w-64 px-3 py-2 text-xs text-slate-600">
-                  {fila.proyectos.length > 0 ? fila.proyectos.join(', ') : '—'}
-                </td>
-                <td className="px-3 py-2">
-                  <span className={`etiqueta ${CLASES_CUMPLIMIENTO[fila.estado]}`}>
-                    {ETIQUETAS_CUMPLIMIENTO[fila.estado]}
-                  </span>
-                </td>
-                <td className="px-3 py-2 text-right font-mono">{fila.minutos > 0 ? formatearHorasReloj(fila.minutos) : '—'}</td>
-                <td className="px-3 py-2">
-                  <div className="flex flex-wrap items-center justify-end gap-2">
-                    {fila.parteId ? (
-                      <Link href={`/control/partes/${fila.parteId}`} className="boton-secundario px-2.5 py-1 text-xs">
-                        Ver parte
-                      </Link>
-                    ) : null}
-                    {fila.estado === 'ENVIADO' && fila.parteId && fila.version !== null ? (
-                      <BotonAprobar
-                        parteId={fila.parteId}
-                        version={fila.version}
-                        isoYear={semana.isoYear}
-                        isoWeek={semana.isoWeek}
-                      />
-                    ) : null}
-                    {requiereAccionDelTrabajador(fila.estado) ? (
-                      <BotonRecordar usuarioId={fila.usuarioId} isoYear={semana.isoYear} isoWeek={semana.isoWeek} />
-                    ) : null}
-                  </div>
-                </td>
-              </tr>
-            ))}
-            {visibles.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="px-3 py-6 text-center text-sm text-slate-500">
-                  No hay personas que coincidan con el filtro.
-                </td>
-              </tr>
-            ) : null}
-          </tbody>
-        </table>
-      </div>
+      <TablaEquipo filas={visibles} isoYear={semana.isoYear} isoWeek={semana.isoWeek} />
 
       <p className="text-xs text-slate-500">
         El recordatorio llega al centro de avisos de cada persona. Solo se envía uno al día por persona y semana.

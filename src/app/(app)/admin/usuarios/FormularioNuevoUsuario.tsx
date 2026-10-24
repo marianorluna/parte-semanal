@@ -2,6 +2,7 @@
 
 import { useActionState } from 'react'
 import { crearUsuarioAction, type EstadoAdmin } from './actions'
+import { Select } from '@/components/Select'
 
 const inicial: EstadoAdmin = {}
 
@@ -30,14 +31,16 @@ export function FormularioNuevoUsuario({
         {estado.campo?.nombre ? <span className="text-red-600">{estado.campo.nombre}</span> : null}
       </label>
 
-      <label className="text-xs font-medium text-slate-600">
-        Rol
-        <select name="rol" defaultValue="TRABAJADOR" className="campo mt-1">
-          <option value="TRABAJADOR">Trabajador</option>
-          <option value="ENCARGADO">Encargado</option>
-          <option value="ADMIN">Administrador</option>
-        </select>
-      </label>
+      <Select
+        etiqueta="Rol"
+        name="rol"
+        valorInicial="TRABAJADOR"
+        opciones={[
+          { valor: 'TRABAJADOR', etiqueta: 'Trabajador' },
+          { valor: 'ENCARGADO', etiqueta: 'Encargado' },
+          { valor: 'ADMIN', etiqueta: 'Administrador' },
+        ]}
+      />
 
       <label className="text-xs font-medium text-slate-600">
         Contraseña inicial
@@ -45,19 +48,20 @@ export function FormularioNuevoUsuario({
         {estado.campo?.password ? <span className="text-red-600">{estado.campo.password}</span> : null}
       </label>
 
-      <label className="text-xs font-medium text-slate-600">
-        Empleado existente (opcional)
-        <select name="empleadoId" defaultValue="" className="campo mt-1">
-          <option value="">Sin empleado / crear uno nuevo</option>
-          {empleados.map((empleado) => (
-            <option key={empleado.id} value={empleado.id}>
-              {empleado.codigo} · {empleado.nombre}
-            </option>
-          ))}
-        </select>
-      </label>
+      <Select
+        etiqueta="Empleado existente (opcional)"
+        name="empleadoId"
+        valorInicial=""
+        opciones={[
+          { valor: '', etiqueta: 'Sin empleado / crear uno nuevo' },
+          ...empleados.map((empleado) => ({
+            valor: empleado.id,
+            etiqueta: `${empleado.codigo} · ${empleado.nombre}`,
+          })),
+        ]}
+      />
 
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid gap-2 sm:grid-cols-2">
         <label className="text-xs font-medium text-slate-600">
           Código empleado
           <input name="empleadoCodigo" type="text" className="campo mt-1" placeholder="Auto" />

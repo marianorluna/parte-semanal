@@ -1,4 +1,12 @@
-import { diasDeSemana, formatearFecha, inicioDeSemana, semanaIso, semanaIsoDe, sumarDias } from './fechas'
+import {
+  diasDeSemana,
+  esFinDeSemana,
+  formatearFecha,
+  inicioDeSemana,
+  semanaIso,
+  semanaIsoDe,
+  sumarDias,
+} from './fechas'
 
 describe('semanas ISO', () => {
   it('calcula la semana del 1 de enero de 2026', () => {
@@ -52,5 +60,12 @@ describe('utilidades de fecha', () => {
 
   it('formatea en español', () => {
     expect(formatearFecha('2026-10-19')).toBe('19/10/2026')
+  })
+
+  it('identifica el fin de semana', () => {
+    expect(esFinDeSemana('2026-10-24')).toBe(true)
+    expect(esFinDeSemana('2026-10-25')).toBe(true)
+    expect(esFinDeSemana('2026-10-23')).toBe(false)
+    expect(esFinDeSemana('2026-10-19')).toBe(false)
   })
 })

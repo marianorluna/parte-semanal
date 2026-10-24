@@ -6,6 +6,7 @@ import { hoyEnZona, semanaIsoDe, semanaIso } from '@/modules/partes/domain/fecha
 import { formatearHorasReloj } from '@/modules/partes/domain/horas'
 import { ESTADOS } from '@/modules/partes/domain/parte'
 import { bandejaSoloTrabajadores } from '@/modules/partes/domain/permisos'
+import { Select } from '@/components/Select'
 import { TablaPartes } from './TablaPartes'
 
 export const dynamic = 'force-dynamic'
@@ -79,7 +80,7 @@ export default async function ControlPartesPage({ searchParams }: Props) {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Link href={query({ w: String(semana.isoWeek - 1), y: String(semana.isoYear) })} className="boton-secundario px-3 py-1.5 text-xs">
             Anterior
           </Link>
@@ -92,43 +93,45 @@ export default async function ControlPartesPage({ searchParams }: Props) {
         </div>
       </div>
 
-      <form className="tarjeta flex flex-wrap items-end gap-3 p-3" action="/control/partes" method="get">
+      <form
+        className="tarjeta flex flex-col gap-3 p-3 sm:flex-row sm:flex-wrap sm:items-end"
+        action="/control/partes"
+        method="get"
+      >
         <input type="hidden" name="y" value={semana.isoYear} />
         <input type="hidden" name="w" value={semana.isoWeek} />
-        <label className="text-xs font-medium text-slate-600">
-          Estado
-          <select name="estado" defaultValue={estado ?? ''} className="campo mt-1 py-1.5 text-sm">
-            <option value="">Todos</option>
-            {ESTADOS.map((e) => (
-              <option key={e} value={e}>
-                {e}
-              </option>
-            ))}
-          </select>
-        </label>
+        <Select
+          etiqueta="Estado"
+          name="estado"
+          valorInicial={estado ?? ''}
+          className="py-1.5 text-sm"
+          opciones={[{ valor: '', etiqueta: 'Todos' }, ...ESTADOS.map((e) => ({ valor: e, etiqueta: e }))]}
+        />
 
-        <label className="text-xs font-medium text-slate-600">
-          Proyecto
-          <select name="proyecto" defaultValue={params.proyecto ?? ''} className="campo mt-1 max-w-64 py-1.5 text-sm">
-            <option value="">Todos</option>
-            {proyectos.map((proyecto) => (
-              <option key={proyecto.id} value={proyecto.id}>
-                {proyecto.codigo} · {proyecto.nombre}
-              </option>
-            ))}
-          </select>
-        </label>
+        <Select
+          etiqueta="Proyecto"
+          name="proyecto"
+          valorInicial={params.proyecto ?? ''}
+          className="max-w-64 py-1.5 text-sm"
+          opciones={[
+            { valor: '', etiqueta: 'Todos' },
+            ...proyectos.map((proyecto) => ({
+              valor: proyecto.id,
+              etiqueta: `${proyecto.codigo} · ${proyecto.nombre}`,
+            })),
+          ]}
+        />
 
-        <button type="submit" className="boton-primario py-1.5 text-xs">
+        <button type="submit" className="boton-primario boton-campo w-full text-xs sm:w-auto">
           Filtrar
         </button>
 
-        <div className="ml-auto flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
           {(['csv', 'xlsx', 'pdf'] as const).map((formato) => (
             <Link
               key={formato}
               href={`/control/partes/exportar?formato=${formato}&y=${semana.isoYear}&w=${semana.isoWeek}${estado ? `&estado=${estado}` : ''}${params.proyecto ? `&proyecto=${params.proyecto}` : ''}`}
-              className="boton-secundario py-1.5 text-xs"
+              className="boton-secundario boton-campo text-xs"
               prefetch={false}
             >
               {formato === 'csv' ? 'CSV' : formato.toUpperCase()}
@@ -156,7 +159,7 @@ export default async function ControlPartesPage({ searchParams }: Props) {
       )}
 
       {totalPaginas > 1 ? (
-        <nav aria-label="Paginación" className="flex items-center justify-center gap-2">
+        <nav aria-label="Paginación" className="flex flex-wrap items-center justify-center gap-2">
           {Array.from({ length: totalPaginas }, (_, indice) => indice + 1).map((numero) => (
             <Link
               key={numero}

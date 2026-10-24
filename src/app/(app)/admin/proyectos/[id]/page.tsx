@@ -75,31 +75,48 @@ export default async function AdminProyectoDetallePage({ params }: Props) {
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="tarjeta p-4">
           <h2 className="mb-3 text-sm font-semibold text-slate-900">Tareas</h2>
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-slate-200 text-left text-xs text-slate-500 uppercase">
-                <th className="py-1.5">Código</th>
-                <th className="py-1.5">Nombre</th>
-                <th className="py-1.5 text-right">Horas</th>
-              </tr>
-            </thead>
-            <tbody>
-              {tareas.map((tarea) => (
-                <tr key={tarea.id} className="border-b border-slate-100 last:border-0">
-                  <td className="py-1.5 font-medium text-slate-800">{tarea.codigo}</td>
-                  <td className="py-1.5 text-slate-700">{tarea.nombre}</td>
-                  <td className="py-1.5 text-right font-mono text-slate-700">{formatearHorasReloj(tarea.minutos)}</td>
+          <div className="hidden md:block">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-slate-200 text-left text-xs text-slate-500 uppercase">
+                  <th className="py-1.5">Código</th>
+                  <th className="py-1.5">Nombre</th>
+                  <th className="py-1.5 text-right">Horas</th>
                 </tr>
-              ))}
-              {tareas.length === 0 ? (
-                <tr>
-                  <td colSpan={3} className="py-3 text-center text-xs text-slate-500">
-                    Sin tareas todavía
-                  </td>
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {tareas.map((tarea) => (
+                  <tr key={tarea.id} className="border-b border-slate-100 last:border-0">
+                    <td className="py-1.5 font-medium text-slate-800">{tarea.codigo}</td>
+                    <td className="py-1.5 text-slate-700">{tarea.nombre}</td>
+                    <td className="py-1.5 text-right font-mono text-slate-700">{formatearHorasReloj(tarea.minutos)}</td>
+                  </tr>
+                ))}
+                {tareas.length === 0 ? (
+                  <tr>
+                    <td colSpan={3} className="py-3 text-center text-xs text-slate-500">
+                      Sin tareas todavía
+                    </td>
+                  </tr>
+                ) : null}
+              </tbody>
+            </table>
+          </div>
+
+          <ul className="space-y-2 md:hidden">
+            {tareas.map((tarea) => (
+              <li key={tarea.id} className="rounded-md border border-slate-200 px-3 py-2 text-sm">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="font-medium text-slate-800">{tarea.codigo}</p>
+                    <p className="truncate text-xs text-slate-600">{tarea.nombre}</p>
+                  </div>
+                  <p className="shrink-0 font-mono text-sm text-slate-700">{formatearHorasReloj(tarea.minutos)}</p>
+                </div>
+              </li>
+            ))}
+            {tareas.length === 0 ? <li className="text-center text-xs text-slate-500">Sin tareas todavía</li> : null}
+          </ul>
 
           <div className="mt-4 border-t border-slate-200 pt-4">
             <h3 className="mb-2 text-xs font-semibold tracking-wide text-slate-600 uppercase">Nueva tarea</h3>
@@ -109,7 +126,7 @@ export default async function AdminProyectoDetallePage({ params }: Props) {
 
         <div className="tarjeta p-4">
           <h2 className="mb-3 text-sm font-semibold text-slate-900">Asignaciones</h2>
-          <div className="max-h-72 overflow-y-auto">
+          <div className="hidden max-h-72 overflow-y-auto md:block">
             <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-slate-200 text-left text-slate-500 uppercase">
@@ -150,6 +167,31 @@ export default async function AdminProyectoDetallePage({ params }: Props) {
               </tbody>
             </table>
           </div>
+
+          <ul className="space-y-2 md:hidden">
+            {asignaciones.map((asignacion) => (
+              <li key={asignacion.id} className="rounded-md border border-slate-200 px-3 py-2 text-sm">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="truncate font-medium text-slate-800">{asignacion.empleadoNombre}</p>
+                    <p className="text-xs text-slate-500">{asignacion.empleadoCodigo}</p>
+                  </div>
+                  {asignacion.activa ? (
+                    <BotonDesasignar asignacionId={asignacion.id} proyectoId={proyecto.id} />
+                  ) : (
+                    <span className="shrink-0 text-xs text-slate-400">finalizada</span>
+                  )}
+                </div>
+                <p className="mt-1 truncate text-xs text-slate-600">
+                  {asignacion.tareaCodigo} · {asignacion.tareaNombre}
+                </p>
+                <p className="text-xs text-slate-500">Desde {asignacion.desde}</p>
+              </li>
+            ))}
+            {asignaciones.length === 0 ? (
+              <li className="text-center text-xs text-slate-500">Sin asignaciones</li>
+            ) : null}
+          </ul>
 
           <div className="mt-4 border-t border-slate-200 pt-4">
             <h3 className="mb-2 text-xs font-semibold tracking-wide text-slate-600 uppercase">Nueva asignación</h3>

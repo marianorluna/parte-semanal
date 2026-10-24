@@ -4,6 +4,7 @@ import { useMemo, useRef, useState } from 'react'
 import type { GrupoProyecto } from '@/modules/partes/application/agrupacion'
 import { formatearHorasReloj, horasAMinutos } from '@/modules/partes/domain/horas'
 import type { DiaSemana } from './RejillaSemanal'
+import { Select } from '@/components/Select'
 
 export type ResultadoAnadir =
   | { ok: true; mensaje: string }
@@ -16,6 +17,7 @@ type Props = {
   deshabilitado: boolean
   puedeDeshacer: boolean
   onAnadir: (fecha: string, tareaId: string, minutos: number) => ResultadoAnadir
+  onRellenarSemana: (tareaId: string, minutos: number) => ResultadoAnadir
   onDeshacer: () => void
 }
 
@@ -36,6 +38,7 @@ export function PanelRapido({
   deshabilitado,
   puedeDeshacer,
   onAnadir,
+  onRellenarSemana,
   onDeshacer,
 }: Props) {
   const [fecha, setFecha] = useState(diaInicial)
@@ -99,6 +102,35 @@ export function PanelRapido({
     horasRef.current?.focus()
   }
 
+  function rellenarSemana() {
+    setMensaje('')
+    setError('')
+
+    const parseado = horasAMinutos(horas)
+    if (!parseado.ok) {
+      setError(parseado.error)
+      return
+    }
+    if (parseado.minutos <= 0) {
+      setError('Escribe o elige las horas antes de rellenar la semana')
+      return
+    }
+    if (!tareaId) {
+      setError('Selecciona una tarea')
+      return
+    }
+
+    const resultado = onRellenarSemana(tareaId, parseado.minutos)
+    if (!resultado.ok) {
+      setError(resultado.error)
+      return
+    }
+
+    setMensaje(resultado.mensaje)
+    setHoras('')
+    horasRef.current?.focus()
+  }
+
   const dia = dias.find((candidato) => candidato.fecha === fecha) ?? dias[0]
 
   return (
@@ -110,7 +142,7 @@ export function PanelRapido({
         <p className="text-xs text-slate-500">Se suma a lo que ya haya en ese día.</p>
       </div>
 
-      <div className="mb-3 flex flex-wrap gap-1.5" role="group" aria-label="Día de la imputación">
+      <div className="mb-3 grid grid-cols-4 gap-1.5 sm:grid-cols-7" role="group" aria-label="Día de la imputación">
         {dias.map((candidato) => {
           const activo = candidato.fecha === fecha
           return (
@@ -120,7 +152,7 @@ export function PanelRapido({
               onClick={() => setFecha(candidato.fecha)}
               disabled={deshabilitado}
               aria-pressed={activo}
-              className={`flex min-w-14 flex-col items-center rounded-md border px-2 py-1.5 text-xs font-semibold transition-colors ${
+              className={`flex min-h-11 min-w-0 flex-col items-center justify-center rounded-md border px-1 py-1.5 text-xs font-semibold transition-colors ${
                 activo
                   ? 'border-marca-700 bg-marca-700 text-white'
                   : candidato.esHoy
@@ -128,7 +160,7 @@ export function PanelRapido({
                     : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-100'
               }`}
             >
-              <span className="capitalize">{candidato.dia}</span>
+              <span className="max-w-full truncate capitalize">{candidato.dia}</span>
               <span className={`text-[11px] font-normal ${activo ? 'text-marca-100' : 'text-slate-500'}`}>
                 {candidato.fecha.slice(8, 10)}
               </span>
@@ -137,41 +169,37 @@ export function PanelRapido({
         })}
       </div>
 
-      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-12">
-        <label className="text-xs font-medium text-slate-600 lg:col-span-4">
-          Proyecto
-          <select
-            value={proyectoId}
-            onChange={(evento) => cambiarProyecto(evento.target.value)}
-            disabled={deshabilitado}
-            className="campo mt-1 py-1.5 text-sm"
-          >
-            {grupos.map((grupo) => (
-              <option key={grupo.proyectoId} value={grupo.proyectoId}>
-                {grupo.proyectoCodigo} · {grupo.proyectoNombre}
-              </option>
-            ))}
-          </select>
-        </label>
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1.15fr)_9rem_max-content]">
+        <Select
+          etiqueta="Proyecto"
+          valor={proyectoId}
+          onChange={cambiarProyecto}
+          deshabilitado={deshabilitado}
+          className="text-sm"
+          classNameContenedor="sm:col-span-3 lg:col-span-1"
+          opciones={grupos.map((grupo) => ({
+            valor: grupo.proyectoId,
+            etiqueta: `${grupo.proyectoCodigo} · ${grupo.proyectoNombre}`,
+          }))}
+        />
 
-        <label className="text-xs font-medium text-slate-600 lg:col-span-4">
-          Tarea
-          <select
-            value={tareaId}
-            onChange={(evento) => setTareaId(evento.target.value)}
-            disabled={deshabilitado}
-            className="campo mt-1 py-1.5 text-sm"
-          >
-            {tareasDelProyecto.map((tarea) => (
-              <option key={tarea.tareaId} value={tarea.tareaId}>
-                {tarea.tareaCodigo} · {tarea.tareaNombre}
-              </option>
-            ))}
-          </select>
-        </label>
+        <Select
+          etiqueta="Tarea"
+          valor={tareaId}
+          onChange={setTareaId}
+          deshabilitado={deshabilitado}
+          className="text-sm"
+          classNameContenedor="sm:col-span-3 lg:col-span-1"
+          opciones={tareasDelProyecto.map((tarea) => ({
+            valor: tarea.tareaId,
+            etiqueta: `${tarea.tareaCodigo} · ${tarea.tareaNombre}`,
+          }))}
+        />
 
-        <div className="text-xs font-medium text-slate-600 lg:col-span-2">
-          <label htmlFor="carga-rapida-horas">Horas</label>
+        <div className="min-w-0 sm:col-span-2 lg:col-span-1">
+          <label htmlFor="carga-rapida-horas" className="block text-xs font-medium text-slate-600">
+            Horas
+          </label>
           <input
             id="carga-rapida-horas"
             ref={horasRef}
@@ -187,19 +215,41 @@ export function PanelRapido({
             }}
             disabled={deshabilitado}
             placeholder="7,5"
-            className="campo mt-1 py-1.5 text-center text-sm"
+            className="campo mt-1 block text-center text-sm"
             autoComplete="off"
           />
         </div>
 
-        <div className="flex items-end lg:col-span-2">
+        <div className="flex flex-col gap-2 sm:col-span-4 sm:flex-row sm:items-end lg:col-span-1 lg:justify-end">
           <button
             type="button"
             onClick={anadir}
             disabled={deshabilitado}
-            className="boton-primario w-full py-2 text-sm"
+            className="boton-primario boton-campo w-full text-sm whitespace-nowrap sm:w-auto sm:flex-1 lg:flex-none"
           >
             Añadir
+          </button>
+          <button
+            type="button"
+            onClick={rellenarSemana}
+            disabled={deshabilitado}
+            aria-describedby="rellenar-semana-ayuda"
+            title="Copia estas horas en los días laborables vacíos: de lunes a viernes"
+            className="boton-acento boton-campo w-full text-sm whitespace-nowrap sm:w-auto sm:flex-1 lg:flex-none"
+          >
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-4 w-4 shrink-0"
+            >
+              <path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z" />
+            </svg>
+            Rellenar semana
           </button>
         </div>
       </div>
@@ -215,7 +265,7 @@ export function PanelRapido({
               horasRef.current?.focus()
             }}
             disabled={deshabilitado}
-            className="rounded border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100"
+            className="min-h-11 rounded border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100"
           >
             {etiquetaPreset(preset)}
           </button>
@@ -225,7 +275,7 @@ export function PanelRapido({
           type="button"
           onClick={() => ajustarMinutos(-30)}
           disabled={deshabilitado}
-          className="rounded border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100"
+          className="min-h-11 rounded border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100"
           aria-label="Restar media hora"
         >
           -30 min
@@ -234,7 +284,7 @@ export function PanelRapido({
           type="button"
           onClick={() => ajustarMinutos(30)}
           disabled={deshabilitado}
-          className="rounded border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100"
+          className="min-h-11 rounded border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100"
           aria-label="Sumar media hora"
         >
           +30 min
@@ -272,6 +322,9 @@ export function PanelRapido({
           Se añadirá al {dia.dia} {dia.fecha.slice(8, 10)}/{dia.fecha.slice(5, 7)}. Acepta 7,5 · 7.5 · 7:30.
         </p>
       ) : null}
+      <p id="rellenar-semana-ayuda" className="text-[11px] text-slate-400">
+        «Rellenar semana» copia estas horas de lunes a viernes y respeta los días que ya tengan horas.
+      </p>
     </section>
   )
 }

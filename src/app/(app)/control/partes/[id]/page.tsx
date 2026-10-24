@@ -54,10 +54,10 @@ export default async function ParteDetallePage({ params }: Props) {
           </p>
         </div>
 
-        <div className="flex flex-col items-end gap-2">
+        <div className="flex w-full flex-col items-start gap-2 sm:w-auto sm:items-end">
           <EstadoBadge estado={parte.estado} />
           <p className="text-2xl font-bold text-slate-900">{formatearHorasReloj(parte.totalMinutos)}</p>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <Link href={`/partes/${parte.id}/imprimir`} className="text-xs font-medium text-marca-700 hover:underline">
               Ver versión imprimible
             </Link>
@@ -74,7 +74,7 @@ export default async function ParteDetallePage({ params }: Props) {
         </p>
       ) : null}
 
-      <div className="tarjeta overflow-x-auto">
+      <div className="tarjeta hidden overflow-x-auto md:block">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-marca-200 bg-marca-50 text-left text-xs font-semibold tracking-wide text-marca-900 uppercase">
@@ -96,6 +96,41 @@ export default async function ParteDetallePage({ params }: Props) {
             </tr>
           </tbody>
         </table>
+      </div>
+
+      <div className="space-y-3 md:hidden">
+        {[...porFecha.entries()].map(([fecha, lineas]) => {
+          const total = lineas.reduce((suma, linea) => suma + linea.minutos, 0)
+          return (
+            <div key={fecha} className="tarjeta p-3">
+              <div className="flex items-baseline justify-between gap-2 border-b border-slate-100 pb-2">
+                <span className="font-medium text-slate-800 capitalize">
+                  {nombreDia(fecha)} <span className="text-xs font-normal text-slate-500">{formatearFecha(fecha)}</span>
+                </span>
+                <span className="shrink-0 font-mono text-sm text-slate-700">{formatearHorasReloj(total)}</span>
+              </div>
+              <ul className="mt-2 space-y-2">
+                {lineas.map((linea) => (
+                  <li key={linea.id}>
+                    <div className="flex items-baseline justify-between gap-2">
+                      <span className="min-w-0 truncate text-sm text-slate-800">{linea.tareaNombre}</span>
+                      <span className="shrink-0 font-mono text-sm text-slate-800">
+                        {formatearHorasReloj(linea.minutos)}
+                      </span>
+                    </div>
+                    <p className="truncate text-[11px] text-slate-500">
+                      {linea.proyectoCodigo} · {linea.proyectoNombre}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )
+        })}
+        <div className="tarjeta flex items-baseline justify-between p-3 font-semibold">
+          <span>Total semana</span>
+          <span className="font-mono">{formatearHorasReloj(parte.totalMinutos)}</span>
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">

@@ -89,6 +89,12 @@ export function nombreDia(fecha: FechaIso): string {
   return DIAS_CORTOS[indice] ?? ''
 }
 
+/** Sábado o domingo según el calendario ISO. */
+export function esFinDeSemana(fecha: FechaIso): boolean {
+  const diaSemana = aFecha(fecha).getUTCDay()
+  return diaSemana === 0 || diaSemana === 6
+}
+
 export function formatearFecha(fecha: FechaIso): string {
   const [anio, mes, dia] = fecha.split('-')
   return `${dia}/${mes}/${anio}`

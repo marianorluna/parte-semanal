@@ -10,6 +10,7 @@ import {
   desactivarAsignacionAction,
   type EstadoProyecto,
 } from './actions'
+import { Select } from '@/components/Select'
 
 const inicial: EstadoProyecto = {}
 
@@ -191,28 +192,31 @@ export function FormularioAsignacion({
   return (
     <form action={accion} className="grid gap-3 sm:grid-cols-5">
       <input type="hidden" name="proyectoId" value={proyectoId} />
-      <label className="text-xs font-medium text-slate-600 sm:col-span-2">
-        Empleado
-        <select name="empleadoId" required className="campo mt-1">
-          <option value="">Selecciona</option>
-          {empleados.map((empleado) => (
-            <option key={empleado.id} value={empleado.id}>
-              {empleado.codigo} · {empleado.nombre}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className="text-xs font-medium text-slate-600">
-        Tarea
-        <select name="tareaId" required className="campo mt-1">
-          <option value="">Selecciona</option>
-          {tareas.map((tarea) => (
-            <option key={tarea.id} value={tarea.id}>
-              {tarea.codigo} · {tarea.nombre}
-            </option>
-          ))}
-        </select>
-      </label>
+      <Select
+        etiqueta="Empleado"
+        name="empleadoId"
+        requerido
+        classNameContenedor="sm:col-span-2"
+        opciones={[
+          { valor: '', etiqueta: 'Selecciona' },
+          ...empleados.map((empleado) => ({
+            valor: empleado.id,
+            etiqueta: `${empleado.codigo} · ${empleado.nombre}`,
+          })),
+        ]}
+      />
+      <Select
+        etiqueta="Tarea"
+        name="tareaId"
+        requerido
+        opciones={[
+          { valor: '', etiqueta: 'Selecciona' },
+          ...tareas.map((tarea) => ({
+            valor: tarea.id,
+            etiqueta: `${tarea.codigo} · ${tarea.nombre}`,
+          })),
+        ]}
+      />
       <label className="text-xs font-medium text-slate-600">
         Desde
         <input name="desde" type="date" defaultValue={hoy} required className="campo mt-1" />

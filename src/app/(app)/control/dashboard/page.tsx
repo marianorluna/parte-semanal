@@ -139,7 +139,7 @@ export default async function DashboardPage({ searchParams }: Props) {
         </div>
       ) : null}
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
         <Kpi titulo="Horas imputadas" valor={formatearHorasReloj(resumen.totalMinutos)} detalle="en la semana" />
         <Kpi titulo="Partes" valor={String(resumen.partes)} detalle={`${resumen.empleados} empleados`} />
         <Kpi

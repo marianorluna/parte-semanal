@@ -24,7 +24,7 @@ export default async function AdminProyectosPage() {
         </div>
       </details>
 
-      <div className="tarjeta overflow-x-auto">
+      <div className="tarjeta hidden overflow-x-auto md:block">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-marca-200 bg-marca-50 text-left text-xs font-semibold tracking-wide text-marca-900 uppercase">
@@ -56,6 +56,35 @@ export default async function AdminProyectosPage() {
           </tbody>
         </table>
       </div>
+
+      <ul className="space-y-3 md:hidden">
+        {proyectos.map((proyecto) => (
+          <li key={proyecto.id} className="tarjeta p-3">
+            <div className="flex items-start justify-between gap-2">
+              <Link href={`/admin/proyectos/${proyecto.id}`} className="min-w-0 hover:text-marca-700">
+                <span className="block text-xs font-semibold text-marca-800">{proyecto.codigo}</span>
+                <span className="block truncate font-medium text-slate-900">{proyecto.nombre}</span>
+              </Link>
+              <span
+                className={`etiqueta shrink-0 ${proyecto.activo ? 'bg-acento-100 text-acento-800' : 'bg-slate-200 text-slate-600'}`}
+              >
+                {proyecto.activo ? 'Activo' : 'Inactivo'}
+              </span>
+            </div>
+
+            <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
+              <div>
+                <dt className="text-slate-500">Tareas</dt>
+                <dd className="text-slate-800">{proyecto.tareas}</dd>
+              </div>
+              <div>
+                <dt className="text-slate-500">Horas acumuladas</dt>
+                <dd className="font-mono text-slate-800">{formatearHorasReloj(proyecto.minutos)}</dd>
+              </div>
+            </dl>
+          </li>
+        ))}
+      </ul>
     </section>
   )
 }

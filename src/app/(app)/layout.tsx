@@ -2,7 +2,7 @@ import { requireUsuario } from '@/modules/identidad/application/sesion'
 import { proyectosPermitidos } from '@/modules/identidad/infrastructure/repositorio-identidad'
 import { depsPartes, repositorioNotificaciones } from '@/composition'
 import { CampanaNotificaciones } from '@/components/CampanaNotificaciones'
-import { Navegacion, type EnlaceNav } from './Navegacion'
+import { NavegacionEscritorio, MenuNavegacion, type EnlaceNav } from './Navegacion'
 import { cerrarSesion } from '@/app/login/actions'
 
 export const dynamic = 'force-dynamic'
@@ -37,24 +37,27 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <div className="min-h-dvh">
       <header className="no-imprimir sticky top-0 z-10 border-b-2 border-b-acento-600 bg-marca-900 text-white">
         <div className="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-2 sm:px-6">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-baseline gap-2">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex shrink-0 items-baseline gap-2">
               <span className="text-xs font-semibold tracking-widest text-acento-300 uppercase">Levitec</span>
               <span className="hidden text-sm font-semibold text-white sm:inline">Parte semanal</span>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex min-w-0 items-center gap-2 sm:gap-3">
               <CampanaNotificaciones noLeidas={noLeidas} />
-              <div className="text-right">
-                <p className="text-sm leading-tight font-medium text-white">{usuario.nombre}</p>
+              <div className="hidden min-w-0 text-right sm:block">
+                <p className="max-w-36 truncate text-sm leading-tight font-medium text-white md:max-w-56">
+                  {usuario.nombre}
+                </p>
                 <p className="text-xs leading-tight text-marca-200">
                   {usuario.rol === 'ADMIN' ? 'Administrador' : usuario.rol === 'ENCARGADO' ? 'Encargado' : 'Trabajador'}
                 </p>
               </div>
-              <form action={cerrarSesion}>
+              <MenuNavegacion enlaces={enlaces} />
+              <form action={cerrarSesion} className="shrink-0">
                 <button
                   type="submit"
-                  className="cursor-pointer rounded-md border border-marca-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-marca-800"
+                  className="inline-flex h-9 cursor-pointer items-center rounded-md border border-marca-600 px-2.5 text-xs font-semibold text-white transition-colors hover:bg-marca-800"
                 >
                   Salir
                 </button>
@@ -62,7 +65,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             </div>
           </div>
 
-          <Navegacion enlaces={enlaces} />
+          <NavegacionEscritorio enlaces={enlaces} />
         </div>
       </header>
 

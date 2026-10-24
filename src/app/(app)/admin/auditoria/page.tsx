@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { requireRol } from '@/modules/identidad/application/sesion'
 import { accionesDisponibles, listarAuditoria } from '@/modules/auditoria/infrastructure/consultas'
+import { Select } from '@/components/Select'
 
 export const dynamic = 'force-dynamic'
 
@@ -46,35 +47,38 @@ export default async function AdminAuditoriaPage({ searchParams }: Props) {
         </p>
       </div>
 
-      <form className="tarjeta flex flex-wrap items-end gap-3 p-3" action="/admin/auditoria" method="get">
-        <label className="text-xs font-medium text-slate-600">
-          Acción
-          <select name="accion" defaultValue={params.accion ?? ''} className="campo mt-1 py-1.5 text-sm">
-            <option value="">Todas</option>
-            {acciones.map((accion) => (
-              <option key={accion} value={accion}>
-                {accion}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="text-xs font-medium text-slate-600">
+      <form
+        className="tarjeta flex flex-col gap-3 p-3 sm:flex-row sm:flex-wrap sm:items-end"
+        action="/admin/auditoria"
+        method="get"
+      >
+        <Select
+          etiqueta="Acción"
+          name="accion"
+          valorInicial={params.accion ?? ''}
+          className="py-1.5 text-sm"
+          opciones={[
+            { valor: '', etiqueta: 'Todas' },
+            ...acciones.map((accion) => ({ valor: accion, etiqueta: accion })),
+          ]}
+        />
+        <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
           Desde
-          <input type="date" name="desde" defaultValue={params.desde ?? ''} className="campo mt-1 py-1.5 text-sm" />
+          <input type="date" name="desde" defaultValue={params.desde ?? ''} className="campo text-sm" />
         </label>
-        <label className="text-xs font-medium text-slate-600">
+        <label className="flex flex-col gap-1 text-xs font-medium text-slate-600">
           Hasta
-          <input type="date" name="hasta" defaultValue={params.hasta ?? ''} className="campo mt-1 py-1.5 text-sm" />
+          <input type="date" name="hasta" defaultValue={params.hasta ?? ''} className="campo text-sm" />
         </label>
-        <button type="submit" className="boton-primario py-1.5 text-xs">
+        <button type="submit" className="boton-primario boton-campo text-xs">
           Filtrar
         </button>
-        <Link href="/admin/auditoria" className="boton-secundario py-1.5 text-xs">
+        <Link href="/admin/auditoria" className="boton-secundario boton-campo text-xs">
           Limpiar
         </Link>
       </form>
 
-      <div className="tarjeta overflow-x-auto">
+      <div className="tarjeta hidden overflow-x-auto md:block">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-marca-200 bg-marca-50 text-left text-xs font-semibold tracking-wide text-marca-900 uppercase">
@@ -115,8 +119,36 @@ export default async function AdminAuditoriaPage({ searchParams }: Props) {
         </table>
       </div>
 
+      <ul className="space-y-3 md:hidden">
+        {filas.map((fila) => (
+          <li key={fila.id} className="tarjeta p-3">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+              <span className="font-medium text-slate-800">{fila.accion}</span>
+              <span className="text-[11px] text-slate-500">{formatearInstante(fila.createdAt)}</span>
+            </div>
+            <p className="mt-1 text-xs text-slate-600">
+              {fila.entidad}
+              {fila.entidadId ? <span className="text-slate-400"> · {fila.entidadId.slice(0, 8)}</span> : null}
+            </p>
+            <p className="mt-1 text-xs text-slate-600">
+              {fila.actorNombre ?? 'Sistema'}
+              {fila.actorEmail ? <span className="block text-[11px] text-slate-400">{fila.actorEmail}</span> : null}
+            </p>
+            {fila.motivo || fila.despues ? (
+              <div className="mt-2 border-t border-slate-100 pt-2 text-[11px] text-slate-500">
+                {fila.motivo ? <p className="break-words text-slate-700">{fila.motivo}</p> : null}
+                {fila.despues ? <p className="break-all">{JSON.stringify(fila.despues)}</p> : null}
+              </div>
+            ) : null}
+          </li>
+        ))}
+        {filas.length === 0 ? (
+          <li className="tarjeta p-8 text-center text-sm text-slate-500">Sin eventos para estos filtros</li>
+        ) : null}
+      </ul>
+
       {totalPaginas > 1 ? (
-        <nav aria-label="Paginación" className="flex items-center justify-center gap-2">
+        <nav aria-label="Paginación" className="flex flex-wrap items-center justify-center gap-2">
           {Array.from({ length: totalPaginas }, (_, indice) => indice + 1)
             .filter((numero) => Math.abs(numero - pagina) <= 2 || numero === 1 || numero === totalPaginas)
             .map((numero) => (

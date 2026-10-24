@@ -9,8 +9,10 @@ import {
   aTextoEditable,
   formatearHorasReloj,
   horasAMinutos,
+  MINUTOS_POR_DIA,
   sumarMinutos,
 } from '@/modules/partes/domain/horas'
+import { esFinDeSemana } from '@/modules/partes/domain/fechas'
 import { etiquetaEstado } from '@/modules/partes/domain/parte'
 import { EstadoBadge } from '@/components/EstadoBadge'
 import { guardarSemanaAction, enviarSemanaAction } from './actions'
@@ -39,6 +41,23 @@ type Props = {
 
 function clave(fecha: string, tareaId: string): string {
   return `${fecha}|${tareaId}`
+}
+
+function ubicacionCelda(dias: DiaSemana[], fecha: string, tarea: string | undefined): string {
+  const dia = dias.find((candidato) => candidato.fecha === fecha)
+  const texto = dia ? `${dia.dia} ${fecha.slice(8, 10)}/${fecha.slice(5, 7)}` : fecha
+  return tarea ? `${texto} · ${tarea}` : texto
+}
+
+/**
+ * Misma regla que aplica el dominio al guardar: formato válido y como máximo
+ * 24 horas por imputación. Validar aquí evita un viaje al servidor que solo
+ * puede terminar en error.
+ */
+function errorDeCelda(texto: string): string | null {
+  const parseado = horasAMinutos(texto)
+  if (!parseado.ok) return parseado.error
+  return parseado.minutos > MINUTOS_POR_DIA ? 'No se pueden imputar más de 24 horas en un día' : null
 }
 
 function moverFoco(actual: HTMLInputElement, delta: number) {
@@ -75,8 +94,8 @@ export function RejillaSemanal({
   const [hayConflicto, setHayConflicto] = useState(false)
   const [hayCambios, setHayCambios] = useState(false)
   const [modalAbierto, setModalAbierto] = useState(false)
-  const [resaltada, setResaltada] = useState<string | null>(null)
-  const [deshacer, setDeshacer] = useState<{ clave: string; anterior: string } | null>(null)
+  const [resaltadas, setResaltadas] = useState<ReadonlySet<string>>(() => new Set())
+  const [deshacer, setDeshacer] = useState<Record<string, string> | null>(null)
   const [pendienteEnvio, iniciarEnvio] = useTransition()
   const ediciones = useRef(0)
 
@@ -89,7 +108,7 @@ export function RejillaSemanal({
         tareaId: tareaId ?? '',
         texto,
         minutos: parseado.ok ? parseado.minutos : 0,
-        error: parseado.ok ? null : parseado.error,
+        error: errorDeCelda(texto),
       }
     })
   }, [valores])
@@ -102,6 +121,22 @@ export function RejillaSemanal({
     return mapa
   }, [celdas])
 
+  const diasConExceso = useMemo(
+    () =>
+      Object.entries(totalDia)
+        .filter(([, minutos]) => minutos > MINUTOS_POR_DIA)
+        .map(([fecha]) => fecha),
+    [totalDia],
+  )
+
+  const nombresTarea = useMemo(() => {
+    const mapa = new Map<string, string>()
+    for (const grupo of grupos) {
+      for (const tarea of grupo.tareas) mapa.set(tarea.tareaId, tarea.tareaNombre)
+    }
+    return mapa
+  }, [grupos])
+
   const totalTarea = useMemo(() => {
     const mapa: Record<string, number> = {}
     for (const celda of celdas) {
@@ -110,13 +145,34 @@ export function RejillaSemanal({
     return mapa
   }, [celdas])
 
+  const errorValidacion = useMemo<{ ubicacion: string; mensaje: string } | null>(() => {
+    const celda = celdas.find((candidata) => candidata.error !== null)
+    if (celda) {
+      return {
+        ubicacion: ubicacionCelda(dias, celda.fecha, nombresTarea.get(celda.tareaId)),
+        mensaje: celda.error ?? '',
+      }
+    }
+    const fecha = diasConExceso[0]
+    if (fecha) {
+      return {
+        ubicacion: ubicacionCelda(dias, fecha, undefined),
+        mensaje: 'La suma del día supera las 24 horas',
+      }
+    }
+    return null
+  }, [celdas, dias, diasConExceso, nombresTarea])
+
   const total = sumarMinutos(celdas.map((celda) => celda.minutos))
   const avisos: string[] = []
   for (const dia of dias) {
     if ((totalDia[dia.fecha] ?? 0) > 12 * 60) avisos.push(`${dia.dia} supera 12 horas`)
   }
   if (total > 48 * 60) avisos.push('La semana supera 48 horas')
-  const hayErrores = celdas.some((celda) => celda.error !== null)
+  const hayErrores = celdas.some((celda) => celda.error !== null) || diasConExceso.length > 0
+  // Con un valor inválido o un conflicto de versión no se permite guardar:
+  // el parte quedaría con datos erróneos o sobre una versión obsoleta.
+  const guardadoBloqueado = hayErrores || hayConflicto
 
   const guardar = useCallback(
     async (silencioso = false): Promise<number | null> => {
@@ -153,24 +209,29 @@ export function RejillaSemanal({
   )
 
   useEffect(() => {
-    if (!editable || !hayCambios || hayErrores || guardando) return
+    // Un error del servidor queda visible hasta que el usuario cambie un valor:
+    // así no se repite el envío fallido ni parpadea el aviso.
+    if (!editable || !hayCambios || hayErrores || guardando || error !== '') return
     const temporizador = setTimeout(() => {
       void guardar(true)
     }, 900)
     return () => clearTimeout(temporizador)
-  }, [valores, hayCambios, hayErrores, editable, guardando, guardar])
+  }, [valores, hayCambios, hayErrores, editable, guardando, guardar, error])
 
   useEffect(() => {
-    if (!resaltada) return
-    const temporizador = setTimeout(() => setResaltada(null), 2500)
+    if (resaltadas.size === 0) return
+    const temporizador = setTimeout(() => setResaltadas(new Set()), 2500)
     return () => clearTimeout(temporizador)
-  }, [resaltada])
+  }, [resaltadas])
 
   function cambiar(fecha: string, tareaId: string, texto: string) {
     ediciones.current += 1
     setValores((anterior) => ({ ...anterior, [clave(fecha, tareaId)]: texto }))
     setHayCambios(true)
     setMensaje('')
+    // Al editar se descarta el error anterior, salvo un conflicto de versión:
+    // ese solo se resuelve recargando la página.
+    if (!hayConflicto) setError('')
   }
 
   function anadirRapido(fecha: string, tareaId: string, minutos: number): ResultadoAnadir {
@@ -195,12 +256,12 @@ export function RejillaSemanal({
     }
 
     ediciones.current += 1
-    setDeshacer({ clave: llave, anterior: valores[llave] ?? '' })
+    setDeshacer({ [llave]: valores[llave] ?? '' })
     setValores((anterior) => ({ ...anterior, [llave]: aTextoEditable(nuevoTotalCelda) }))
     setHayCambios(true)
     setMensaje('')
     setError('')
-    setResaltada(llave)
+    setResaltadas(new Set([llave]))
 
     const dia = dias.find((candidato) => candidato.fecha === fecha)
     return {
@@ -212,11 +273,72 @@ export function RejillaSemanal({
   function deshacerUltimo() {
     if (!deshacer) return
     ediciones.current += 1
-    setValores((anterior) => ({ ...anterior, [deshacer.clave]: deshacer.anterior }))
+    setValores((anterior) => ({ ...anterior, ...deshacer }))
     setHayCambios(true)
     setDeshacer(null)
-    setResaltada(null)
+    setResaltadas(new Set())
     setMensaje('')
+  }
+
+  /**
+   * Copia las horas indicadas a la tarea elegida en los días laborables que
+   * sigan vacíos. Nunca sobrescribe un día con horas ni toca el fin de semana,
+   * de modo que se puede rellenar la semana y después ajustar un día suelto.
+   */
+  function rellenarSemana(tareaId: string, minutos: number): ResultadoAnadir {
+    if (minutos <= 0) {
+      return { ok: false, error: 'Escribe o elige las horas antes de rellenar la semana' }
+    }
+    if (minutos > MINUTOS_POR_DIA) {
+      return { ok: false, error: 'Una tarea no puede superar las 24 horas en un día.' }
+    }
+
+    const laborables = dias.filter((dia) => !esFinDeSemana(dia.fecha))
+    if (laborables.length === 0) {
+      return { ok: false, error: 'Esta semana no tiene días laborables que rellenar.' }
+    }
+
+    const diasConHoras = new Set(
+      celdas.filter((celda) => celda.texto.trim() !== '').map((celda) => celda.fecha),
+    )
+    const vacios = laborables.filter((dia) => !diasConHoras.has(dia.fecha))
+    const ocupados = laborables.length - vacios.length
+
+    if (vacios.length === 0) {
+      return {
+        ok: true,
+        mensaje: `No hay días laborables vacíos: los ${laborables.length} ya tienen horas.`,
+      }
+    }
+
+    const texto = aTextoEditable(minutos)
+    const anteriores: Record<string, string> = {}
+    for (const dia of vacios) {
+      const llave = clave(dia.fecha, tareaId)
+      anteriores[llave] = valores[llave] ?? ''
+    }
+
+    ediciones.current += 1
+    setDeshacer(anteriores)
+    setValores((anterior) => {
+      const siguiente = { ...anterior }
+      for (const llave of Object.keys(anteriores)) siguiente[llave] = texto
+      return siguiente
+    })
+    setHayCambios(true)
+    setMensaje('')
+    setError('')
+    setResaltadas(new Set(Object.keys(anteriores)))
+
+    const yaTenían = ocupados === 0 ? '' : ` ${ocupados} ya tenían horas.`
+    const rellenado =
+      vacios.length === 1
+        ? `Rellenado 1 día laborable con ${formatearHorasReloj(minutos)}.`
+        : `Rellenados ${vacios.length} días laborables con ${formatearHorasReloj(minutos)}.`
+    return {
+      ok: true,
+      mensaje: `${rellenado}${yaTenían}`,
+    }
   }
 
   function enviar() {
@@ -239,7 +361,7 @@ export function RejillaSemanal({
   const diaInicial = dias.find((dia) => dia.esHoy)?.fecha ?? dias[0]?.fecha ?? ''
 
   return (
-    <section className="space-y-4 pb-24 md:pb-0">
+    <section className="space-y-4 pb-28 lg:pb-0">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold text-slate-900">Mi semana</h1>
@@ -248,7 +370,7 @@ export function RejillaSemanal({
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Link href={navegacion.anterior} className="boton-secundario px-3 py-1.5 text-xs">
             Anterior
           </Link>
@@ -296,11 +418,12 @@ export function RejillaSemanal({
               deshabilitado={deshabilitado}
               puedeDeshacer={deshacer !== null}
               onAnadir={anadirRapido}
+              onRellenarSemana={rellenarSemana}
               onDeshacer={deshacerUltimo}
             />
           ) : null}
 
-          <div className="hidden flex-wrap items-center gap-x-5 gap-y-2 text-xs text-slate-600 md:flex">
+          <div className="hidden flex-wrap items-center gap-x-5 gap-y-2 text-xs text-slate-600 lg:flex">
             <span className="inline-flex items-center gap-1.5">
               <span
                 aria-hidden="true"
@@ -324,7 +447,7 @@ export function RejillaSemanal({
             {editable ? <span className="text-slate-500">Puedes escribir 7,5 · 7.5 · 7:30</span> : null}
           </div>
 
-          <div className="tarjeta hidden max-h-[calc(100dvh-11rem)] overflow-auto md:block">
+          <div className="tarjeta hidden max-h-[calc(100dvh-11rem)] overflow-auto lg:block">
             <table className="w-full border-collapse text-sm">
               <thead className="sticky top-0 z-20">
                 <tr className="border-b border-slate-200 bg-marca-50">
@@ -368,7 +491,7 @@ export function RejillaSemanal({
                     valores={valores}
                     totalTarea={totalTarea}
                     deshabilitado={deshabilitado}
-                    resaltada={resaltada}
+                    resaltadas={resaltadas}
                     cambiar={cambiar}
                   />
                 ))}
@@ -395,7 +518,7 @@ export function RejillaSemanal({
             </table>
           </div>
 
-          <div className="space-y-3 md:hidden">
+          <div className="space-y-3 lg:hidden">
             {dias.map((dia) => (
               <TarjetaDia
                 key={dia.fecha}
@@ -404,8 +527,12 @@ export function RejillaSemanal({
                 valores={valores}
                 totalDia={totalDia[dia.fecha] ?? 0}
                 deshabilitado={deshabilitado}
-                resaltada={resaltada}
+                resaltadas={resaltadas}
                 cambiar={cambiar}
+                tieneError={
+                  diasConExceso.includes(dia.fecha) ||
+                  celdas.some((celda) => celda.fecha === dia.fecha && celda.error !== null)
+                }
               />
             ))}
           </div>
@@ -418,6 +545,13 @@ export function RejillaSemanal({
             <li key={aviso}>{aviso}</li>
           ))}
         </ul>
+      ) : null}
+
+      {errorValidacion ? (
+        <div role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+          <span className="font-semibold">{errorValidacion.ubicacion}</span>: {errorValidacion.mensaje}. Corrige el
+          valor para poder guardar.
+        </div>
       ) : null}
 
       {error ? (
@@ -436,7 +570,7 @@ export function RejillaSemanal({
       ) : null}
 
       {editable ? (
-        <div className="hidden flex-wrap items-center justify-between gap-3 md:flex">
+        <div className="hidden flex-wrap items-center justify-between gap-3 lg:flex">
           <div className="flex items-center gap-3 text-sm text-slate-600">
             <EstadoBadge estado={estado} />
             <span>{guardando ? 'Guardando...' : mensaje}</span>
@@ -447,7 +581,7 @@ export function RejillaSemanal({
             <button
               type="button"
               onClick={() => void guardar()}
-              disabled={guardando || hayErrores}
+              disabled={guardando || guardadoBloqueado}
               className="boton-secundario"
             >
               Guardar borrador
@@ -458,7 +592,7 @@ export function RejillaSemanal({
                 setError('')
                 setModalAbierto(true)
               }}
-              disabled={pendienteEnvio || guardando || hayErrores || total === 0}
+              disabled={pendienteEnvio || guardando || guardadoBloqueado || total === 0}
               className="boton-primario"
             >
               Revisar y enviar
@@ -472,25 +606,29 @@ export function RejillaSemanal({
         </div>
       )}
 
-      <p className="hidden text-xs text-slate-500 md:block">
+      <p className="hidden text-xs text-slate-500 lg:block">
         Puedes escribir 7,5 · 7.5 · 7:30. Pulsa Intro para pasar a la celda siguiente. El parte pasa a{' '}
         {etiquetaEstado('ENVIADO').toLowerCase()} cuando lo envías y queda bloqueado hasta la revisión.
       </p>
 
       {editable ? (
-        <div className="no-imprimir fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 px-4 py-3 shadow-lg backdrop-blur md:hidden">
+        <div className="no-imprimir fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] shadow-lg backdrop-blur lg:hidden">
           <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-xs text-slate-500">
-                {guardando ? 'Guardando...' : mensaje || (hayCambios ? 'Cambios sin guardar' : 'Total semana')}
+            <div className="min-w-0">
+              <p className={`truncate text-xs ${hayErrores ? 'text-red-600' : 'text-slate-500'}`}>
+                {guardando
+                  ? 'Guardando...'
+                  : hayErrores
+                    ? 'Corrige las horas marcadas'
+                    : mensaje || (hayCambios ? 'Cambios sin guardar' : 'Total semana')}
               </p>
               <p className="text-lg font-bold text-marca-900">{formatearHorasReloj(total)}</p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex shrink-0 gap-2">
               <button
                 type="button"
                 onClick={() => void guardar()}
-                disabled={guardando || hayErrores}
+                disabled={guardando || guardadoBloqueado}
                 className="boton-secundario px-3 py-1.5 text-xs"
               >
                 Guardar
@@ -501,7 +639,7 @@ export function RejillaSemanal({
                   setError('')
                   setModalAbierto(true)
                 }}
-                disabled={pendienteEnvio || guardando || hayErrores || total === 0}
+                disabled={pendienteEnvio || guardando || guardadoBloqueado || total === 0}
                 className="boton-primario px-3 py-1.5 text-xs"
               >
                 Revisar y enviar
@@ -533,7 +671,7 @@ function GrupoFilas({
   valores,
   totalTarea,
   deshabilitado,
-  resaltada,
+  resaltadas,
   cambiar,
 }: {
   grupo: GrupoProyecto
@@ -541,7 +679,7 @@ function GrupoFilas({
   valores: Record<string, string>
   totalTarea: Record<string, number>
   deshabilitado: boolean
-  resaltada: string | null
+  resaltadas: ReadonlySet<string>
   cambiar: (fecha: string, tareaId: string, texto: string) => void
 }) {
   return (
@@ -567,9 +705,9 @@ function GrupoFilas({
           {dias.map((dia) => {
             const llave = clave(dia.fecha, tarea.tareaId)
             const texto = valores[llave] ?? ''
-            const parseado = horasAMinutos(texto)
-            const invalida = texto !== '' && !parseado.ok
-            const destacada = resaltada === llave
+            const errorCelda = errorDeCelda(texto)
+            const invalida = texto !== '' && errorCelda !== null
+            const destacada = resaltadas.has(llave)
 
             const aspecto = invalida
               ? 'border-red-400 bg-red-50 text-red-800 focus:border-red-500 focus:ring-red-200'
@@ -601,7 +739,7 @@ function GrupoFilas({
                     }
                   }}
                   disabled={deshabilitado}
-                  title={parseado.ok ? undefined : parseado.error}
+                  title={errorCelda ?? undefined}
                   placeholder={deshabilitado ? '' : '0'}
                   className={`w-full rounded border px-1 py-1 text-center text-sm font-medium transition-colors placeholder:font-normal placeholder:text-slate-300 focus:outline-none focus:ring-2 ${aspecto}`}
                 />
@@ -650,26 +788,32 @@ function TarjetaDia({
   valores,
   totalDia,
   deshabilitado,
-  resaltada,
+  resaltadas,
   cambiar,
+  tieneError,
 }: {
   dia: DiaSemana
   grupos: GrupoProyecto[]
   valores: Record<string, string>
   totalDia: number
   deshabilitado: boolean
-  resaltada: string | null
+  resaltadas: ReadonlySet<string>
   cambiar: (fecha: string, tareaId: string, texto: string) => void
+  tieneError: boolean
 }) {
-  const [abierta, setAbierta] = useState(dia.esHoy)
+  // Sin decisión explícita del usuario, el día de hoy y cualquier día con un
+  // valor inválido se muestran abiertos: en móvil la celda vive dentro de la
+  // tarjeta y no se podría corregir si quedara plegada.
+  const [abiertaManual, setAbiertaManual] = useState<boolean | null>(null)
+  const abierta = abiertaManual ?? (dia.esHoy || tieneError)
 
   return (
     <div className="tarjeta p-3">
       <button
         type="button"
-        onClick={() => setAbierta((anterior) => !anterior)}
+        onClick={() => setAbiertaManual(!abierta)}
         aria-expanded={abierta}
-        className="flex w-full items-center justify-between gap-2 text-left"
+        className="flex min-h-11 w-full items-center justify-between gap-2 text-left"
       >
         <h2 className={`text-sm font-semibold capitalize ${dia.esHoy ? 'text-acento-800' : 'text-slate-800'}`}>
           {dia.dia} {dia.fecha.slice(8, 10)}/{dia.fecha.slice(5, 7)}
@@ -686,7 +830,9 @@ function TarjetaDia({
           {grupos.flatMap((grupo) =>
             grupo.tareas.map((tarea) => {
               const llave = clave(dia.fecha, tarea.tareaId)
-              const elementoResaltado = resaltada === llave
+              const elementoResaltado = resaltadas.has(llave)
+              const texto = valores[llave] ?? ''
+              const errorCelda = errorDeCelda(texto)
               return (
                 <label key={llave} className="flex items-center justify-between gap-3">
                   <span className="min-w-0 flex-1 text-xs text-slate-600">
@@ -698,16 +844,16 @@ function TarjetaDia({
                     type="text"
                     data-celda={llave}
                     aria-label={`${grupo.proyectoCodigo} ${tarea.tareaNombre} ${dia.dia}`}
-                    value={valores[llave] ?? ''}
+                    aria-invalid={errorCelda !== null || undefined}
+                    title={errorCelda ?? undefined}
+                    value={texto}
                     onChange={(evento) => cambiar(dia.fecha, tarea.tareaId, evento.target.value)}
                     disabled={deshabilitado}
-                    className={`campo w-20 text-center ${
+                    className={`campo h-11 w-24 text-center ${
                       elementoResaltado
                         ? 'border-acento-500 bg-acento-100 ring-2 ring-acento-400'
-                        : valores[llave]
-                          ? horasAMinutos(valores[llave] ?? '').ok
-                            ? ''
-                            : 'border-red-400 bg-red-50'
+                        : errorCelda !== null
+                          ? 'border-red-400 bg-red-50'
                           : ''
                     }`}
                     placeholder="0"
