@@ -185,16 +185,22 @@ Reglas de despliegue:
 | Entorno | App | Base de datos | Datos |
 |---------|-----|---------------|-------|
 | Local | `npm run dev` | Servicio `db` de `compose.yml` | Seed de desarrollo |
+| Staging | Recurso Docker Compose en Coolify sobre la rama `staging` | Servicio `db` propio con volumen independiente | Copia anonimizada de producción, sin usuarios reales |
 | Producción | Stack `compose.yml` en Coolify, dominio propio | Servicio `db` del mismo stack | Datos reales de obra |
 
-No hay staging todavía; se crea en la fase 2 con datos anonimizados.
+### Staging
+
+1. Crea en Coolify un recurso Docker Compose sobre la rama `staging`, con su propio `POSTGRES_PASSWORD`, `AUTH_SECRET`, `APP_URL` y volumen.
+2. Restaura allí una copia del backup de producción y anonimiza antes de arrancar: sustituye correos, nombres y teléfonos de `empleado` y `usuario`; conserva roles y estructura. No copies `AUTH_SECRET` ni claves de API.
+3. Las migraciones se aplican solas en el arranque. Un cambio de esquema se valida primero en staging; si el healthcheck falla, Coolify mantiene la versión anterior.
+4. `SMTP_URL` de staging debe apuntar a un buzón de pruebas, nunca a los destinatarios reales. Los cron de avisos y webhooks usan un `CRON_SECRET` distinto y webhooks desactivados.
+
+No hay datos personales reales en staging: si no se puede anonimizar con garantías, se usa el seed demo.
 
 ## Decisiones abiertas
 
 - [ ] Registro legal de jornada (fichaje): fase 3. Afecta al modelo si se decide unificar con imputación.
 - [ ] Multi-inquilino real y RLS para subcontratas: pendiente de si se abre portal externo.
-- [ ] Generación de PDF en servidor (Gotenberg vs `@react-pdf`): se decide en fase 2.
 - [ ] SSO con Microsoft Entra ID: depende de la gestión de identidades de la empresa.
-- [ ] Proveedor de email transaccional: fase 2.
 
 Decisiones ya tomadas → [`decisions.md`](./decisions.md).

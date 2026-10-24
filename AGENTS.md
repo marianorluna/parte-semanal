@@ -58,8 +58,8 @@ Las versiones exactas de dependencias viven en manifiestos y lockfiles; aquí se
 
 Resumen operativo para retomar el trabajo, no historial de sesiones.
 
-- **Última sesión:** 2026-10-22 - MVP funcional completo y verificado en local: auth con roles, rejilla semanal, bandeja de aprobación, dashboard, CRUD de administración, CSV e imprimible, auditoría y seed demo con purga.
-- **Foco actual:** Cierre del MVP. Pendiente el despliegue real en Coolify sobre `https://horas.levitec.marianorluna.com` y el smoke test en el VPS.
+- **Última sesión:** 2026-10-24 - Fase 2 implementada y verificada en local: calendario laboral y festivos, cómputo por convenio, ausencias, coste y presupuesto, informes en `pg-boss`, cierre semanal y mensual con estado `BLOQUEADO`, avisos por email, API v1 con claves, idempotencia, outbox y webhooks firmados, y CI ampliado.
+- **Foco actual:** validar la migración `0010` y los flujos de fase 2 en staging; después, smoke test en producción. Playwright queda pendiente de aprobación de la dependencia.
 - **Checklist:**
   - [x] Especializar `AGENTS.md` §2-§4
   - [x] Definir arquitectura modular y modelo de datos del MVP
@@ -77,9 +77,20 @@ Resumen operativo para retomar el trabajo, no historial de sesiones.
   - [x] Auditoría append-only y pantalla de consulta
   - [x] Endurecimiento: cabeceras, cookies y errores sin trazas
   - [x] `README.md`, `docs/onboarding.md` y ADR-008 del seed demo
-  - [ ] Despliegue en Coolify con dominio, TLS y migraciones automáticas en el arranque
-  - [ ] Smoke test completo en producción y restauración de un backup
-- **Bloqueadores:** acceso a Coolify y al DNS de `marianorluna.com`, y permisos del repositorio en GitHub. Si el DNS no está listo, el MVP se valida con la URL temporal de Coolify y se cambia el dominio después.
+  - [x] Despliegue en Coolify con dominio, TLS y migraciones automáticas en el arranque
+  - [x] Fase 2.1: calendario laboral, festivos, excepciones y jornada teórica
+  - [x] Fase 2.2: motor de cómputo versionado
+  - [x] Fase 2.3: ausencias, vacaciones y bajas
+  - [x] Fase 2.4: coste hora y presupuesto
+  - [x] Fase 2.5: informes en segundo plano con `pg-boss`
+  - [x] Fase 2.6: cierre semanal y mensual con reapertura auditada
+  - [x] Fase 2.7: correo transaccional y preferencias de aviso
+  - [x] Fase 2.8: API pública y webhooks
+  - [x] Fase 2.9: CI, staging documentado, health ampliado y alerta de jobs fallidos
+  - [x] CI de lint, tipado, tests, migraciones y build
+  - [ ] Smoke test completo en producción y restauración de un backup verificada
+  - [ ] Playwright para el flujo crítico (dependencia pendiente de aprobación)
+- **Bloqueadores:** restaurar un backup en local o staging para validar la recuperación; aprobación de `@playwright/test`; y un `SMTP_URL` real para probar el envío de correos en producción.
 
 ### Protocolo de cierre de sesión
 

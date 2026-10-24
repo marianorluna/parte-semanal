@@ -164,3 +164,87 @@ Registro de las decisiones técnicas relevantes del proyecto. Una entrada por de
   3. Guardar un presupuesto versionado con importe y fechas (fase 2, 2.4) - más fiel a la realidad contractual, desproporcionado para este paso y pendiente de decidir si hay importes.
 - **Decisión:** Opción 2. Se añaden `fecha_inicio` y `fecha_fin` (`date`, nulas) a `proyecto`. El dominio puro `reporting/domain/riesgo.ts` calcula consumo, plazo transcurrido, desviación en puntos porcentuales y proyección de consumo al cierre. Los niveles son `AGOTADO` (consumo >= 100%), `CRITICO` (proyección >= 125%, desviación >= 20 pp o consumo >= 90%), `AVISO` (proyección >= 110% o desviación >= 10 pp) y `OK`, con estados explícitos `SIN_PRESUPUESTO` y `SIN_PLAZO` cuando faltan datos.
 - **Consecuencias:** Los avisos de desviación solo aparecen en proyectos con presupuesto y fechas cargadas; el resto muestra consumo sin juicio de plazo, sin falsear el semáforo. El cálculo es determinista y testeable, y no necesita tabla de agregados a esta escala. La versión con importes, coste hora y presupuesto histórico queda para la fase 2 sobre esta misma base.
+
+### ADR-012 - Calendario laboral propio y bloqueo de días no laborables
+
+- **Fecha:** 2026-10-24
+- **Estado:** Aceptada
+- **Contexto:** El parte semanal acepta horas cualquier día, incluidos sábados, domingos y festivos. Eso distorsiona los totales, la planificación y la comparación con la jornada teórica. La empresa necesita, además, cubrir festivos locales y propios, y abrir o cerrar días puntuales sin tocar los datos históricos.
+- **Opciones consideradas:**
+  1. Calcular los festivos al vuelo desde un catálogo fijo - cero tablas, pero no admite festivos locales ni excepciones, y cualquier corrección obliga a desplegar.
+  2. Un calendario por empresa con días laborables configurables, festivos y excepciones persistidos, y jornada teórica versionada - modela la realidad y permite corregir cada año desde administración.
+  3. Un servicio externo de calendarios laborales - datos oficiales, a cambio de una integración, una dependencia de red y un coste recurrente que el MVP no justifica.
+- **Decisión:** Opción 2. La tabla `calendario` guarda los días laborables, la jornada diaria de referencia y la comunidad; `festivo` y `excepcion_calendario` cuelgan de él; `empleado_calendario` asigna calendarios por empleado y `jornada_teorica` versiona la jornada por calendario o empleado. La precarga de festivos nacionales y autonómicos vive en dominio puro (`calendario/domain/festivos-espana.ts`) y es solo un punto de partida: el administrador revisa los traslados oficiales y publica. La resolución de un día tiene precedencia excepción > festivo > día de la semana, y la usan tanto la rejilla como la validación de servidor.
+- **Consecuencias:** Los días no laborables se muestran siempre, deshabilitados y con su motivo; las horas ya registradas siguen siendo editables para poder corregirlas, pero no se admiten horas nuevas. Cada escritura incrementa `calendario.version` y `parte` guarda `calendario_id` y `calendario_version` al enviarse, de modo que un cambio posterior de festivos no reinterpreta partes cerrados. Sin calendario configurado se mantiene el comportamiento anterior (lunes a viernes, sin festivos), así que la migración no rompe empresas existentes. El cálculo de horas nocturnas y la jornada por convenio quedan fuera: requieren fichaje con hora de inicio y fin.
+
+### ADR-013 - Día no laborable visible, deshabilitado y con excepción para horas existentes
+
+- **Fecha:** 2026-10-24
+- **Estado:** Aceptada
+- **Contexto:** Ocultar o bloquear sin más los sábados, domingos y festivos impide corregir horas ya registradas y deja al trabajador sin explicación de por qué falta un día.
+- **Opciones consideradas:**
+  1. Deshabilitar el día por completo - simple, pero deja datos históricos ineditables y genera soporte.
+  2. Mostrar el día con su motivo, deshabilitar la entrada nueva y permitir editar las horas que ya existían - conserva la corrección sin abrir la puerta a imputaciones nuevas.
+  3. Permitir cualquier día con un aviso - no bloquea el error que se quiere evitar.
+- **Decisión:** Opción 2. La rejilla y el panel rápido muestran los días no laborables con su etiqueta, sin celda de alta; si el día ya tenía una imputación, se mantiene editable para poder corregir o vaciar. La validación de servidor vuelve a comprobar la regla para que no dependa de la interfaz.
+- **Consecuencias:** El trabajador entiende el calendario y conserva la capacidad de arreglar errores previos. Un festivo nuevo no invalida partes ya enviados: el calendario se congela en el parte al enviarse.
+
+### ADR-014 - Cómputo versionado con resultado persistido; nocturna aplazada
+
+- **Fecha:** 2026-10-24
+- **Estado:** Aceptada
+- **Contexto:** Cada convenio reparte las horas en tramos normales, extra, complementarias, festivas, de viaje, formación o paralización. Cambiar una regla no puede reescribir semanas ya aprobadas, y el cálculo debe poder auditarse.
+- **Opciones consideradas:**
+  1. Calcular al vuelo en cada consulta - siempre actualizado, pero un cambio de convenio altera el histórico y encarece los listados.
+  2. Snapshot por imputación y tramo al aprobar, con reglas y convenio versionados - histórico inmutable y consultas baratas.
+  3. Guardar solo el total computado - menos filas, sin trazabilidad de qué regla produjo cada tramo.
+- **Decisión:** Opción 2. `convenio` y `regla_computo` se versionan; al aprobar se escriben `resultado_computo` por imputación y tramo, con `convenio_version`, `regla_id` y `factor_bps` en enteros. Las reglas se evalúan en dominio puro y el resultado se recalcula al reabrir. La hora nocturna queda fuera hasta que exista fichaje con hora de inicio y fin.
+- **Consecuencias:** Reabrir un parte retira sus snapshots y los recalcula; una regla nueva solo afecta a lo aprobado después. El coste de almacenamiento crece con los tramos, no con el número de consultas.
+
+### ADR-015 - Cierre por periodos y estado BLOQUEADO
+
+- **Fecha:** 2026-10-24
+- **Estado:** Aceptada
+- **Contexto:** Nómina y contabilidad necesitan un corte formal. Un parte aprobado no debería cambiar después del cierre, pero un error real debe poder corregirse con trazabilidad.
+- **Opciones consideradas:**
+  1. Un booleano `cerrado` en el parte - no expresa cierres mensuales ni reaperturas parciales.
+  2. Tabla `periodo_cerrado` con ámbito empresa o empleado y tipo semanal o mensual, y estado `BLOQUEADO` en el parte - modela el corte real y permite reabrir con motivo.
+  3. Bloquear por fecha en la aplicación sin persistir el cierre - se pierde el motivo y la auditoría.
+- **Decisión:** Opción 2. `periodo_cerrado` guarda tipo, año, semana o mes, empleado opcional, motivo y actor. Cerrar pasa a `BLOQUEADO` los partes aprobados cubiertos; reabrir los devuelve a `APROBADO` solo si ningún otro cierre activo los cubre, y recalcula cómputo y coste. Una semana que cruza de mes se bloquea si cualquiera de sus fechas imputadas cae en el mes cerrado. Escritura, envío, aprobación, rechazo y reapertura comprueban las fechas cerradas en servidor.
+- **Consecuencias:** El cierre es auditable y reversible con motivo. Reabrir un periodo puede recalcular muchos partes; se hace en una operación explícita de administración y no en segundo plano silencioso.
+
+### ADR-016 - Worker de pg-boss en el mismo contenedor
+
+- **Fecha:** 2026-10-24
+- **Estado:** Aceptada
+- **Contexto:** Informes, correos y webhooks necesitan reintentos y no deben bloquear la petición del usuario. El despliegue es un único recurso Docker Compose y no hay Redis.
+- **Opciones consideradas:**
+  1. Un contenedor worker separado - aislamiento, a cambio de otro servicio que desplegar, monitorizar y escalar.
+  2. Worker dentro del proceso Next, arrancado de forma idempotente - una sola imagen y un solo healthcheck, compartiendo base de datos.
+  3. Ejecutar todo en la petición - sin infraestructura, pero un fallo de SMTP o de un webhook afecta al usuario.
+- **Decisión:** Opción 2. `src/jobs/worker.ts` arranca el worker una vez por proceso (protegido contra el hot reload) y registra las colas de informes, correos y webhooks. Los jobs son idempotentes y persisten su estado. El despacho de webhooks corre cada minuto y también puede forzarse por cron.
+- **Consecuencias:** Menos piezas que operar y un único despliegue. Un reinicio del contenedor interrumpe el job en curso, que pg-boss reintenta; las tareas deben seguir siendo idempotentes. Si el volumen de jobs crece, el worker puede extraerse a un servicio propio sin cambiar los casos de uso.
+
+### ADR-017 - Claves de API, idempotencia y outbox
+
+- **Fecha:** 2026-10-24
+- **Estado:** Aceptada
+- **Contexto:** Un ERP externo necesita leer partes y escribir imputaciones sin compartir sesión de usuario. Los reintentos de red no pueden duplicar horas, y un webhook caído no puede revertir una aprobación.
+- **Opciones consideradas:**
+  1. Compartir un JWT de usuario - sin tablas nuevas, pero sin alcances, caducidad ni revocación independiente.
+  2. Clave opaca con prefijo visible y hash HMAC, alcances, caducidad, rate limit, idempotencia persistida y outbox transaccional - auditable y seguro, con varias tablas.
+  3. Firmar cada petición con un secreto compartido - más complejo para el integrador y sin revocación por clave.
+- **Decisión:** Opción 2. La clave tiene formato `lv_<prefijo>_<secreto>`; se guarda un HMAC-SHA256 con `AUTH_SECRET` y solo se muestra una vez. Cada escritura exige `Idempotency-Key` y se reclama en `api_idempotencia` antes de procesar; una repetición devuelve la respuesta guardada. El cambio de estado escribe el evento en `outbox` en la misma transacción; un despachador crea una entrega por webhook suscrito y firma `timestamp.cuerpo` con HMAC. Los reintentos usan backoff de 1, 5, 15, 60 y 240 minutos hasta cinco intentos.
+- **Consecuencias:** El integrador puede reintentar sin miedo y el negocio no depende de la disponibilidad del webhook. El secreto del webhook se guarda en claro porque hace falta para firmar: proteger la base de datos y rotarlo si se filtra. El rate limit es por minuto y por clave; no sustituye a un WAF.
+
+### ADR-018 - CI, staging y observabilidad
+
+- **Fecha:** 2026-10-24
+- **Estado:** Aceptada
+- **Contexto:** La fase 2 añade migraciones, jobs y webhooks. Un fallo silencioso en la cola o una migración no probada afecta a partes ya aprobados.
+- **Opciones consideradas:**
+  1. Solo CI de lint y tests - rápido, pero no valida migraciones ni el build de producción.
+  2. CI con Postgres 16, migraciones, tests y build, más staging con datos anonimizados y health ampliado - cubre el riesgo real con un coste razonable.
+  3. Añadir Playwright al mismo pipeline desde el primer día - más cobertura de UI, a cambio de una dependencia y un navegador que aún no están aprobados.
+- **Decisión:** Opción 2 por ahora. GitHub Actions levanta Postgres 16, aplica migraciones sobre base limpia, ejecuta lint, tipado, tests y build. `/api/health` informa base de datos, estado de la cola y jobs fallidos sin devolver 503 por un job fallido; `/api/v1/cron/salud` responde 503 a partir de cinco jobs fallidos para que el monitor externo alerte. Staging es un recurso Coolify sobre la rama `staging`, con volumen propio y datos anonimizados o demo. Playwright queda como propuesta pendiente de aprobación.
+- **Consecuencias:** Las migraciones se prueban antes de producción y la cola tiene una señal de alerta. El health no reinicia el contenedor por jobs fallidos, que se reintentan. Si se aprueba Playwright, se añade un job separado que arranca la app con el seed demo y no bloquea el pipeline de calidad.

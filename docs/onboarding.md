@@ -160,6 +160,28 @@ Las exportaciones se generan en el servidor y no se cachean:
 
 Abriendo el XLSX en Excel y el PDF en un lector se comprueban acentos, totales y paginación.
 
+### Backup y restauración
+
+El backup debe salir del VPS. Un dump dentro del mismo volumen no protege de la pérdida del servidor.
+
+```bash
+# Backup comprimido en formato custom
+docker compose exec -T db pg_dump -U parte_diario -Fc parte_diario > parte-diario-$(date +%F).dump
+
+# Restauración en un entorno limpio (staging o local), nunca encima de producción
+docker compose exec -T db createdb -U parte_diario parte_diario_restaurada
+cat parte-diario-2026-10-24.dump | docker compose exec -T db pg_restore -U parte_diario \
+  -d parte_diario_restaurada --clean --if-exists
+```
+
+Comprobación tras restaurar:
+
+- [ ] `npm run db:migrate` termina con «migraciones al día» (el dump ya incluía el esquema).
+- [ ] `GET /api/health` responde 200 con `database: ok`.
+- [ ] Un usuario puede iniciar sesión y ver sus partes de la última semana.
+- [ ] El número de filas de `parte` e `imputacion` coincide con el entorno de origen.
+- [ ] El backup programado de Coolify apunta fuera del VPS y se ha restaurado al menos una vez.
+
 ---
 
 ## Solución de problemas frecuentes
