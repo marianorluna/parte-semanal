@@ -206,6 +206,15 @@ export async function aprobarSemana(
 ): Promise<void> {
   await exigirAlcanceSobreParte(deps, usuario, input.parteId)
   await deps.repo.aprobar(input.parteId, input.version, usuario.id)
+
+  if (deps.alAprobar) {
+    try {
+      await deps.alAprobar(input.parteId, usuario)
+    } catch (error) {
+      // La aprobación ya está confirmada; el snapshot se puede recalcular.
+      console.error('[aprobacion] no se pudieron calcular los efectos posteriores', error)
+    }
+  }
 }
 
 export async function rechazarSemana(
@@ -238,6 +247,15 @@ export async function reabrirSemana(
 
   await exigirAlcanceSobreParte(deps, usuario, input.parteId)
   await deps.repo.reabrir(input.parteId, input.version, usuario.id, motivo)
+
+  if (deps.alReabrir) {
+    try {
+      await deps.alReabrir(input.parteId, usuario)
+    } catch (error) {
+      // La reapertura ya está confirmada; el administrador puede recalcular.
+      console.error('[reapertura] no se pudieron limpiar los agregados', error)
+    }
+  }
 }
 
 export function diasDeLaSemana(semana: SemanaIso): FechaIso[] {

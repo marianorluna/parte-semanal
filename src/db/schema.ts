@@ -31,6 +31,23 @@ export const tipoNotificacionEnum = pgEnum('tipo_notificacion', [
   'RIESGO_PROYECTO',
 ])
 
+/**
+ * Tipos de hora que reconoce el motor de cómputo. `NOCTURNA` queda fuera a
+ * propósito: sin hora de inicio y fin no se puede calcular con rigor (ADR-014).
+ */
+export const tipoHoraEnum = pgEnum('tipo_hora', [
+  'NORMAL',
+  'EXTRA',
+  'COMPLEMENTARIA',
+  'FESTIVA',
+  'VIAJE',
+  'FORMACION',
+  'PARALIZACION',
+])
+
+/** Contexto en el que una regla de cómputo es aplicable. */
+export const aplicaEnEnum = pgEnum('aplica_en', ['TODO', 'LABORABLE', 'FESTIVO'])
+
 const createdAt = timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
 
 export const empresa = pgTable('empresa', {
@@ -285,6 +302,77 @@ export const jornadaTeorica = pgTable(
   ],
 )
 
+export const convenio = pgTable(
+  'convenio',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    empresaId: uuid('empresa_id')
+      .notNull()
+      .references(() => empresa.id, { onDelete: 'cascade' }),
+    codigo: text('codigo').notNull(),
+    nombre: text('nombre').notNull(),
+    activo: boolean('activo').notNull().default(true),
+    /** Sube con cada cambio de reglas para que el parte cierre su snapshot. */
+    version: integer('version').notNull().default(1),
+    createdAt,
+  },
+  (t) => [
+    uniqueIndex('convenio_empresa_codigo_uq').on(t.empresaId, t.codigo),
+    index('convenio_empresa_idx').on(t.empresaId),
+  ],
+)
+
+export const reglaComputo = pgTable(
+  'regla_computo',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    convenioId: uuid('convenio_id')
+      .notNull()
+      .references(() => convenio.id, { onDelete: 'cascade' }),
+    tipoHora: tipoHoraEnum('tipo_hora').notNull(),
+    /** Factor en puntos básicos: 10000 = 1,0; 15000 = 1,5. Nunca decimal. */
+    factorBps: integer('factor_bps').notNull().default(10_000),
+    aplicaEn: aplicaEnEnum('aplica_en').notNull().default('TODO'),
+    /** Minutos por día con este factor; null = sin tope. */
+    topeDiarioMin: integer('tope_diario_min'),
+    /** Minutos por semana con este factor; null = sin tope. */
+    topeSemanalMin: integer('tope_semanal_min'),
+    requiereAutorizacion: boolean('requiere_autorizacion').notNull().default(false),
+    /** Menor gana al elegir entre reglas aplicables. */
+    prioridad: integer('prioridad').notNull().default(100),
+    activo: boolean('activo').notNull().default(true),
+    createdAt,
+  },
+  (t) => [
+    uniqueIndex('regla_computo_convenio_tipo_uq').on(t.convenioId, t.tipoHora),
+    check('regla_computo_factor_ck', sql`${t.factorBps} between 0 and 100000`),
+    check(
+      'regla_computo_topes_ck',
+      sql`(${t.topeDiarioMin} is null or ${t.topeDiarioMin} > 0) and (${t.topeSemanalMin} is null or ${t.topeSemanalMin} > 0)`,
+    ),
+  ],
+)
+
+export const empleadoConvenio = pgTable(
+  'empleado_convenio',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    empleadoId: uuid('empleado_id')
+      .notNull()
+      .references(() => empleado.id, { onDelete: 'cascade' }),
+    convenioId: uuid('convenio_id')
+      .notNull()
+      .references(() => convenio.id, { onDelete: 'restrict' }),
+    desde: date('desde').notNull(),
+    hasta: date('hasta'),
+    createdAt,
+  },
+  (t) => [
+    index('empleado_convenio_empleado_idx').on(t.empleadoId, t.desde),
+    check('empleado_convenio_rango_ck', sql`${t.hasta} is null or ${t.desde} <= ${t.hasta}`),
+  ],
+)
+
 export const parte = pgTable(
   'parte',
   {
@@ -341,6 +429,42 @@ export const imputacion = pgTable(
     index('imputacion_parte_idx').on(t.parteId),
     index('imputacion_tarea_fecha_idx').on(t.tareaId, t.fecha),
     check('imputacion_minutos_ck', sql`${t.minutos} > 0 and ${t.minutos} <= 1440`),
+  ],
+)
+
+/**
+ * Snapshot de cómputo por imputación y tramo. Se escribe al aprobar el parte:
+ * cambiar una regla después no altera semanas ya cerradas.
+ */
+export const resultadoComputo = pgTable(
+  'resultado_computo',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    parteId: uuid('parte_id')
+      .notNull()
+      .references(() => parte.id, { onDelete: 'cascade' }),
+    imputacionId: uuid('imputacion_id')
+      .notNull()
+      .references(() => imputacion.id, { onDelete: 'cascade' }),
+    /** Un mismo registro puede partirse por topes; 0, 1, 2... */
+    tramo: integer('tramo').notNull().default(0),
+    tipoHora: tipoHoraEnum('tipo_hora').notNull(),
+    minutosBase: integer('minutos_base').notNull(),
+    factorBps: integer('factor_bps').notNull(),
+    minutosComputados: integer('minutos_computados').notNull(),
+    requiereAutorizacion: boolean('requiere_autorizacion').notNull().default(false),
+    reglaId: uuid('regla_id').references(() => reglaComputo.id, { onDelete: 'set null' }),
+    convenioId: uuid('convenio_id').references(() => convenio.id, { onDelete: 'set null' }),
+    convenioVersion: integer('convenio_version'),
+    createdAt,
+  },
+  (t) => [
+    uniqueIndex('resultado_computo_imputacion_tramo_uq').on(t.imputacionId, t.tramo),
+    index('resultado_computo_parte_idx').on(t.parteId),
+    check(
+      'resultado_computo_minutos_ck',
+      sql`${t.minutosBase} > 0 and ${t.minutosComputados} >= 0 and ${t.tramo} >= 0`,
+    ),
   ],
 )
 
@@ -420,8 +544,19 @@ export const calendarioRelations = relations(calendario, ({ many }) => ({
   excepciones: many(excepcionCalendario),
 }))
 
+export const convenioRelations = relations(convenio, ({ many }) => ({
+  reglas: many(reglaComputo),
+}))
+
+export const resultadoComputoRelations = relations(resultadoComputo, ({ one }) => ({
+  parte: one(parte, { fields: [resultadoComputo.parteId], references: [parte.id] }),
+  imputacion: one(imputacion, { fields: [resultadoComputo.imputacionId], references: [imputacion.id] }),
+}))
+
 export type EstadoParte = (typeof estadoParteEnum.enumValues)[number]
 export type Rol = (typeof rolEnum.enumValues)[number]
 export type TipoNotificacion = (typeof tipoNotificacionEnum.enumValues)[number]
 export type AmbitoCalendario = (typeof ambitoCalendarioEnum.enumValues)[number]
 export type OrigenFestivo = (typeof origenFestivoEnum.enumValues)[number]
+export type TipoHora = (typeof tipoHoraEnum.enumValues)[number]
+export type AplicaEn = (typeof aplicaEnEnum.enumValues)[number]
