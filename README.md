@@ -116,3 +116,7 @@ Si el healthcheck `/api/health` no responde, Coolify no enruta tráfico y conser
 - Sin `any`. Tiempo y dinero en enteros (minutos y céntimos).
 - Las reglas de negocio viven en `domain`; los componentes y handlers solo validan, autorizan y orquestan.
 - Stack, dominio y estado se declaran **solo** en `AGENTS.md`; el resto de documentos enlazan.
+
+## Licencia
+
+Distribuido bajo licencia [MIT](LICENSE): puedes usar, copiar, modificar y redistribuir el código, también comercialmente, conservando el aviso de copyright. El repositorio público es <https://github.com/marianorluna/parte-semanal> y el login del MVP enlaza directamente a él.
