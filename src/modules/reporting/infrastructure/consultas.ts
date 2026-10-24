@@ -1,7 +1,17 @@
-import { and, asc, count, desc, eq, gte, inArray, lte, ne, sql } from 'drizzle-orm'
+import { and, asc, count, desc, eq, exists, gte, inArray, isNull, lte, ne, or, sql } from 'drizzle-orm'
 import { db } from '@/db/client'
-import { empleado, imputacion, parte, proyecto, tarea } from '@/db/schema'
-import type { FechaIso } from '@/modules/partes/domain/fechas'
+import { asignacion, empleado, empresa, imputacion, parte, proyecto, tarea, usuario, usuarioProyecto } from '@/db/schema'
+import type { FechaIso, SemanaIso } from '@/modules/partes/domain/fechas'
+
+export async function nombreEmpresa(empresaId: string): Promise<string> {
+  const filas = await db
+    .select({ nombre: empresa.nombre })
+    .from(empresa)
+    .where(eq(empresa.id, empresaId))
+    .limit(1)
+
+  return filas[0]?.nombre ?? 'Levitec'
+}
 
 export type FilaProyecto = {
   proyectoId: string
@@ -232,9 +242,13 @@ export async function lineasParaExportar(
   const condiciones = [eq(parte.empresaId, empresaId), eq(parte.isoYear, isoYear), eq(parte.isoWeek, isoWeek)]
 
   if (filtros.estado) condiciones.push(sql`${parte.estado}::text = ${filtros.estado}`)
-  if (filtros.proyectoId) condiciones.push(eq(tarea.proyectoId, filtros.proyectoId))
+  if (filtros.proyectoId) {
+    // Un encargado no puede exportar un proyecto que no tenga asignado.
+    if (permitidos !== null && !permitidos.includes(filtros.proyectoId)) return []
+    condiciones.push(eq(tarea.proyectoId, filtros.proyectoId))
+  }
 
-  const porProyecto = filtros.proyectoId ? undefined : filtroProyectos(permitidos)
+  const porProyecto = filtroProyectos(permitidos)
   if (porProyecto) condiciones.push(porProyecto)
 
   return db
@@ -258,4 +272,260 @@ export async function lineasParaExportar(
     .innerJoin(proyecto, eq(proyecto.id, tarea.proyectoId))
     .where(and(...condiciones))
     .orderBy(asc(empleado.codigo), asc(imputacion.fecha))
+}
+
+export type FilaConsumoProyecto = {
+  proyectoId: string
+  codigo: string
+  nombre: string
+  horasPresupuesto: number | null
+  fechaInicio: FechaIso | null
+  fechaFin: FechaIso | null
+  activo: boolean
+  minutos: number
+}
+
+/**
+ * Consumo acumulado por proyecto (no solo la semana): es la base del motor de
+ * riesgo. Excluye borradores para no avisar de horas todavía no enviadas.
+ */
+export async function consumoTotalPorProyecto(
+  empresaId: string,
+  permitidos: string[] | null,
+): Promise<FilaConsumoProyecto[]> {
+  const condiciones = [eq(proyecto.empresaId, empresaId)]
+  if (permitidos !== null) {
+    if (permitidos.length === 0) return []
+    condiciones.push(inArray(proyecto.id, permitidos))
+  }
+
+  return db
+    .select({
+      proyectoId: proyecto.id,
+      codigo: proyecto.codigo,
+      nombre: proyecto.nombre,
+      horasPresupuesto: proyecto.horasPresupuesto,
+      fechaInicio: proyecto.fechaInicio,
+      fechaFin: proyecto.fechaFin,
+      activo: proyecto.activo,
+      minutos:
+        sql<number>`coalesce(sum(${imputacion.minutos}) filter (where ${parte.estado} in ('ENVIADO', 'APROBADO')), 0)`.mapWith(
+          Number,
+        ),
+    })
+    .from(proyecto)
+    .leftJoin(tarea, eq(tarea.proyectoId, proyecto.id))
+    .leftJoin(imputacion, eq(imputacion.tareaId, tarea.id))
+    .leftJoin(parte, eq(parte.id, imputacion.parteId))
+    .where(and(...condiciones))
+    .groupBy(
+      proyecto.id,
+      proyecto.codigo,
+      proyecto.nombre,
+      proyecto.horasPresupuesto,
+      proyecto.fechaInicio,
+      proyecto.fechaFin,
+      proyecto.activo,
+    )
+    .orderBy(asc(proyecto.codigo))
+}
+
+export type FilaTareaProyecto = {
+  tareaId: string
+  codigo: string
+  nombre: string
+  horasPresupuesto: number | null
+  minutos: number
+}
+
+export async function detalleTareasProyecto(
+  empresaId: string,
+  proyectoId: string,
+): Promise<FilaTareaProyecto[]> {
+  return db
+    .select({
+      tareaId: tarea.id,
+      codigo: tarea.codigo,
+      nombre: tarea.nombre,
+      horasPresupuesto: tarea.horasPresupuesto,
+      minutos:
+        sql<number>`coalesce(sum(${imputacion.minutos}) filter (where ${parte.estado} in ('ENVIADO', 'APROBADO')), 0)`.mapWith(
+          Number,
+        ),
+    })
+    .from(tarea)
+    .innerJoin(proyecto, eq(proyecto.id, tarea.proyectoId))
+    .leftJoin(imputacion, eq(imputacion.tareaId, tarea.id))
+    .leftJoin(parte, eq(parte.id, imputacion.parteId))
+    .where(and(eq(tarea.proyectoId, proyectoId), eq(proyecto.empresaId, empresaId)))
+    .groupBy(tarea.id, tarea.codigo, tarea.nombre, tarea.horasPresupuesto)
+    .orderBy(asc(tarea.codigo))
+}
+
+export async function tendenciaProyecto(
+  proyectoId: string,
+  desde: FechaIso,
+): Promise<FilaSemana[]> {
+  return db
+    .select({
+      isoYear: parte.isoYear,
+      isoWeek: parte.isoWeek,
+      weekStart: parte.weekStart,
+      minutos: sql<number>`coalesce(sum(${imputacion.minutos}), 0)`.mapWith(Number),
+    })
+    .from(parte)
+    .innerJoin(imputacion, eq(imputacion.parteId, parte.id))
+    .innerJoin(tarea, eq(tarea.id, imputacion.tareaId))
+    .where(
+      and(
+        eq(tarea.proyectoId, proyectoId),
+        gte(parte.weekStart, desde),
+        sql`${parte.estado} in ('ENVIADO', 'APROBADO')`,
+      ),
+    )
+    .groupBy(parte.isoYear, parte.isoWeek, parte.weekStart)
+    .orderBy(asc(parte.weekStart))
+}
+
+export type MiembroEquipo = {
+  empleadoId: string
+  usuarioId: string
+  nombre: string
+  email: string
+  codigo: string
+  rol: 'TRABAJADOR' | 'ENCARGADO' | 'ADMIN'
+}
+
+export type ProyectoDeEmpleado = {
+  empleadoId: string
+  proyectoId: string
+  codigo: string
+  nombre: string
+}
+
+function existeAsignacionEnSemana(
+  semana: SemanaIso,
+  opciones: { proyectoId?: string; encargadoUsuarioId: string | null },
+) {
+  const condiciones = [
+    eq(asignacion.empleadoId, usuario.empleadoId),
+    eq(asignacion.activa, true),
+    lte(asignacion.desde, semana.weekEnd),
+    or(isNull(asignacion.hasta), gte(asignacion.hasta, semana.weekStart)),
+  ]
+  if (opciones.proyectoId) condiciones.push(eq(tarea.proyectoId, opciones.proyectoId))
+  if (opciones.encargadoUsuarioId) condiciones.push(eq(usuarioProyecto.usuarioId, opciones.encargadoUsuarioId))
+
+  return exists(
+    db
+      .select({ uno: sql`1` })
+      .from(asignacion)
+      .innerJoin(tarea, eq(tarea.id, asignacion.tareaId))
+      .innerJoin(usuarioProyecto, eq(usuarioProyecto.proyectoId, tarea.proyectoId))
+      .where(and(...condiciones)),
+  )
+}
+
+/**
+ * Personas que el revisor puede ver: el encargado solo TRABAJADOR de sus
+ * proyectos; el admin, cualquiera de la empresa.
+ */
+export async function miembrosEquipo(
+  empresaId: string,
+  semana: SemanaIso,
+  opciones: { encargadoUsuarioId: string | null; proyectoId?: string },
+): Promise<MiembroEquipo[]> {
+  const condiciones = [
+    eq(usuario.empresaId, empresaId),
+    eq(usuario.activo, true),
+    eq(empleado.activo, true),
+  ]
+
+  if (opciones.encargadoUsuarioId) {
+    condiciones.push(eq(usuario.rol, 'TRABAJADOR'))
+    condiciones.push(
+      existeAsignacionEnSemana(semana, {
+        proyectoId: opciones.proyectoId,
+        encargadoUsuarioId: opciones.encargadoUsuarioId,
+      }),
+    )
+  } else if (opciones.proyectoId) {
+    condiciones.push(
+      existeAsignacionEnSemana(semana, { proyectoId: opciones.proyectoId, encargadoUsuarioId: null }),
+    )
+  }
+
+  return db
+    .select({
+      empleadoId: empleado.id,
+      usuarioId: usuario.id,
+      nombre: empleado.nombre,
+      email: usuario.email,
+      codigo: empleado.codigo,
+      rol: usuario.rol,
+    })
+    .from(usuario)
+    .innerJoin(empleado, eq(empleado.id, usuario.empleadoId))
+    .where(and(...condiciones))
+    .orderBy(asc(empleado.nombre))
+}
+
+export async function proyectosAsignadosEnSemana(
+  empleadoIds: string[],
+  semana: SemanaIso,
+): Promise<ProyectoDeEmpleado[]> {
+  if (empleadoIds.length === 0) return []
+
+  return db
+    .selectDistinct({
+      empleadoId: asignacion.empleadoId,
+      proyectoId: proyecto.id,
+      codigo: proyecto.codigo,
+      nombre: proyecto.nombre,
+    })
+    .from(asignacion)
+    .innerJoin(tarea, eq(tarea.id, asignacion.tareaId))
+    .innerJoin(proyecto, eq(proyecto.id, tarea.proyectoId))
+    .where(
+      and(
+        inArray(asignacion.empleadoId, empleadoIds),
+        eq(asignacion.activa, true),
+        lte(asignacion.desde, semana.weekEnd),
+        or(isNull(asignacion.hasta), gte(asignacion.hasta, semana.weekStart)),
+      ),
+    )
+    .orderBy(asc(proyecto.codigo))
+}
+
+export type ParteDeEmpleado = {
+  empleadoId: string
+  parteId: string
+  estado: 'BORRADOR' | 'ENVIADO' | 'APROBADO' | 'RECHAZADO'
+  version: number
+  totalMinutos: number
+}
+
+export async function partesDeEmpleados(
+  empleadoIds: string[],
+  isoYear: number,
+  isoWeek: number,
+): Promise<ParteDeEmpleado[]> {
+  if (empleadoIds.length === 0) return []
+
+  return db
+    .select({
+      empleadoId: parte.empleadoId,
+      parteId: parte.id,
+      estado: parte.estado,
+      version: parte.version,
+      totalMinutos: parte.totalMinutos,
+    })
+    .from(parte)
+    .where(
+      and(
+        inArray(parte.empleadoId, empleadoIds),
+        eq(parte.isoYear, isoYear),
+        eq(parte.isoWeek, isoWeek),
+      ),
+    )
 }

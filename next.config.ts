@@ -4,6 +4,9 @@ const nextConfig: NextConfig = {
   output: 'standalone',
   poweredByHeader: false,
   reactStrictMode: true,
+  // Generadores de ficheros que no deben pasar por el bundler: escriben binarios
+  // y resuelven recursos en tiempo de ejecución.
+  serverExternalPackages: ['@react-pdf/renderer', 'exceljs'],
   experimental: {
     serverActions: {
       bodySizeLimit: '1mb',

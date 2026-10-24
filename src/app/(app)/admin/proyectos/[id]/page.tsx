@@ -13,6 +13,7 @@ import {
   BotonAlternarProyecto,
   BotonDesasignar,
   FormularioAsignacion,
+  FormularioEdicionProyecto,
   FormularioTarea,
 } from '../FormulariosProyecto'
 
@@ -47,10 +48,29 @@ export default async function AdminProyectoDetallePage({ params }: Props) {
           </h1>
           <p className="text-sm text-slate-600">
             {proyecto.horasPresupuesto ? `Presupuesto: ${proyecto.horasPresupuesto} h` : 'Sin presupuesto definido'}
+            {proyecto.fechaInicio || proyecto.fechaFin
+              ? ` · Plazo: ${proyecto.fechaInicio ?? '?'} a ${proyecto.fechaFin ?? '?'}`
+              : ' · Sin plazo definido'}
           </p>
         </div>
         <BotonAlternarProyecto proyectoId={proyecto.id} activo={proyecto.activo} />
       </div>
+
+      <details className="tarjeta p-4">
+        <summary className="cursor-pointer text-sm font-semibold text-marca-800">Editar presupuesto y plazo</summary>
+        <div className="mt-4">
+          <FormularioEdicionProyecto
+            proyecto={{
+              id: proyecto.id,
+              codigo: proyecto.codigo,
+              nombre: proyecto.nombre,
+              horasPresupuesto: proyecto.horasPresupuesto,
+              fechaInicio: proyecto.fechaInicio,
+              fechaFin: proyecto.fechaFin,
+            }}
+          />
+        </div>
+      </details>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="tarjeta p-4">

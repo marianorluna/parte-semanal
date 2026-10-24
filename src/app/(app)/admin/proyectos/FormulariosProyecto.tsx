@@ -2,6 +2,7 @@
 
 import { useActionState } from 'react'
 import {
+  actualizarProyectoAction,
   alternarProyectoAction,
   crearAsignacionAction,
   crearProyectoAction,
@@ -48,12 +49,81 @@ export function FormularioProyecto() {
         Horas presupuesto
         <input name="horasPresupuesto" type="number" min={0} className="campo mt-1" placeholder="Opcional" />
       </label>
+      <label className="text-xs font-medium text-slate-600">
+        Inicio
+        <input name="fechaInicio" type="date" className="campo mt-1" />
+        {estado.campo?.fechaInicio ? <span className="text-red-600">{estado.campo.fechaInicio}</span> : null}
+      </label>
+      <label className="text-xs font-medium text-slate-600">
+        Fin
+        <input name="fechaFin" type="date" className="campo mt-1" />
+        {estado.campo?.fechaFin ? <span className="text-red-600">{estado.campo.fechaFin}</span> : null}
+      </label>
+      <p className="self-end text-xs text-slate-500 sm:col-span-2">
+        Las fechas permiten avisar de desviación entre horas consumidas y plazo transcurrido.
+      </p>
       <div className="sm:col-span-4">
         <Mensajes estado={estado} />
       </div>
       <div className="sm:col-span-4">
         <button type="submit" disabled={pendiente} className="boton-primario">
           {pendiente ? 'Creando...' : 'Crear proyecto'}
+        </button>
+      </div>
+    </form>
+  )
+}
+
+export function FormularioEdicionProyecto({
+  proyecto,
+}: {
+  proyecto: {
+    id: string
+    codigo: string
+    nombre: string
+    horasPresupuesto: number | null
+    fechaInicio: string | null
+    fechaFin: string | null
+  }
+}) {
+  const [estado, accion, pendiente] = useActionState(actualizarProyectoAction, inicial)
+
+  return (
+    <form action={accion} className="grid gap-3 sm:grid-cols-4">
+      <input type="hidden" name="proyectoId" value={proyecto.id} />
+      <label className="text-xs font-medium text-slate-600 sm:col-span-2">
+        Nombre
+        <input name="nombre" required defaultValue={proyecto.nombre} className="campo mt-1" />
+        {estado.campo?.nombre ? <span className="text-red-600">{estado.campo.nombre}</span> : null}
+      </label>
+      <label className="text-xs font-medium text-slate-600">
+        Horas presupuesto
+        <input
+          name="horasPresupuesto"
+          type="number"
+          min={0}
+          defaultValue={proyecto.horasPresupuesto ?? ''}
+          className="campo mt-1"
+          placeholder="Opcional"
+        />
+      </label>
+      <p className="self-end text-xs text-slate-500">Código {proyecto.codigo}</p>
+      <label className="text-xs font-medium text-slate-600">
+        Inicio
+        <input name="fechaInicio" type="date" defaultValue={proyecto.fechaInicio ?? ''} className="campo mt-1" />
+        {estado.campo?.fechaInicio ? <span className="text-red-600">{estado.campo.fechaInicio}</span> : null}
+      </label>
+      <label className="text-xs font-medium text-slate-600">
+        Fin
+        <input name="fechaFin" type="date" defaultValue={proyecto.fechaFin ?? ''} className="campo mt-1" />
+        {estado.campo?.fechaFin ? <span className="text-red-600">{estado.campo.fechaFin}</span> : null}
+      </label>
+      <div className="sm:col-span-4">
+        <Mensajes estado={estado} />
+      </div>
+      <div className="sm:col-span-4">
+        <button type="submit" disabled={pendiente} className="boton-primario">
+          {pendiente ? 'Guardando...' : 'Guardar cambios'}
         </button>
       </div>
     </form>

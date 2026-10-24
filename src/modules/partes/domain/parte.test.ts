@@ -73,6 +73,7 @@ describe('estados del parte', () => {
     expect(puedeTransicionar('BORRADOR', 'ENVIADO')).toBe(true)
     expect(puedeTransicionar('ENVIADO', 'APROBADO')).toBe(true)
     expect(puedeTransicionar('ENVIADO', 'RECHAZADO')).toBe(true)
+    expect(puedeTransicionar('ENVIADO', 'BORRADOR')).toBe(true)
     expect(puedeTransicionar('APROBADO', 'BORRADOR')).toBe(true)
     expect(puedeTransicionar('BORRADOR', 'APROBADO')).toBe(false)
     expect(puedeTransicionar('RECHAZADO', 'APROBADO')).toBe(false)

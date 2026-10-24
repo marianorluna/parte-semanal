@@ -5,6 +5,7 @@ import { depsPartes } from '@/composition'
 import { hoyEnZona, semanaIsoDe, semanaIso } from '@/modules/partes/domain/fechas'
 import { formatearHorasReloj } from '@/modules/partes/domain/horas'
 import { ESTADOS } from '@/modules/partes/domain/parte'
+import { bandejaSoloTrabajadores } from '@/modules/partes/domain/permisos'
 import { TablaPartes } from './TablaPartes'
 
 export const dynamic = 'force-dynamic'
@@ -43,6 +44,7 @@ export default async function ControlPartesPage({ searchParams }: Props) {
     estado,
     proyectoId: params.proyecto,
     proyectosPermitidos: permitidos,
+    soloTrabajadores: bandejaSoloTrabajadores(usuario.rol),
     pagina,
     porPagina,
   })
@@ -121,9 +123,18 @@ export default async function ControlPartesPage({ searchParams }: Props) {
           Filtrar
         </button>
 
-        <Link href={`/control/partes/exportar?y=${semana.isoYear}&w=${semana.isoWeek}${estado ? `&estado=${estado}` : ''}${params.proyecto ? `&proyecto=${params.proyecto}` : ''}`} className="boton-secundario py-1.5 text-xs" prefetch={false}>
-          Exportar CSV
-        </Link>
+        <div className="ml-auto flex items-center gap-2">
+          {(['csv', 'xlsx', 'pdf'] as const).map((formato) => (
+            <Link
+              key={formato}
+              href={`/control/partes/exportar?formato=${formato}&y=${semana.isoYear}&w=${semana.isoWeek}${estado ? `&estado=${estado}` : ''}${params.proyecto ? `&proyecto=${params.proyecto}` : ''}`}
+              className="boton-secundario py-1.5 text-xs"
+              prefetch={false}
+            >
+              {formato === 'csv' ? 'CSV' : formato.toUpperCase()}
+            </Link>
+          ))}
+        </div>
       </form>
 
       {resultado.filas.length === 0 ? (

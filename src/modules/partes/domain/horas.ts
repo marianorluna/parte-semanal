@@ -45,6 +45,15 @@ export function formatearHorasReloj(minutos: number): string {
   return `${signo}${horas}:${String(resto).padStart(2, '0')}`
 }
 
+/**
+ * Texto editable para un campo de horas: `8` cuando son horas exactas y `7:30`
+ * cuando hay fracción. Evita que el autoguardado reescriba `8` como `8,00`.
+ */
+export function aTextoEditable(minutos: number): string {
+  if (minutos === 0) return ''
+  return minutos % MINUTOS_POR_HORA === 0 ? String(minutos / MINUTOS_POR_HORA) : formatearHorasReloj(minutos)
+}
+
 export function sumarMinutos(valores: readonly number[]): number {
   return valores.reduce((total, valor) => total + valor, 0)
 }

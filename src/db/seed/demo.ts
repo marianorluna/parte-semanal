@@ -45,6 +45,28 @@ const PROYECTOS_DEMO = [
   'Adecuación Local Comercial Centro',
 ]
 
+/**
+ * Configuración de presupuesto y plazo por proyecto del demo, pensada para que
+ * el motor de riesgo muestre todos los estados: agotado, crítico, aviso, ok,
+ * sin presupuesto y sin plazo. Las fechas son relativas a la semana actual.
+ */
+const PLANES_DEMO: readonly {
+  horasPresupuesto: number | null
+  semanasDesdeInicio: number | null
+  semanasHastaFin: number | null
+}[] = [
+  { horasPresupuesto: 900, semanasDesdeInicio: 14, semanasHastaFin: 10 },
+  { horasPresupuesto: 6000, semanasDesdeInicio: 10, semanasHastaFin: 40 },
+  { horasPresupuesto: 5000, semanasDesdeInicio: 10, semanasHastaFin: 26 },
+  { horasPresupuesto: 1200, semanasDesdeInicio: 12, semanasHastaFin: 8 },
+  { horasPresupuesto: 8000, semanasDesdeInicio: 6, semanasHastaFin: 46 },
+  { horasPresupuesto: null, semanasDesdeInicio: 8, semanasHastaFin: 30 },
+  { horasPresupuesto: 9000, semanasDesdeInicio: null, semanasHastaFin: null },
+  { horasPresupuesto: 3000, semanasDesdeInicio: 12, semanasHastaFin: 20 },
+  { horasPresupuesto: 6000, semanasDesdeInicio: 2, semanasHastaFin: 50 },
+  { horasPresupuesto: 7000, semanasDesdeInicio: 20, semanasHastaFin: -1 },
+]
+
 const TAREAS_DEMO = [
   { codigo: 'T01', nombre: 'Jefatura de obra' },
   { codigo: 'T02', nombre: 'Ejecución obra' },
@@ -180,13 +202,28 @@ export async function cargarDemo(opciones: { refrescar?: boolean } = {}): Promis
   const proyectosCreados = await db
     .insert(proyecto)
     .values(
-      PROYECTOS_DEMO.map((nombre, indice) => ({
-        empresaId,
-        codigo: `DEMO-${String(indice + 1).padStart(2, '0')}`,
-        nombre,
-        horasPresupuesto: 1500 + indice * 250,
-        activo: true,
-      })),
+      PROYECTOS_DEMO.map((nombre, indice) => {
+        const plan = PLANES_DEMO[indice] ?? {
+          horasPresupuesto: null,
+          semanasDesdeInicio: null,
+          semanasHastaFin: null,
+        }
+        return {
+          empresaId,
+          codigo: `DEMO-${String(indice + 1).padStart(2, '0')}`,
+          nombre,
+          horasPresupuesto: plan.horasPresupuesto,
+          fechaInicio:
+            plan.semanasDesdeInicio === null
+              ? null
+              : sumarDias(semanaActual.weekStart, -plan.semanasDesdeInicio * 7),
+          fechaFin:
+            plan.semanasHastaFin === null
+              ? null
+              : sumarDias(semanaActual.weekStart, plan.semanasHastaFin * 7 + 6),
+          activo: true,
+        }
+      }),
     )
     .returning({ id: proyecto.id, codigo: proyecto.codigo })
 

@@ -8,6 +8,8 @@ export type ProyectoConTotales = {
   codigo: string
   nombre: string
   horasPresupuesto: number | null
+  fechaInicio: string | null
+  fechaFin: string | null
   activo: boolean
   tareas: number
   minutos: number
@@ -20,6 +22,8 @@ export async function listarProyectosConTotales(empresaId: string): Promise<Proy
       codigo: proyecto.codigo,
       nombre: proyecto.nombre,
       horasPresupuesto: proyecto.horasPresupuesto,
+      fechaInicio: proyecto.fechaInicio,
+      fechaFin: proyecto.fechaFin,
       activo: proyecto.activo,
     })
     .from(proyecto)
@@ -56,10 +60,15 @@ export async function listarProyectosConTotales(empresaId: string): Promise<Proy
   }))
 }
 
-export async function crearProyecto(
-  empresaId: string,
-  datos: { codigo: string; nombre: string; horasPresupuesto: number | null },
-): Promise<void> {
+export type DatosProyecto = {
+  codigo: string
+  nombre: string
+  horasPresupuesto: number | null
+  fechaInicio: string | null
+  fechaFin: string | null
+}
+
+export async function crearProyecto(empresaId: string, datos: DatosProyecto): Promise<void> {
   const filas = await db
     .insert(proyecto)
     .values({ empresaId, ...datos, activo: true })
@@ -71,6 +80,24 @@ export async function crearProyecto(
       codigo: 'Código duplicado',
     })
   }
+}
+
+export async function actualizarProyecto(
+  proyectoId: string,
+  datos: Omit<DatosProyecto, 'codigo'>,
+): Promise<void> {
+  const filas = await db
+    .update(proyecto)
+    .set({
+      nombre: datos.nombre,
+      horasPresupuesto: datos.horasPresupuesto,
+      fechaInicio: datos.fechaInicio,
+      fechaFin: datos.fechaFin,
+    })
+    .where(eq(proyecto.id, proyectoId))
+    .returning({ id: proyecto.id })
+
+  if (!filas[0]) throw new AppError('NO_ENCONTRADO', 'El proyecto no existe')
 }
 
 export async function alternarProyecto(proyectoId: string, activo: boolean): Promise<void> {

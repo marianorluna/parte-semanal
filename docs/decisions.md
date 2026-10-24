@@ -129,3 +129,38 @@ Registro de las decisiones técnicas relevantes del proyecto. Una entrada por de
 - **Consecuencias:** No hay cambios de esquema ni consultas condicionadas por el demo, y el desarrollador reproduce la misma carga siempre. La responsabilidad de mantener el marcador recae en el seed: cualquier dato nuevo del demo debe colgar de la empresa `DEMO` para que la purga lo alcance. Si algún día se abre un portal de subcontratas con demo propio, el patrón se extiende con un `codigo` por escenario en lugar de rehacer el mecanismo.
 
 ---
+### ADR-009 - Avisos in-app con cron HTTP idempotente
+
+- **Fecha:** 2026-10-24
+- **Estado:** Aceptada
+- **Contexto:** El encargado necesita saber quién no ha cargado horas y qué proyecto se está agotando sin entrar a buscarlo, y el trabajador necesita un recordatorio antes de que su parte quede pendiente. La fase 2 preveía email transaccional y `pg-boss`, pero todavía no hay proveedor de correo elegido ni cola desplegada, y el MVP debe cerrarse sin sumar servicios que operar.
+- **Opciones consideradas:**
+  1. Email SMTP con `nodemailer` y plantillas - entrega fuera de la app, a cambio de credenciales, rebotes, reputación de dominio y un proveedor que decidir ahora.
+  2. Solo avisos calculados al abrir la app - cero infraestructura, pero nadie recibe nada si no entra.
+  3. Avisos persistidos en la app, generados por un endpoint de cron protegido que también devuelve el lote para que un automatizador externo lo reenvíe - sin proveedor acoplado, con historial consultable y posibilidad de conectar email o WhatsApp después sin tocar el dominio.
+- **Decisión:** Opción 3. Cada aviso se guarda en `notificacion` con una `clave_idempotencia` única por usuario, de modo que repetir el cron no duplica nada. `GET|POST /api/v1/cron/avisos` exige `CRON_SECRET` y admite `modo` (`recordatorios`, `riesgos`, `todo`), `semana` y `dryRun`. La programación (viernes y lunes recordatorios, diario riesgos) la lanza Coolify o n8n; n8n puede consumir el lote devuelto para enviarlo por email o WhatsApp.
+- **Consecuencias:** El MVP entrega avisos sin dependencias nuevas ni credenciales externas, y el canal de entrega queda desacoplado. La app no garantiza la entrega externa: si el cron no se invoca, no hay aviso, así que la programación debe quedar documentada y verificada en el despliegue. Cuando exista proveedor de correo, se añade un adaptador de envío que consume las notificaciones ya persistidas, sin cambiar las reglas de generación.
+
+### ADR-010 - Exportación XLSX con ExcelJS y PDF en servidor con @react-pdf/renderer
+
+- **Fecha:** 2026-10-24
+- **Estado:** Aceptada
+- **Contexto:** Hoy solo existe CSV e impresión del navegador. El encargado necesita abrir los datos en Excel con formato y disponer de un PDF con tablas y gráficos para adjuntar o archivar, sin depender de que el usuario sepa usar el diálogo de impresión.
+- **Opciones consideradas:**
+  1. Sin dependencias: XML Spreadsheet 2003 para Excel y `window.print()` para PDF - cero instalación, pero el "Excel" no es `.xlsx` real, no admite varias hojas con estilos fiables y el PDF sigue dependiendo del navegador del usuario.
+  2. ExcelJS + `@react-pdf/renderer` - `.xlsx` real con hojas, estilos, autofiltro y formatos; PDF generado en servidor con componentes React y SVG, descargable por URL y verificable en pruebas.
+  3. ExcelJS + Gotenberg (contenedor Chromium) - máxima fidelidad de maquetación, a cambio de un servicio contenedor más que operar en el VPS.
+- **Decisión:** Opción 2. `exceljs@4.4.0` y `@react-pdf/renderer@4.9.0` (compatible con React 19), ambas declaradas en `serverExternalPackages` de `next.config.ts`. Los exportadores viven en `reporting/infrastructure/exportadores` y reciben datos ya filtrados por alcance; ningún route handler consulta la base de datos por su cuenta.
+- **Consecuencias:** Dos dependencias nuevas y algo más de peso en la imagen, a cambio de informes reales sin servicios extra. La maquetación PDF se escribe una vez y se reutiliza en la app y en la exportación. Si más adelante se necesita fidelidad HTML/CSS exacta, el puerto del exportador permite sustituir la implementación por Gotenberg sin tocar las páginas.
+
+### ADR-011 - Plazo de proyecto y riesgo por desviación temporal
+
+- **Fecha:** 2026-10-24
+- **Estado:** Aceptada
+- **Contexto:** `proyecto.horas_presupuesto` permite saber cuánto se ha consumido, pero no si el ritmo es sostenible. Un 30% consumido en el 10% del plazo es una señal distinta de un 30% consumido en el 90%. El aviso debe anticipar el problema, no confirmarlo al final.
+- **Opciones consideradas:**
+  1. Estimar el plazo desde la primera imputación hasta hoy - sin cambios de esquema, pero el plazo se mueve con el uso y no refleja la planificación real.
+  2. Añadir `fecha_inicio` y `fecha_fin` al proyecto - plazo explícito y editable, con el coste de una migración aditiva y de mantener las fechas.
+  3. Guardar un presupuesto versionado con importe y fechas (fase 2, 2.4) - más fiel a la realidad contractual, desproporcionado para este paso y pendiente de decidir si hay importes.
+- **Decisión:** Opción 2. Se añaden `fecha_inicio` y `fecha_fin` (`date`, nulas) a `proyecto`. El dominio puro `reporting/domain/riesgo.ts` calcula consumo, plazo transcurrido, desviación en puntos porcentuales y proyección de consumo al cierre. Los niveles son `AGOTADO` (consumo >= 100%), `CRITICO` (proyección >= 125%, desviación >= 20 pp o consumo >= 90%), `AVISO` (proyección >= 110% o desviación >= 10 pp) y `OK`, con estados explícitos `SIN_PRESUPUESTO` y `SIN_PLAZO` cuando faltan datos.
+- **Consecuencias:** Los avisos de desviación solo aparecen en proyectos con presupuesto y fechas cargadas; el resto muestra consumo sin juicio de plazo, sin falsear el semáforo. El cálculo es determinista y testeable, y no necesita tabla de agregados a esta escala. La versión con importes, coste hora y presupuesto histórico queda para la fase 2 sobre esta misma base.

@@ -1,6 +1,7 @@
 import { requireUsuario } from '@/modules/identidad/application/sesion'
 import { proyectosPermitidos } from '@/modules/identidad/infrastructure/repositorio-identidad'
-import { depsPartes } from '@/composition'
+import { depsPartes, repositorioNotificaciones } from '@/composition'
+import { CampanaNotificaciones } from '@/components/CampanaNotificaciones'
 import { Navegacion, type EnlaceNav } from './Navegacion'
 import { cerrarSesion } from '@/app/login/actions'
 
@@ -11,14 +12,19 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const puedeControlar = usuario.rol === 'ADMIN' || usuario.rol === 'ENCARGADO'
 
   const pendientes = puedeControlar
-    ? await depsPartes.repo.contarPendientes(usuario.empresaId, await proyectosPermitidos(usuario))
+    ? await depsPartes.repo.contarPendientes(usuario.empresaId, await proyectosPermitidos(usuario), {
+        soloTrabajadores: usuario.rol === 'ENCARGADO',
+      })
     : 0
+
+  const noLeidas = await repositorioNotificaciones.contarNoLeidas(usuario.id)
 
   const enlaces: EnlaceNav[] = []
   if (usuario.empleadoId) enlaces.push({ href: '/mi-semana', etiqueta: 'Mi semana' })
   if (puedeControlar) {
-    enlaces.push({ href: '/control/partes', etiqueta: 'Partes', contador: pendientes })
     enlaces.push({ href: '/control/dashboard', etiqueta: 'Dashboard' })
+    enlaces.push({ href: '/control/equipo', etiqueta: 'Equipo' })
+    enlaces.push({ href: '/control/partes', etiqueta: 'Partes', contador: pendientes })
   }
   if (usuario.rol === 'ADMIN') {
     enlaces.push({ href: '/admin/usuarios', etiqueta: 'Usuarios' })
@@ -38,6 +44,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             </div>
 
             <div className="flex items-center gap-3">
+              <CampanaNotificaciones noLeidas={noLeidas} />
               <div className="text-right">
                 <p className="text-sm leading-tight font-medium text-white">{usuario.nombre}</p>
                 <p className="text-xs leading-tight text-marca-200">

@@ -17,6 +17,11 @@ import {
 
 export const rolEnum = pgEnum('rol', ['TRABAJADOR', 'ENCARGADO', 'ADMIN'])
 export const estadoParteEnum = pgEnum('estado_parte', ['BORRADOR', 'ENVIADO', 'APROBADO', 'RECHAZADO'])
+export const tipoNotificacionEnum = pgEnum('tipo_notificacion', [
+  'RECORDATORIO_PARTE',
+  'EQUIPO_PENDIENTE',
+  'RIESGO_PROYECTO',
+])
 
 const createdAt = timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
 
@@ -55,10 +60,18 @@ export const proyecto = pgTable(
     codigo: text('codigo').notNull().unique(),
     nombre: text('nombre').notNull(),
     horasPresupuesto: integer('horas_presupuesto'),
+    // Plazo planificado. Opcional: sin fechas se informa consumo, pero no
+    // desviación temporal (ver ADR-011).
+    fechaInicio: date('fecha_inicio'),
+    fechaFin: date('fecha_fin'),
     activo: boolean('activo').notNull().default(true),
     createdAt,
   },
-  (t) => [index('proyecto_empresa_idx').on(t.empresaId)],
+  (t) => [
+    index('proyecto_empresa_idx').on(t.empresaId),
+    index('proyecto_empresa_activo_idx').on(t.empresaId, t.activo),
+    check('proyecto_plazo_ck', sql`${t.fechaFin} is null or (${t.fechaInicio} is not null and ${t.fechaInicio} <= ${t.fechaFin})`),
+  ],
 )
 
 export const tarea = pgTable(
@@ -92,7 +105,10 @@ export const usuario = pgTable(
     activo: boolean('activo').notNull().default(true),
     createdAt,
   },
-  (t) => [index('usuario_empresa_idx').on(t.empresaId)],
+  (t) => [
+    index('usuario_empresa_idx').on(t.empresaId),
+    index('usuario_empleado_idx').on(t.empleadoId),
+  ],
 )
 
 export const usuarioProyecto = pgTable(
@@ -156,6 +172,7 @@ export const parte = pgTable(
   (t) => [
     uniqueIndex('parte_empleado_semana_uq').on(t.empleadoId, t.isoYear, t.isoWeek),
     index('parte_estado_semana_idx').on(t.estado, t.isoYear, t.isoWeek),
+    index('parte_empresa_semana_idx').on(t.empresaId, t.isoYear, t.isoWeek),
     check('parte_semana_ck', sql`${t.isoWeek} between 1 and 53`),
     check('parte_total_ck', sql`${t.totalMinutos} >= 0`),
   ],
@@ -203,6 +220,33 @@ export const auditoria = pgTable(
   ],
 )
 
+export const notificacion = pgTable(
+  'notificacion',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    empresaId: uuid('empresa_id')
+      .notNull()
+      .references(() => empresa.id, { onDelete: 'cascade' }),
+    usuarioId: uuid('usuario_id')
+      .notNull()
+      .references(() => usuario.id, { onDelete: 'cascade' }),
+    tipo: tipoNotificacionEnum('tipo').notNull(),
+    titulo: text('titulo').notNull(),
+    cuerpo: text('cuerpo').notNull(),
+    url: text('url'),
+    /** Evita duplicados al repetir el cron: usuario + evento + periodo. */
+    claveIdempotencia: text('clave_idempotencia').notNull(),
+    metadata: jsonb('metadata'),
+    leidaAt: timestamp('leida_at', { withTimezone: true }),
+    createdAt,
+  },
+  (t) => [
+    uniqueIndex('notificacion_usuario_clave_uq').on(t.usuarioId, t.claveIdempotencia),
+    index('notificacion_usuario_leida_idx').on(t.usuarioId, t.leidaAt),
+    index('notificacion_empresa_created_idx').on(t.empresaId, t.createdAt),
+  ],
+)
+
 export const empresaRelations = relations(empresa, ({ many }) => ({
   usuarios: many(usuario),
   proyectos: many(proyecto),
@@ -230,3 +274,4 @@ export const imputacionRelations = relations(imputacion, ({ one }) => ({
 
 export type EstadoParte = (typeof estadoParteEnum.enumValues)[number]
 export type Rol = (typeof rolEnum.enumValues)[number]
+export type TipoNotificacion = (typeof tipoNotificacionEnum.enumValues)[number]

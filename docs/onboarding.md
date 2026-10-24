@@ -128,9 +128,37 @@ npm run test
 
 - [ ] `/api/health` devuelve 200 con `database: ok`.
 - [ ] El login de un trabajador demo abre `/mi-semana` con la semana actual y asignaciones.
-- [ ] El login de un encargado muestra partes enviados en `/control/partes`.
+- [ ] El panel rápido añade horas, ajusta en tramos de 30 minutos y permite deshacer.
+- [ ] El login de un encargado muestra partes enviados en `/control/partes` y el estado del equipo en `/control/equipo`.
+- [ ] El encargado no ve partes de otros encargados ni de administradores.
+- [ ] `/control/dashboard` muestra alertas, cumplimiento y semáforo de riesgo por proyecto.
+- [ ] Las exportaciones CSV, XLSX y PDF descargan con los filtros aplicados.
 - [ ] `npm run db:seed:demo` dos veces seguidas no duplica filas.
 - [ ] `npm run db:seed:demo:purge` deja la base sin filas `DEMO` y conserva otras empresas.
+
+### Probar avisos y exportaciones
+
+Con `CRON_SECRET` definido en `.env`:
+
+```bash
+# Previsualiza sin escribir en la base
+curl -H "Authorization: Bearer $CRON_SECRET" \
+  "http://localhost:3000/api/v1/cron/avisos?semana=actual&dryRun=1"
+
+# Genera los recordatorios de la semana actual; repetirlo no duplica avisos
+curl -X POST -H "Authorization: Bearer $CRON_SECRET" \
+  "http://localhost:3000/api/v1/cron/avisos?semana=actual&modo=recordatorios"
+```
+
+Comprueba en `/notificaciones` que aparecen una sola vez. Si `CRON_SECRET` no está definido, el endpoint responde `503`.
+
+Las exportaciones se generan en el servidor y no se cachean:
+
+- `/control/partes/exportar?formato=csv|xlsx|pdf&y=2026&w=38`
+- `/control/dashboard/exportar?formato=xlsx|pdf&y=2026&w=38`
+- `/partes/<id>/pdf`
+
+Abriendo el XLSX en Excel y el PDF en un lector se comprueban acentos, totales y paginación.
 
 ---
 

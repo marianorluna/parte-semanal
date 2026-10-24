@@ -64,6 +64,17 @@ export async function proyectosDeParte(parteId: string): Promise<string[]> {
   return filas.map((fila) => fila.proyectoId)
 }
 
+/** Rol del usuario vinculado a un empleado; `null` si no tiene cuenta. */
+export async function rolDeEmpleado(empleadoId: string): Promise<Rol | null> {
+  const filas = await db
+    .select({ rol: usuario.rol })
+    .from(usuario)
+    .where(eq(usuario.empleadoId, empleadoId))
+    .limit(1)
+
+  return filas[0]?.rol ?? null
+}
+
 export async function listarEmpleadosDeEmpresa(empresaId: string): Promise<EmpleadoOpcion[]> {
   return db
     .select({ id: empleado.id, codigo: empleado.codigo, nombre: empleado.nombre, activo: empleado.activo })

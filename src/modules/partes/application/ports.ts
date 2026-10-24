@@ -1,4 +1,4 @@
-import type { EstadoParte } from '@/db/schema'
+import type { EstadoParte, Rol } from '@/db/schema'
 import type { FechaIso, SemanaIso } from '../domain/fechas'
 import type { ImputacionEntrada } from '../domain/parte'
 
@@ -54,6 +54,8 @@ export type FiltrosControl = {
   empleadoId?: string
   /** null = sin restricción (ADMIN). */
   proyectosPermitidos: string[] | null
+  /** El encargado solo revisa partes de usuarios TRABAJADOR. */
+  soloTrabajadores: boolean
   pagina: number
   porPagina: number
 }
@@ -80,6 +82,11 @@ export type RepositorioPartes = {
   tareasPorIds(ids: string[]): Promise<TareaAsignada[]>
   tareasAsignadas(empleadoId: string, desde: FechaIso, hasta: FechaIso): Promise<TareaAsignada[]>
   listarParaControl(filtros: FiltrosControl): Promise<ResultadoControl>
-  contarPendientes(empresaId: string, proyectosPermitidos: string[] | null): Promise<number>
+  contarPendientes(
+    empresaId: string,
+    proyectosPermitidos: string[] | null,
+    opciones?: { soloTrabajadores?: boolean },
+  ): Promise<number>
   proyectosDeEmpleado(empleadoId: string): Promise<string[]>
+  rolDeEmpleado(empleadoId: string): Promise<Rol | null>
 }

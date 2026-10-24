@@ -70,9 +70,9 @@ export function AccionesRevision({ parteId, version, estado }: Props) {
           </>
         ) : null}
 
-        {estado === 'APROBADO' ? (
+        {estado === 'APROBADO' || estado === 'ENVIADO' ? (
           <button type="button" onClick={() => setModo('reabrir')} disabled={ocupado} className="boton-secundario">
-            Reabrir parte
+            Reabrir para corregir
           </button>
         ) : null}
       </div>

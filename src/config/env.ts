@@ -15,6 +15,9 @@ const envSchema = z.object({
     .string()
     .optional()
     .transform((valor) => valor === 'true' || valor === '1'),
+  // Opcional a propósito: sin secreto el cron de avisos queda deshabilitado
+  // (503) y el resto de la app funciona igual.
+  CRON_SECRET: z.string().min(16, 'CRON_SECRET debe tener al menos 16 caracteres').optional(),
 })
 
 export type Env = z.infer<typeof envSchema>
@@ -33,6 +36,7 @@ const entornoDeCompilacion: Env = {
   NODE_ENV: 'production',
   DEMO_PASSWORD: 'Demo1234!',
   ACCESO_RAPIDO_DEMO: false,
+  CRON_SECRET: undefined,
 }
 
 export function env(): Env {

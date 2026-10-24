@@ -1,13 +1,33 @@
 import { NextResponse } from 'next/server'
+import { z } from 'zod'
 import { requireRol } from '@/modules/identidad/application/sesion'
-import { proyectosPermitidos } from '@/modules/identidad/infrastructure/repositorio-identidad'
-import { hoyEnZona, semanaIsoDe, semanaIso } from '@/modules/partes/domain/fechas'
+import { hoyEnZona, semanaIso, semanaIsoDe } from '@/modules/partes/domain/fechas'
 import { minutosAHorasDecimal } from '@/modules/partes/domain/horas'
-import { lineasParaExportar } from '@/modules/reporting/infrastructure/consultas'
+import { datosPartes } from '@/modules/reporting/application/exportacion'
+import { nombreArchivo } from '@/modules/reporting/infrastructure/exportadores/comun'
+import { construirExcelPartes } from '@/modules/reporting/infrastructure/exportadores/excel'
+import { construirPdfPartes } from '@/modules/reporting/infrastructure/exportadores/pdf'
 
 export const dynamic = 'force-dynamic'
 
 const SEPARADOR = ';'
+
+const FORMATOS = ['csv', 'xlsx', 'pdf'] as const
+const ESTADOS = ['BORRADOR', 'ENVIADO', 'APROBADO', 'RECHAZADO'] as const
+
+const parametros = z.object({
+  formato: z.enum(FORMATOS).default('csv'),
+  y: z.coerce.number().int().min(2000).max(2100).optional(),
+  w: z.coerce.number().int().min(1).max(53).optional(),
+  estado: z.enum(ESTADOS).optional(),
+  proyecto: z.uuid().optional(),
+})
+
+const TIPOS: Record<(typeof FORMATOS)[number], string> = {
+  csv: 'text/csv; charset=utf-8',
+  xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  pdf: 'application/pdf',
+}
 
 function celda(valor: string | number): string {
   const texto = String(valor)
@@ -21,43 +41,39 @@ export async function GET(request: Request) {
   const usuario = await requireRol('ENCARGADO', 'ADMIN')
   const url = new URL(request.url)
 
+  const lectura = parametros.safeParse(Object.fromEntries(url.searchParams))
+  if (!lectura.success) {
+    return NextResponse.json({ error: 'Parámetros de exportación no válidos' }, { status: 400 })
+  }
+  const { formato, y, w, estado, proyecto } = lectura.data
+
   const hoy = hoyEnZona(process.env.TZ ?? 'Europe/Madrid')
   const semanaHoy = semanaIsoDe(hoy)
+  const semana = (() => {
+    try {
+      return semanaIso(y ?? semanaHoy.isoYear, w ?? semanaHoy.isoWeek)
+    } catch {
+      return semanaHoy
+    }
+  })()
 
-  const anio = Number(url.searchParams.get('y') ?? semanaHoy.isoYear)
-  const numeroSemana = Number(url.searchParams.get('w') ?? semanaHoy.isoWeek)
-
-  let semana
-  try {
-    semana = semanaIso(anio, numeroSemana)
-  } catch {
-    semana = semanaHoy
+  const datos = await datosPartes(usuario, semana, { estado, proyectoId: proyecto })
+  const base = `partes-${semana.isoYear}-W${String(semana.isoWeek).padStart(2, '0')}`
+  const cabeceras = {
+    'Content-Type': TIPOS[formato],
+    'Content-Disposition': `attachment; filename="${nombreArchivo(base, formato)}"`,
+    'Cache-Control': 'no-store',
   }
 
-  const estado = url.searchParams.get('estado') ?? undefined
-  const proyectoId = url.searchParams.get('proyecto') ?? undefined
-  const permitidos = await proyectosPermitidos(usuario)
+  if (formato === 'xlsx') {
+    return new NextResponse(new Uint8Array(await construirExcelPartes(datos)), { headers: cabeceras })
+  }
 
-  const lineas = await lineasParaExportar(usuario.empresaId, semana.isoYear, semana.isoWeek, permitidos, {
-    estado,
-    proyectoId,
-  })
+  if (formato === 'pdf') {
+    return new NextResponse(new Uint8Array(await construirPdfPartes(datos)), { headers: cabeceras })
+  }
 
-  const cabecera = [
-    'Empleado',
-    'Codigo empleado',
-    'Proyecto',
-    'Codigo proyecto',
-    'Tarea',
-    'Fecha',
-    'Horas',
-    'Minutos',
-    'Estado parte',
-    'Semana',
-    'Año',
-  ]
-
-  const filas = lineas.map((linea) =>
+  const filas = datos.lineas.map((linea) =>
     [
       celda(linea.empleadoNombre),
       celda(linea.empleadoCodigo),
@@ -73,14 +89,19 @@ export async function GET(request: Request) {
     ].join(SEPARADOR),
   )
 
-  const contenido = `\uFEFF${[cabecera.join(SEPARADOR), ...filas].join('\r\n')}\r\n`
-  const nombre = `partes-${semana.isoYear}-W${String(semana.isoWeek).padStart(2, '0')}.csv`
+  const cabecera = [
+    'Empleado',
+    'Codigo empleado',
+    'Proyecto',
+    'Codigo proyecto',
+    'Tarea',
+    'Fecha',
+    'Horas',
+    'Minutos',
+    'Estado parte',
+    'Semana',
+    'Año',
+  ]
 
-  return new NextResponse(contenido, {
-    headers: {
-      'Content-Type': 'text/csv; charset=utf-8',
-      'Content-Disposition': `attachment; filename="${nombre}"`,
-      'Cache-Control': 'no-store',
-    },
-  })
+  return new NextResponse(`\uFEFF${[cabecera.join(SEPARADOR), ...filas].join('\r\n')}\r\n`, { headers: cabeceras })
 }

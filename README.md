@@ -9,7 +9,7 @@ El trabajador registra sus horas por día, proyecto y tarea. El encargado revisa
 
 ## Estado
 
-MVP funcional implementado y verificado en local: autenticación con roles, rejilla semanal con autoguardado, bandeja de aprobación, dashboard, administración, exportaciones, auditoría y datos de demo cargables y purgables. El estado vigente de la sesión vive en [`AGENTS.md`](AGENTS.md) §4.
+MVP funcional implementado y verificado en local: autenticación con roles, carga rápida de horas, rejilla semanal con autoguardado y doble confirmación, bandeja de aprobación, control del equipo, dashboard con riesgo de presupuesto, centro de avisos con cron, exportaciones CSV/XLSX/PDF, administración, auditoría y datos de demo cargables y purgables. El estado vigente de la sesión vive en [`AGENTS.md`](AGENTS.md) §4.
 
 ## Empezar aquí
 
@@ -58,15 +58,36 @@ npm run typecheck
 npm run test
 ```
 
+### Avisos programados
+
+El endpoint `GET|POST /api/v1/cron/avisos` genera los avisos in-app de forma idempotente: repetir la llamada no duplica notificaciones gracias a las claves únicas `(usuario_id, clave_idempotencia)`. Requiere `CRON_SECRET` (sin él responde `503`) y se autentica con `Authorization: Bearer <CRON_SECRET>` o `x-cron-secret`.
+
+| Momento (Europe/Madrid) | Llamada | Qué genera |
+|-------------------------|---------|------------|
+| Viernes 09:00 | `/api/v1/cron/avisos?semana=actual&modo=recordatorios` | Recordatorio a quien no ha enviado el parte y resumen al encargado |
+| Lunes 09:00 | `/api/v1/cron/avisos?semana=anterior&modo=recordatorios` | Recordatorio de cierre de la semana anterior |
+| Diario 08:00 | `/api/v1/cron/avisos?modo=riesgos` | Aviso de riesgo de presupuesto a los encargados del proyecto |
+
+Parámetros: `semana=actual|anterior`, `modo=recordatorios|riesgos|todo` y `dryRun=1` para previsualizar sin escribir. La respuesta JSON incluye el lote generado (usuario, email, título, cuerpo y URL) y se puede reenviar desde n8n por email o WhatsApp. En Coolify se configura como tarea programada del recurso; con n8n, un nodo HTTP con la cabecera `Authorization`.
+
+```bash
+curl -H "Authorization: Bearer $CRON_SECRET" \
+  "https://horas.levitec.marianorluna.com/api/v1/cron/avisos?semana=actual&dryRun=1"
+```
+
 ## Rutas principales
 
 | Ruta | Rol | Qué hace |
 |------|-----|----------|
 | `/login` | público | Acceso con email y contraseña |
-| `/mi-semana` | TRABAJADOR | Rejilla semanal, autoguardado, envío |
-| `/control/partes` | ENCARGADO, ADMIN | Bandeja de aprobación y rechazo con motivo |
-| `/control/dashboard` | ENCARGADO, ADMIN | Horas por proyecto, tendencia y pendientes |
+| `/mi-semana` | TRABAJADOR | Panel rápido de carga, rejilla semanal, autoguardado y envío con doble confirmación |
+| `/control/partes` | ENCARGADO, ADMIN | Bandeja de aprobación y rechazo con motivo; exportación CSV, XLSX y PDF |
+| `/control/equipo` | ENCARGADO, ADMIN | Cumplimiento del equipo, aprobación en lote y recordatorios manuales |
+| `/control/dashboard` | ENCARGADO, ADMIN | KPIs, alertas, riesgo de presupuesto, tendencia y exportación XLSX/PDF |
+| `/control/proyectos` | ENCARGADO, ADMIN | Consumo, proyección y semáforo de riesgo por proyecto |
+| `/notificaciones` | autenticado | Centro de avisos con marcado de leído |
 | `/partes/[id]/imprimir` | según alcance | Vista imprimible con marca de agua según estado |
+| `/partes/[id]/pdf` | según alcance | Descarga del parte en PDF generado en servidor |
 | `/admin/usuarios` | ADMIN | Alta, edición, activación y reseteo de contraseña |
 | `/admin/proyectos` | ADMIN | Proyectos, tareas y asignaciones |
 | `/admin/auditoria` | ADMIN | Registro append-only filtrable y paginado |
@@ -82,7 +103,7 @@ Las migraciones se aplican **solas** al arrancar el contenedor (`docker/entrypoi
 En Coolify basta con un único recurso **Docker Compose**:
 
 1. Build pack `Docker Compose`, archivo `compose.yml`, rama `main`; Coolify construye el servicio `app` y crea el `db` con su volumen.
-2. Variables del recurso: `POSTGRES_PASSWORD` (contraseña fuerte y sin caracteres que rompan una URL; `openssl rand -hex 24`), `AUTH_SECRET`, `APP_URL` y, si quieres que Coolify asigne el dominio, `SERVICE_FQDN_APP_3000`.
+2. Variables del recurso: `POSTGRES_PASSWORD` (contraseña fuerte y sin caracteres que rompan una URL; `openssl rand -hex 24`), `AUTH_SECRET`, `APP_URL`, `CRON_SECRET` y, si quieres que Coolify asigne el dominio, `SERVICE_FQDN_APP_3000`.
 3. Dominio `https://horas.levitec.marianorluna.com` sobre el servicio `app`, puerto 3000; TLS lo gestiona el proxy de Coolify.
 4. Backup diario del volumen `parte_diario_pgdata` a almacenamiento fuera del VPS.
 

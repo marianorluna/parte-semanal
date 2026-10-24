@@ -8,6 +8,13 @@
       "when": 1792696820788,
       "tag": "0000_rare_forge",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792872619157,
+      "tag": "0001_silky_big_bertha",
+      "breakpoints": true
     }
   ]
 }

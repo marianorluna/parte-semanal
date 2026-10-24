@@ -13,7 +13,7 @@ const ETIQUETAS: Record<EstadoParte, string> = {
 
 const TRANSICIONES: Record<EstadoParte, readonly EstadoParte[]> = {
   BORRADOR: ['ENVIADO'],
-  ENVIADO: ['APROBADO', 'RECHAZADO'],
+  ENVIADO: ['APROBADO', 'RECHAZADO', 'BORRADOR'],
   APROBADO: ['BORRADOR'],
   RECHAZADO: ['BORRADOR', 'ENVIADO'],
 }

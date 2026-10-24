@@ -42,7 +42,12 @@ export default async function ImprimirPartePage({ params }: Props) {
         <a href={`/control/partes/${parte.id}`} className="text-sm text-marca-700 hover:underline">
           Volver al parte
         </a>
-        <BotonImprimir />
+        <div className="flex items-center gap-2">
+          <a href={`/partes/${parte.id}/pdf`} className="boton-secundario">
+            Descargar PDF
+          </a>
+          <BotonImprimir />
+        </div>
       </div>
 
       <article className="relative overflow-hidden bg-white p-8 ring-1 ring-slate-200">

@@ -1,6 +1,6 @@
 import { requireUsuario } from '@/modules/identidad/application/sesion'
 import { depsPartes } from '@/composition'
-import { formatearHorasReloj } from '@/modules/partes/domain/horas'
+import { aTextoEditable } from '@/modules/partes/domain/horas'
 import { hoyEnZona, nombreDia, semanaIsoDe } from '@/modules/partes/domain/fechas'
 import { esEditable, semanaAnterior, semanaSiguiente } from '@/modules/partes/domain/parte'
 import { obtenerSemana } from '@/modules/partes/application/servicio'
@@ -32,10 +32,7 @@ export default async function MiSemanaPage({ searchParams }: Props) {
 
   const inicial: Record<string, string> = {}
   for (const imputacion of vista.parte.imputaciones) {
-    inicial[`${imputacion.fecha}|${imputacion.tareaId}`] =
-      imputacion.minutos % 60 === 0
-        ? String(imputacion.minutos / 60)
-        : formatearHorasReloj(imputacion.minutos)
+    inicial[`${imputacion.fecha}|${imputacion.tareaId}`] = aTextoEditable(imputacion.minutos)
   }
 
   const anterior = semanaAnterior(vista.semana.isoYear, vista.semana.isoWeek)
@@ -46,7 +43,6 @@ export default async function MiSemanaPage({ searchParams }: Props) {
       key={`${vista.semana.isoYear}-${vista.semana.isoWeek}`}
       isoYear={vista.semana.isoYear}
       isoWeek={vista.semana.isoWeek}
-      weekStart={vista.semana.weekStart}
       dias={dias}
       grupos={vista.grupos}
       inicial={inicial}

@@ -1,9 +1,10 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { requireRol } from '@/modules/identidad/application/sesion'
-import { proyectosDeParte, proyectosPermitidos } from '@/modules/identidad/infrastructure/repositorio-identidad'
+import { proyectosDeParte, proyectosPermitidos, rolDeEmpleado } from '@/modules/identidad/infrastructure/repositorio-identidad'
 import { formatearFecha, nombreDia, formatearRango } from '@/modules/partes/domain/fechas'
 import { formatearHorasReloj } from '@/modules/partes/domain/horas'
+import { puedeRevisarParte } from '@/modules/partes/domain/permisos'
 import { historialParte, obtenerParteDetalle } from '@/modules/partes/infrastructure/consultas-detalle'
 import { EstadoBadge } from '@/components/EstadoBadge'
 import { AccionesRevision } from './AccionesRevision'
@@ -20,6 +21,10 @@ export default async function ParteDetallePage({ params }: Props) {
   if (!parte) notFound()
 
   if (usuario.rol !== 'ADMIN') {
+    // El encargado no revisa sus propias horas ni las de otro encargado o admin.
+    const rolEmpleado = await rolDeEmpleado(parte.empleadoId)
+    if (!puedeRevisarParte(usuario.rol, rolEmpleado)) notFound()
+
     const permitidos = await proyectosPermitidos(usuario)
     const delParte = await proyectosDeParte(parte.id)
     const autorizado = permitidos === null || delParte.some((p) => permitidos.includes(p))
@@ -52,9 +57,14 @@ export default async function ParteDetallePage({ params }: Props) {
         <div className="flex flex-col items-end gap-2">
           <EstadoBadge estado={parte.estado} />
           <p className="text-2xl font-bold text-slate-900">{formatearHorasReloj(parte.totalMinutos)}</p>
-          <Link href={`/partes/${parte.id}/imprimir`} className="text-xs font-medium text-marca-700 hover:underline">
-            Ver versión imprimible
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link href={`/partes/${parte.id}/imprimir`} className="text-xs font-medium text-marca-700 hover:underline">
+              Ver versión imprimible
+            </Link>
+            <a href={`/partes/${parte.id}/pdf`} className="text-xs font-medium text-marca-700 hover:underline">
+              Descargar PDF
+            </a>
+          </div>
         </div>
       </div>
 

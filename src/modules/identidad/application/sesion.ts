@@ -95,7 +95,7 @@ export function requiereEmpleado(usuario: UsuarioSesion): string {
 }
 
 export function rutaInicial(usuario: UsuarioSesion): string {
-  if (usuario.rol === 'ADMIN') return '/admin/usuarios'
-  if (usuario.rol === 'ENCARGADO') return '/control/partes'
+  if (usuario.rol === 'ADMIN') return '/control/dashboard'
+  if (usuario.rol === 'ENCARGADO') return '/control/equipo'
   return '/mi-semana'
 }

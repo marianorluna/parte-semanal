@@ -9,6 +9,7 @@ import {
   semanaIsoDe,
 } from '../domain/fechas'
 import { type ImputacionEntrada, validarParte } from '../domain/parte'
+import { puedeRevisarParte } from '../domain/permisos'
 import { agruparTareas, type GrupoProyecto } from './agrupacion'
 import type { ParteCompleto, RepositorioPartes } from './ports'
 
@@ -53,10 +54,20 @@ async function exigirAlcanceSobreParte(
   usuario: UsuarioSesion,
   parteId: string,
 ): Promise<void> {
-  if (usuario.rol === 'ADMIN') return
-  if (usuario.rol !== 'ENCARGADO') {
+  if (usuario.rol !== 'ENCARGADO' && usuario.rol !== 'ADMIN') {
     throw new AppError('SIN_PERMISO', 'No tienes permiso para revisar partes')
   }
+
+  const parte = await deps.repo.obtenerDetalle(parteId)
+  if (!parte) throw new AppError('NO_ENCONTRADO', 'El parte no existe')
+
+  // El encargado no revisa sus propias horas ni las de otro encargado o admin.
+  const rolEmpleado = await deps.repo.rolDeEmpleado(parte.empleadoId)
+  if (!puedeRevisarParte(usuario.rol, rolEmpleado)) {
+    throw new AppError('SIN_PERMISO', 'Solo el administrador puede revisar este parte')
+  }
+
+  if (usuario.rol === 'ADMIN') return
 
   const permitidos = await deps.proyectosPermitidos(usuario)
   if (permitidos === null) return

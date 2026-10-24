@@ -1,6 +1,7 @@
 import { and, asc, count, desc, eq, exists, gte, inArray, isNull, lte, or, sql } from 'drizzle-orm'
 import { db } from '@/db/client'
 import { asignacion, auditoria, empleado, imputacion, parte, proyecto, tarea, usuario } from '@/db/schema'
+import type { Rol } from '@/db/schema'
 import { AppError } from '@/shared/errors'
 import type { FechaIso, SemanaIso } from '../domain/fechas'
 import { esEditable } from '../domain/parte'
@@ -91,6 +92,19 @@ function condicionProyectos(ids: string[] | null) {
       .from(imputacion)
       .innerJoin(tarea, eq(tarea.id, imputacion.tareaId))
       .where(and(eq(imputacion.parteId, parte.id), inArray(tarea.proyectoId, ids))),
+  )
+}
+
+/**
+ * El encargado solo revisa partes cuyo empleado tiene una cuenta TRABAJADOR.
+ * Sin cuenta (o con otra rol) el parte queda fuera de su bandeja.
+ */
+function condicionSoloTrabajadores() {
+  return exists(
+    db
+      .select({ uno: sql`1` })
+      .from(usuario)
+      .where(and(eq(usuario.empleadoId, parte.empleadoId), eq(usuario.rol, 'TRABAJADOR'))),
   )
 }
 
@@ -306,8 +320,8 @@ export const repositorioPartes = {
       if (actual.version !== versionEsperada) {
         throw new AppError('CONFLICTO_VERSION', 'El parte ha cambiado. Recarga la página')
       }
-      if (actual.estado !== 'APROBADO') {
-        throw new AppError('ESTADO_INVALIDO', 'Solo se pueden reabrir partes aprobados')
+      if (actual.estado !== 'APROBADO' && actual.estado !== 'ENVIADO') {
+        throw new AppError('ESTADO_INVALIDO', 'Solo se pueden reabrir partes enviados o aprobados')
       }
 
       await tx
@@ -382,6 +396,7 @@ export const repositorioPartes = {
 
     if (filtros.estado) condiciones.push(eq(parte.estado, filtros.estado))
     if (filtros.empleadoId) condiciones.push(eq(parte.empleadoId, filtros.empleadoId))
+    if (filtros.soloTrabajadores) condiciones.push(condicionSoloTrabajadores())
 
     const porProyecto = filtros.proyectoId
       ? condicionProyectos([filtros.proyectoId])
@@ -421,13 +436,28 @@ export const repositorioPartes = {
     }
   },
 
-  async contarPendientes(empresaId: string, proyectosPermitidos: string[] | null): Promise<number> {
+  async contarPendientes(
+    empresaId: string,
+    proyectosPermitidos: string[] | null,
+    opciones: { soloTrabajadores?: boolean } = {},
+  ): Promise<number> {
     const condiciones = [eq(parte.empresaId, empresaId), eq(parte.estado, 'ENVIADO')]
     const porProyecto = condicionProyectos(proyectosPermitidos)
     if (porProyecto) condiciones.push(porProyecto)
+    if (opciones.soloTrabajadores) condiciones.push(condicionSoloTrabajadores())
 
     const filas = await db.select({ total: count() }).from(parte).where(and(...condiciones))
     return Number(filas[0]?.total ?? 0)
+  },
+
+  async rolDeEmpleado(empleadoId: string): Promise<Rol | null> {
+    const filas = await db
+      .select({ rol: usuario.rol })
+      .from(usuario)
+      .where(eq(usuario.empleadoId, empleadoId))
+      .limit(1)
+
+    return filas[0]?.rol ?? null
   },
 
   async proyectosDeEmpleado(empleadoId: string): Promise<string[]> {

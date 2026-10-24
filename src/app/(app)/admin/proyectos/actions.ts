@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { autorizar } from '@/modules/identidad/application/sesion'
 import {
+  actualizarProyecto,
   alternarProyecto,
   crearAsignacion,
   crearProyecto,
@@ -13,6 +14,51 @@ import {
 import { registrarAuditoria } from '@/modules/auditoria/application/registrar'
 import { AppError } from '@/shared/errors'
 
+const fechaIsoSchema = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, 'Fecha inválida')
+  .optional()
+  .or(z.literal(''))
+
+const plazoRefinements = (datos: { fechaInicio?: string; fechaFin?: string }) => ({
+  inicio: !datos.fechaFin || Boolean(datos.fechaInicio),
+  orden: !datos.fechaInicio || !datos.fechaFin || datos.fechaInicio <= datos.fechaFin,
+})
+
+const proyectoSchema = z
+  .object({
+    codigo: z.string().trim().min(2, 'Código obligatorio').max(30),
+    nombre: z.string().trim().min(3, 'Nombre obligatorio').max(160),
+    horasPresupuesto: z.coerce.number().int().min(0).max(1_000_000).optional(),
+    fechaInicio: fechaIsoSchema,
+    fechaFin: fechaIsoSchema,
+  })
+  .refine((datos) => plazoRefinements(datos).inicio, {
+    message: 'Indica la fecha de inicio si hay fecha de fin',
+    path: ['fechaInicio'],
+  })
+  .refine((datos) => plazoRefinements(datos).orden, {
+    message: 'La fecha de fin no puede ser anterior al inicio',
+    path: ['fechaFin'],
+  })
+
+const edicionProyectoSchema = z
+  .object({
+    proyectoId: z.string().uuid('Proyecto inválido'),
+    nombre: z.string().trim().min(3, 'Nombre obligatorio').max(160),
+    horasPresupuesto: z.coerce.number().int().min(0).max(1_000_000).optional(),
+    fechaInicio: fechaIsoSchema,
+    fechaFin: fechaIsoSchema,
+  })
+  .refine((datos) => plazoRefinements(datos).inicio, {
+    message: 'Indica la fecha de inicio si hay fecha de fin',
+    path: ['fechaInicio'],
+  })
+  .refine((datos) => plazoRefinements(datos).orden, {
+    message: 'La fecha de fin no puede ser anterior al inicio',
+    path: ['fechaFin'],
+  })
+
 export type EstadoProyecto = { error?: string; ok?: string; campo?: Record<string, string> }
 
 function aError(error: unknown): EstadoProyecto {
@@ -21,11 +67,16 @@ function aError(error: unknown): EstadoProyecto {
   return { error: 'No se pudo completar la operación' }
 }
 
-const proyectoSchema = z.object({
-  codigo: z.string().trim().min(2, 'Código obligatorio').max(30),
-  nombre: z.string().trim().min(3, 'Nombre obligatorio').max(160),
-  horasPresupuesto: z.coerce.number().int().min(0).max(1_000_000).optional(),
-})
+function leerProyectoDelFormulario(formData: FormData) {
+  const horas = formData.get('horasPresupuesto')
+  return proyectoSchema.safeParse({
+    codigo: formData.get('codigo') ?? '',
+    nombre: formData.get('nombre') ?? '',
+    horasPresupuesto: horas ? Number(horas) : undefined,
+    fechaInicio: String(formData.get('fechaInicio') ?? ''),
+    fechaFin: String(formData.get('fechaFin') ?? ''),
+  })
+}
 
 export async function crearProyectoAction(
   _prev: EstadoProyecto,
@@ -33,12 +84,7 @@ export async function crearProyectoAction(
 ): Promise<EstadoProyecto> {
   try {
     const actor = await autorizar('ADMIN')
-    const horas = formData.get('horasPresupuesto')
-    const parsed = proyectoSchema.safeParse({
-      codigo: formData.get('codigo') ?? '',
-      nombre: formData.get('nombre') ?? '',
-      horasPresupuesto: horas ? Number(horas) : undefined,
-    })
+    const parsed = leerProyectoDelFormulario(formData)
 
     if (!parsed.success) {
       const campo: Record<string, string> = {}
@@ -53,6 +99,8 @@ export async function crearProyectoAction(
       codigo: parsed.data.codigo.toUpperCase(),
       nombre: parsed.data.nombre,
       horasPresupuesto: parsed.data.horasPresupuesto ?? null,
+      fechaInicio: parsed.data.fechaInicio || null,
+      fechaFin: parsed.data.fechaFin || null,
     })
 
     await registrarAuditoria({
@@ -64,6 +112,58 @@ export async function crearProyectoAction(
 
     revalidatePath('/admin/proyectos')
     return { ok: 'Proyecto creado' }
+  } catch (error) {
+    return aError(error)
+  }
+}
+
+export async function actualizarProyectoAction(
+  _prev: EstadoProyecto,
+  formData: FormData,
+): Promise<EstadoProyecto> {
+  try {
+    const actor = await autorizar('ADMIN')
+    const horas = formData.get('horasPresupuesto')
+    const parsed = edicionProyectoSchema.safeParse({
+      proyectoId: formData.get('proyectoId'),
+      nombre: formData.get('nombre') ?? '',
+      horasPresupuesto: horas ? Number(horas) : undefined,
+      fechaInicio: String(formData.get('fechaInicio') ?? ''),
+      fechaFin: String(formData.get('fechaFin') ?? ''),
+    })
+
+    if (!parsed.success) {
+      const campo: Record<string, string> = {}
+      for (const issue of parsed.error.issues) {
+        const clave = issue.path.join('.')
+        if (clave) campo[clave] = issue.message
+      }
+      return { error: 'Revisa los campos marcados', campo }
+    }
+
+    await actualizarProyecto(parsed.data.proyectoId, {
+      nombre: parsed.data.nombre,
+      horasPresupuesto: parsed.data.horasPresupuesto ?? null,
+      fechaInicio: parsed.data.fechaInicio || null,
+      fechaFin: parsed.data.fechaFin || null,
+    })
+
+    await registrarAuditoria({
+      actorId: actor.id,
+      entidad: 'proyecto',
+      entidadId: parsed.data.proyectoId,
+      accion: 'EDITAR_PROYECTO',
+      despues: {
+        nombre: parsed.data.nombre,
+        horasPresupuesto: parsed.data.horasPresupuesto ?? null,
+        fechaInicio: parsed.data.fechaInicio || null,
+        fechaFin: parsed.data.fechaFin || null,
+      },
+    })
+
+    revalidatePath('/admin/proyectos')
+    revalidatePath(`/admin/proyectos/${parsed.data.proyectoId}`)
+    return { ok: 'Proyecto actualizado' }
   } catch (error) {
     return aError(error)
   }
