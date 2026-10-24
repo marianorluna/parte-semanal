@@ -29,7 +29,10 @@ export function NavegacionEscritorio({ enlaces }: { enlaces: EnlaceNav[] }) {
   const ruta = usePathname()
 
   return (
-    <nav aria-label="Navegación principal" className="hidden items-center gap-1 overflow-x-auto lg:flex">
+    <nav
+      aria-label="Navegación principal"
+      className="hidden items-center gap-1 overflow-x-auto scroll-oscuro lg:flex"
+    >
       {enlaces.map((enlace) => {
         const activo = estaActivo(ruta, enlace.href)
         return (
@@ -147,7 +150,10 @@ export function MenuNavegacion({ enlaces }: { enlaces: EnlaceNav[] }) {
           </button>
         </div>
 
-        <nav aria-label="Navegación principal" className="flex flex-1 flex-col gap-1 overflow-y-auto p-3">
+        <nav
+          aria-label="Navegación principal"
+          className="scroll-oscuro flex flex-1 flex-col gap-1 overflow-y-auto p-3"
+        >
           {enlaces.map((enlace) => {
             const activo = estaActivo(ruta, enlace.href)
             return (

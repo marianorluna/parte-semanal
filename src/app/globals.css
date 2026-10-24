@@ -47,6 +47,47 @@
   :focus-visible {
     @apply outline-2 outline-offset-2 outline-marca-600;
   }
+
+  /* Scrollbars finas en tono de marca para cualquier contenedor con scroll.
+     Chromium y Safari se estilizan con las pseudo-clases `::-webkit-scrollbar`.
+     Firefox solo admite las propiedades estándar, que se aplican más abajo y
+     únicamente cuando el navegador no soporta las pseudo-clases: si conviven,
+     el navegador ignora las `::-webkit-*`. */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    border: 3px solid transparent;
+    border-radius: 9999px;
+    background-clip: content-box;
+    background-color: var(--color-marca-300);
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--color-marca-400);
+  }
+
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+}
+
+/* Fallback para Firefox, que no implementa las pseudo-clases de scrollbar. */
+@supports not selector(::-webkit-scrollbar) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-marca-300) transparent;
+  }
+
+  .scroll-oscuro {
+    scrollbar-color: var(--color-marca-500) transparent;
+  }
 }
 
 @layer components {
@@ -99,6 +140,16 @@
 
   .etiqueta {
     @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
+
+  /* Variante para superficies oscuras (cabecera y menú lateral): el pulgar
+     marca-300 destaca demasiado sobre el petróleo de la marca. */
+  .scroll-oscuro::-webkit-scrollbar-thumb {
+    background-color: var(--color-marca-500);
+  }
+
+  .scroll-oscuro::-webkit-scrollbar-thumb:hover {
+    background-color: var(--color-marca-400);
   }
 }
 
