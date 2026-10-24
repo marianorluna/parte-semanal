@@ -327,6 +327,12 @@ export const repositorioPartes = {
       if (actual.version !== versionEsperada) {
         throw new AppError('CONFLICTO_VERSION', 'El parte ha cambiado. Recarga la página')
       }
+      if (actual.estado === 'BLOQUEADO') {
+        throw new AppError(
+          'ESTADO_INVALIDO',
+          'El periodo está cerrado. Reábrelo en Administración > Cierres antes de reabrir el parte',
+        )
+      }
       if (actual.estado !== 'APROBADO' && actual.estado !== 'ENVIADO') {
         throw new AppError('ESTADO_INVALIDO', 'Solo se pueden reabrir partes enviados o aprobados')
       }

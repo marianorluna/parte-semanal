@@ -80,6 +80,10 @@ export default async function ParteDetallePage({ params }: Props) {
             <a href={`/partes/${parte.id}/pdf`} className="text-xs font-medium text-marca-700 hover:underline">
               Descargar PDF
             </a>
+            {usuario.rol === 'ADMIN' &&
+            (parte.estado === 'APROBADO' || parte.estado === 'BLOQUEADO') ? (
+              <BotonRecalcular parteId={parte.id} />
+            ) : null}
           </div>
         </div>
       </div>

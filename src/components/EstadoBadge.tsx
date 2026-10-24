@@ -6,6 +6,7 @@ const ESTILOS: Record<EstadoParte, string> = {
   ENVIADO: 'bg-amber-100 text-amber-800',
   APROBADO: 'bg-acento-100 text-acento-800',
   RECHAZADO: 'bg-red-100 text-red-800',
+  BLOQUEADO: 'bg-marca-900 text-white',
 }
 
 export function EstadoBadge({ estado }: { estado: EstadoParte }) {

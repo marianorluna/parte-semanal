@@ -13,6 +13,7 @@ export const ESTADOS_CUMPLIMIENTO: readonly EstadoCumplimiento[] = [
   'ENVIADO',
   'APROBADO',
   'RECHAZADO',
+  'BLOQUEADO',
 ]
 
 export type EntradaCumplimiento = {
@@ -26,6 +27,7 @@ export const ETIQUETAS_CUMPLIMIENTO: Record<EstadoCumplimiento, string> = {
   ENVIADO: 'Pendiente de revisión',
   APROBADO: 'Aprobado',
   RECHAZADO: 'Rechazado',
+  BLOQUEADO: 'Bloqueado',
 }
 
 export const CLASES_CUMPLIMIENTO: Record<EstadoCumplimiento, string> = {
@@ -34,6 +36,7 @@ export const CLASES_CUMPLIMIENTO: Record<EstadoCumplimiento, string> = {
   ENVIADO: 'bg-amber-100 text-amber-800',
   APROBADO: 'bg-acento-100 text-acento-800',
   RECHAZADO: 'bg-red-100 text-red-800',
+  BLOQUEADO: 'bg-marca-900 text-white',
 }
 
 export function estadoCumplimiento(entrada: EntradaCumplimiento): EstadoCumplimiento {
@@ -99,7 +102,7 @@ export function resumirCumplimiento(
 
   for (const entrada of entradas) {
     const estado = estadoCumplimiento(entrada)
-    if (estado === 'APROBADO') resumen.aprobados += 1
+    if (estado === 'APROBADO' || estado === 'BLOQUEADO') resumen.aprobados += 1
     else if (estado === 'ENVIADO') resumen.enviados += 1
     else if (estado === 'BORRADOR') resumen.borradores += 1
     else if (estado === 'RECHAZADO') resumen.rechazados += 1

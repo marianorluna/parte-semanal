@@ -77,6 +77,13 @@ export function AccionesRevision({ parteId, version, estado }: Props) {
         ) : null}
       </div>
 
+      {estado === 'BLOQUEADO' ? (
+        <p className="rounded-md border border-marca-200 bg-marca-50 px-3 py-2 text-sm text-marca-900">
+          Este parte está bloqueado por el cierre del periodo. Reabre el periodo en Administración &gt; Cierres
+          para poder corregirlo.
+        </p>
+      ) : null}
+
       {modo !== 'ninguno' ? (
         <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
           <label htmlFor="motivo" className="mb-1 block text-sm font-medium text-slate-700">

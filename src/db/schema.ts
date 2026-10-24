@@ -17,7 +17,13 @@ import {
 } from 'drizzle-orm/pg-core'
 
 export const rolEnum = pgEnum('rol', ['TRABAJADOR', 'ENCARGADO', 'ADMIN'])
-export const estadoParteEnum = pgEnum('estado_parte', ['BORRADOR', 'ENVIADO', 'APROBADO', 'RECHAZADO'])
+export const estadoParteEnum = pgEnum('estado_parte', [
+  'BORRADOR',
+  'ENVIADO',
+  'APROBADO',
+  'RECHAZADO',
+  'BLOQUEADO',
+])
 export const ambitoCalendarioEnum = pgEnum('ambito_calendario', [
   'NACIONAL',
   'CCAA',
@@ -73,6 +79,9 @@ export const estadoInformeEnum = pgEnum('estado_informe', [
 ])
 
 export const formatoInformeEnum = pgEnum('formato_informe', ['CSV', 'XLSX', 'PDF'])
+
+/** Semanal (por semana ISO) o mensual (mes natural por empleado). */
+export const tipoPeriodoEnum = pgEnum('tipo_periodo', ['SEMANAL', 'MENSUAL'])
 
 /** `bytea` para el contenido del informe; ExcelJS y PDF producen Buffer. */
 const bytea = customType<{ data: Buffer; driverData: Buffer }>({
@@ -708,6 +717,46 @@ export const informe = pgTable(
   ],
 )
 
+/**
+ * Periodo de nómina cerrado. `empleadoId` nulo cierra el ámbito de toda la
+ * empresa. Un cierre REABIERTO conserva el rastro: no se borra nunca.
+ * Semanal se identifica por semana ISO; mensual por mes natural y empleado.
+ */
+export const periodoCerrado = pgTable(
+  'periodo_cerrado',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    empresaId: uuid('empresa_id')
+      .notNull()
+      .references(() => empresa.id, { onDelete: 'restrict' }),
+    tipo: tipoPeriodoEnum('tipo').notNull(),
+    empleadoId: uuid('empleado_id').references(() => empleado.id, { onDelete: 'restrict' }),
+    isoYear: integer('iso_year'),
+    isoWeek: integer('iso_week'),
+    anio: integer('anio').notNull(),
+    mes: integer('mes'),
+    desde: date('desde').notNull(),
+    hasta: date('hasta').notNull(),
+    motivo: text('motivo'),
+    partesBloqueados: integer('partes_bloqueados').notNull().default(0),
+    cerradoPor: uuid('cerrado_por').references(() => usuario.id, { onDelete: 'set null' }),
+    reabiertoPor: uuid('reabierto_por').references(() => usuario.id, { onDelete: 'set null' }),
+    reabiertoAt: timestamp('reabierto_at', { withTimezone: true }),
+    motivoReapertura: text('motivo_reapertura'),
+    createdAt,
+  },
+  (t) => [
+    index('periodo_cerrado_empresa_rango_idx').on(t.empresaId, t.desde, t.hasta),
+    index('periodo_cerrado_empleado_idx').on(t.empleadoId),
+    check('periodo_cerrado_rango_ck', sql`${t.desde} <= ${t.hasta}`),
+    check('periodo_cerrado_mes_ck', sql`${t.mes} is null or (${t.mes} between 1 and 12)`),
+    check(
+      'periodo_cerrado_semana_ck',
+      sql`${t.isoWeek} is null or (${t.isoWeek} between 1 and 53)`,
+    ),
+  ],
+)
+
 export const auditoria = pgTable(
   'auditoria',
   {
@@ -808,6 +857,7 @@ export type TipoNotificacion = (typeof tipoNotificacionEnum.enumValues)[number]
 export type AmbitoCalendario = (typeof ambitoCalendarioEnum.enumValues)[number]
 export type OrigenFestivo = (typeof origenFestivoEnum.enumValues)[number]
 export type TipoHora = (typeof tipoHoraEnum.enumValues)[number]
+export type TipoPeriodo = (typeof tipoPeriodoEnum.enumValues)[number]
 export type AplicaEn = (typeof aplicaEnEnum.enumValues)[number]
 export type EstadoAusencia = (typeof estadoAusenciaEnum.enumValues)[number]
 export type TipoInforme = (typeof tipoInformeEnum.enumValues)[number]

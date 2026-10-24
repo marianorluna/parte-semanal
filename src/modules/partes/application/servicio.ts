@@ -82,7 +82,7 @@ async function exigirAlcanceSobreParte(
   deps: DepsPartes,
   usuario: UsuarioSesion,
   parteId: string,
-): Promise<void> {
+): Promise<ParteCompleto> {
   if (usuario.rol !== 'ENCARGADO' && usuario.rol !== 'ADMIN') {
     throw new AppError('SIN_PERMISO', 'No tienes permiso para revisar partes')
   }
@@ -96,16 +96,44 @@ async function exigirAlcanceSobreParte(
     throw new AppError('SIN_PERMISO', 'Solo el administrador puede revisar este parte')
   }
 
-  if (usuario.rol === 'ADMIN') return
+  if (usuario.rol === 'ADMIN') return parte
 
   const permitidos = await deps.proyectosPermitidos(usuario)
-  if (permitidos === null) return
+  if (permitidos === null) return parte
 
   const delParte = await deps.proyectosDeParte(parteId)
   const autorizado = delParte.some((proyectoId) => permitidos.includes(proyectoId))
   if (!autorizado) {
     throw new AppError('NO_ENCONTRADO', 'El parte no existe o no está en tu ámbito')
   }
+
+  return parte
+}
+
+/**
+ * Un periodo cerrado no admite escritura: se comprueba antes de guardar,
+ * enviar o revisar. La única salida es reabrirlo con motivo y auditoría.
+ */
+async function fechasCerradasDeSemana(
+  deps: DepsPartes,
+  empresaId: string,
+  empleadoId: string,
+  desde: FechaIso,
+  hasta: FechaIso,
+): Promise<FechaIso[]> {
+  if (!deps.cierre) return []
+  return deps.cierre.fechasBloqueadas(empresaId, empleadoId, desde, hasta)
+}
+
+function exigirPeriodoAbierto(fechas: readonly FechaIso[]): void {
+  if (fechas.length === 0) return
+  const primera = fechas[0]
+  const ultima = fechas[fechas.length - 1]
+  const rango = primera === ultima ? primera : `${primera} a ${ultima}`
+  throw new AppError(
+    'ESTADO_INVALIDO',
+    `El periodo está cerrado (${rango}). Reábrelo en Administración > Cierres antes de modificar horas.`,
+  )
 }
 
 export async function obtenerSemana(
@@ -156,6 +184,17 @@ export async function guardarSemana(
   const parte = await deps.repo.buscarPorSemana(empleadoId, semana.isoYear, semana.isoWeek)
   if (!parte) throw new AppError('NO_ENCONTRADO', 'El parte no existe')
 
+  const cerradas = await fechasCerradasDeSemana(deps, usuario.empresaId, empleadoId, semana.weekStart, semana.weekEnd)
+  if (cerradas.length > 0) {
+    const fieldErrors: Record<string, string> = {}
+    for (const fecha of cerradas) fieldErrors[fecha] = 'Periodo cerrado'
+    throw new AppError(
+      'ESTADO_INVALIDO',
+      `El periodo está cerrado (${cerradas[0]} a ${cerradas[cerradas.length - 1]}). Reábrelo en Administración > Cierres antes de modificar horas.`,
+      fieldErrors,
+    )
+  }
+
   const asignadas = await deps.repo.tareasAsignadas(empleadoId, semana.weekStart, semana.weekEnd)
   const permitidas = new Set([
     ...asignadas.map((t) => t.tareaId),
@@ -196,7 +235,17 @@ export async function enviarSemana(
   if (!parte) throw new AppError('NO_ENCONTRADO', 'El parte no existe')
   if (parte.totalMinutos <= 0) throw new AppError('VALIDACION', 'El parte no tiene horas que enviar')
 
-  await deps.repo.enviar(parte.id, input.version, usuario.id)
+  const semana = semanaIso(input.isoYear, input.isoWeek)
+  exigirPeriodoAbierto(
+    await fechasCerradasDeSemana(deps, usuario.empresaId, empleadoId, semana.weekStart, semana.weekEnd),
+  )
+
+  const calendario = await deps.calendario.semana(empleadoId, semana)
+
+  await deps.repo.enviar(parte.id, input.version, usuario.id, {
+    id: calendario.calendarioId,
+    version: calendario.calendarioVersion,
+  })
 }
 
 export async function aprobarSemana(
@@ -204,7 +253,10 @@ export async function aprobarSemana(
   usuario: UsuarioSesion,
   input: { parteId: string; version: number },
 ): Promise<void> {
-  await exigirAlcanceSobreParte(deps, usuario, input.parteId)
+  const parte = await exigirAlcanceSobreParte(deps, usuario, input.parteId)
+  exigirPeriodoAbierto(
+    await fechasCerradasDeSemana(deps, usuario.empresaId, parte.empleadoId, parte.weekStart, sumarDias(parte.weekStart, 6)),
+  )
   await deps.repo.aprobar(input.parteId, input.version, usuario.id)
 
   if (deps.alAprobar) {
@@ -229,7 +281,10 @@ export async function rechazarSemana(
     })
   }
 
-  await exigirAlcanceSobreParte(deps, usuario, input.parteId)
+  const parte = await exigirAlcanceSobreParte(deps, usuario, input.parteId)
+  exigirPeriodoAbierto(
+    await fechasCerradasDeSemana(deps, usuario.empresaId, parte.empleadoId, parte.weekStart, sumarDias(parte.weekStart, 6)),
+  )
   await deps.repo.rechazar(input.parteId, input.version, usuario.id, motivo)
 }
 
@@ -245,7 +300,10 @@ export async function reabrirSemana(
     })
   }
 
-  await exigirAlcanceSobreParte(deps, usuario, input.parteId)
+  const parte = await exigirAlcanceSobreParte(deps, usuario, input.parteId)
+  exigirPeriodoAbierto(
+    await fechasCerradasDeSemana(deps, usuario.empresaId, parte.empleadoId, parte.weekStart, sumarDias(parte.weekStart, 6)),
+  )
   await deps.repo.reabrir(input.parteId, input.version, usuario.id, motivo)
 
   if (deps.alReabrir) {

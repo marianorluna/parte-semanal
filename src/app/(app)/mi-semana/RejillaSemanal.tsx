@@ -429,6 +429,13 @@ export function RejillaSemanal({
         </div>
       ) : null}
 
+      {estado === 'BLOQUEADO' ? (
+        <div role="status" className="rounded-md border border-marca-200 bg-marca-50 px-4 py-3 text-sm text-marca-900">
+          Parte aprobado y bloqueado por el cierre del periodo. Para corregirlo, administración debe reabrir el
+          periodo en Cierres.
+        </div>
+      ) : null}
+
       {grupos.length === 0 ? (
         <div className="tarjeta p-8 text-center">
           <p className="text-sm text-slate-600">

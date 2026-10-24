@@ -1,0 +1,1 @@
+ALTER TYPE "public"."estado_parte" ADD VALUE 'BLOQUEADO';

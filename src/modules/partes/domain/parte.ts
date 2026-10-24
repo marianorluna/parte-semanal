@@ -2,20 +2,29 @@ import type { EstadoParte } from '@/db/schema'
 import { type FechaIso, diasEntre, sumarDias, semanaIsoDe } from './fechas'
 import { MINUTOS_POR_DIA, sumarMinutos } from './horas'
 
-export const ESTADOS: readonly EstadoParte[] = ['BORRADOR', 'ENVIADO', 'APROBADO', 'RECHAZADO']
+export const ESTADOS: readonly EstadoParte[] = [
+  'BORRADOR',
+  'ENVIADO',
+  'APROBADO',
+  'RECHAZADO',
+  'BLOQUEADO',
+]
 
 const ETIQUETAS: Record<EstadoParte, string> = {
   BORRADOR: 'Borrador',
   ENVIADO: 'Enviado',
   APROBADO: 'Aprobado',
   RECHAZADO: 'Rechazado',
+  BLOQUEADO: 'Bloqueado',
 }
 
 const TRANSICIONES: Record<EstadoParte, readonly EstadoParte[]> = {
   BORRADOR: ['ENVIADO'],
   ENVIADO: ['APROBADO', 'RECHAZADO', 'BORRADOR'],
-  APROBADO: ['BORRADOR'],
+  APROBADO: ['BORRADOR', 'BLOQUEADO'],
   RECHAZADO: ['BORRADOR', 'ENVIADO'],
+  // Solo se sale del bloqueo reabriendo el periodo con motivo.
+  BLOQUEADO: ['BORRADOR'],
 }
 
 export function etiquetaEstado(estado: EstadoParte): string {
@@ -24,6 +33,11 @@ export function etiquetaEstado(estado: EstadoParte): string {
 
 export function esEditable(estado: EstadoParte): boolean {
   return estado === 'BORRADOR' || estado === 'RECHAZADO'
+}
+
+/** Un parte bloqueado solo se edita después de reabrir el periodo. */
+export function esParteBloqueado(estado: EstadoParte): boolean {
+  return estado === 'BLOQUEADO'
 }
 
 export function puedeTransicionar(desde: EstadoParte, hacia: EstadoParte): boolean {

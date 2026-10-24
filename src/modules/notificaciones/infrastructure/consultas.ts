@@ -14,7 +14,7 @@ import type {
 const trabajadorUsuario = alias(usuario, 'trabajador_usuario')
 
 /** Estados que cuentan como cumplidos: el trabajador ya hizo su parte. */
-const ESTADOS_ENVIADOS = sql`${parte.estado} in ('ENVIADO', 'APROBADO')`
+const ESTADOS_ENVIADOS = sql`${parte.estado} in ('ENVIADO', 'APROBADO', 'BLOQUEADO')`
 
 const PENDIENTE_DE_ACCION = sql`${parte.estado} is null or ${parte.estado} in ('BORRADOR', 'RECHAZADO')`
 

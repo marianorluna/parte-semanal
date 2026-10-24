@@ -8,6 +8,7 @@ export type EntradaAuditoria = {
   accion: string
   antes?: unknown
   despues?: unknown
+  motivo?: string | null
 }
 
 /** Registro append-only. Nunca se actualiza ni se borra desde la aplicación. */

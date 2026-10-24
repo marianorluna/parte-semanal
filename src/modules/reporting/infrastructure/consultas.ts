@@ -309,7 +309,7 @@ export async function consumoTotalPorProyecto(
       fechaFin: proyecto.fechaFin,
       activo: proyecto.activo,
       minutos:
-        sql<number>`coalesce(sum(${imputacion.minutos}) filter (where ${parte.estado} in ('ENVIADO', 'APROBADO')), 0)`.mapWith(
+        sql<number>`coalesce(sum(${imputacion.minutos}) filter (where ${parte.estado} in ('ENVIADO', 'APROBADO', 'BLOQUEADO')), 0)`.mapWith(
           Number,
         ),
     })
@@ -349,7 +349,7 @@ export async function detalleTareasProyecto(
       nombre: tarea.nombre,
       horasPresupuesto: tarea.horasPresupuesto,
       minutos:
-        sql<number>`coalesce(sum(${imputacion.minutos}) filter (where ${parte.estado} in ('ENVIADO', 'APROBADO')), 0)`.mapWith(
+        sql<number>`coalesce(sum(${imputacion.minutos}) filter (where ${parte.estado} in ('ENVIADO', 'APROBADO', 'BLOQUEADO')), 0)`.mapWith(
           Number,
         ),
     })
@@ -380,7 +380,7 @@ export async function tendenciaProyecto(
       and(
         eq(tarea.proyectoId, proyectoId),
         gte(parte.weekStart, desde),
-        sql`${parte.estado} in ('ENVIADO', 'APROBADO')`,
+        sql`${parte.estado} in ('ENVIADO', 'APROBADO', 'BLOQUEADO')`,
       ),
     )
     .groupBy(parte.isoYear, parte.isoWeek, parte.weekStart)
@@ -500,7 +500,7 @@ export async function proyectosAsignadosEnSemana(
 export type ParteDeEmpleado = {
   empleadoId: string
   parteId: string
-  estado: 'BORRADOR' | 'ENVIADO' | 'APROBADO' | 'RECHAZADO'
+  estado: 'BORRADOR' | 'ENVIADO' | 'APROBADO' | 'RECHAZADO' | 'BLOQUEADO'
   version: number
   totalMinutos: number
 }

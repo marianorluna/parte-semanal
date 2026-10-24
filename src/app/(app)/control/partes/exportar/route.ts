@@ -13,7 +13,7 @@ export const dynamic = 'force-dynamic'
 const SEPARADOR = ';'
 
 const FORMATOS = ['csv', 'xlsx', 'pdf'] as const
-const ESTADOS = ['BORRADOR', 'ENVIADO', 'APROBADO', 'RECHAZADO'] as const
+const ESTADOS = ['BORRADOR', 'ENVIADO', 'APROBADO', 'RECHAZADO', 'BLOQUEADO'] as const
 
 const parametros = z.object({
   formato: z.enum(FORMATOS).default('csv'),
