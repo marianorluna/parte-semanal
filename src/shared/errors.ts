@@ -5,6 +5,7 @@ export type CodigoError =
   | 'VALIDACION'
   | 'ESTADO_INVALIDO'
   | 'CONFLICTO_VERSION'
+  | 'DEMASIADAS_PETICIONES'
   | 'ERROR_INTERNO'
 
 const ESTADOS_HTTP: Record<CodigoError, number> = {
@@ -14,6 +15,7 @@ const ESTADOS_HTTP: Record<CodigoError, number> = {
   VALIDACION: 422,
   ESTADO_INVALIDO: 409,
   CONFLICTO_VERSION: 409,
+  DEMASIADAS_PETICIONES: 429,
   ERROR_INTERNO: 500,
 }
 

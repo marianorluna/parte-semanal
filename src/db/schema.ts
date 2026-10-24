@@ -927,3 +927,155 @@ export type TipoInforme = (typeof tipoInformeEnum.enumValues)[number]
 export type EstadoInforme = (typeof estadoInformeEnum.enumValues)[number]
 export type FormatoInforme = (typeof formatoInformeEnum.enumValues)[number]
 export type EstadoEmail = (typeof estadoEmailEnum.enumValues)[number]
+
+export const estadoEntregaEnum = pgEnum('estado_entrega', [
+  'PENDIENTE',
+  'ENVIADO',
+  'FALLIDO',
+  'AGOTADO',
+])
+
+/**
+ * Clave de API. Solo se guarda el hash HMAC-SHA256 de la clave completa: el
+ * secreto se muestra una única vez al crearla. El prefijo visible permite
+ * identificarla en la interfaz sin exponerla.
+ */
+export const apiKey = pgTable(
+  'api_key',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    empresaId: uuid('empresa_id')
+      .notNull()
+      .references(() => empresa.id, { onDelete: 'cascade' }),
+    nombre: text('nombre').notNull(),
+    prefijo: text('prefijo').notNull(),
+    hash: text('hash').notNull(),
+    alcances: text('alcances').array().notNull().default(sql`'{}'::text[]`),
+    activo: boolean('activo').notNull().default(true),
+    caducaAt: timestamp('caduca_at', { withTimezone: true }),
+    ultimoUsoAt: timestamp('ultimo_uso_at', { withTimezone: true }),
+    createdAt,
+  },
+  (t) => [
+    uniqueIndex('api_key_prefijo_uq').on(t.prefijo),
+    index('api_key_empresa_idx').on(t.empresaId),
+    check('api_key_prefijo_ck', sql`length(${t.prefijo}) >= 6`),
+  ],
+)
+
+/**
+ * Contador de rate limit por clave y minuto. La ventana es el inicio del
+ * minuto en UTC: una fila por clave y minuto evita crecer sin límite.
+ */
+export const apiRateLimit = pgTable(
+  'api_rate_limit',
+  {
+    apiKeyId: uuid('api_key_id')
+      .notNull()
+      .references(() => apiKey.id, { onDelete: 'cascade' }),
+    ventana: timestamp('ventana', { withTimezone: true }).notNull(),
+    contador: integer('contador').notNull().default(0),
+  },
+  (t) => [
+    primaryKey({ columns: [t.apiKeyId, t.ventana] }),
+    check('api_rate_limit_contador_ck', sql`${t.contador} >= 0`),
+  ],
+)
+
+/**
+ * Idempotencia de escrituras de la API. La clave la aporta el cliente en
+ * `Idempotency-Key`; una repetición devuelve la misma respuesta sin volver a
+ * escribir. La fila se reclama antes de procesar para evitar dobles altas.
+ */
+export const apiIdempotencia = pgTable(
+  'api_idempotencia',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    apiKeyId: uuid('api_key_id')
+      .notNull()
+      .references(() => apiKey.id, { onDelete: 'cascade' }),
+    clave: text('clave').notNull(),
+    metodo: text('metodo').notNull(),
+    ruta: text('ruta').notNull(),
+    respuesta: jsonb('respuesta'),
+    createdAt,
+  },
+  (t) => [
+    uniqueIndex('api_idempotencia_clave_uq').on(t.apiKeyId, t.clave),
+    index('api_idempotencia_created_idx').on(t.createdAt),
+  ],
+)
+
+/** Suscripción de una empresa a eventos del dominio. */
+export const webhook = pgTable(
+  'webhook',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    empresaId: uuid('empresa_id')
+      .notNull()
+      .references(() => empresa.id, { onDelete: 'cascade' }),
+    nombre: text('nombre').notNull(),
+    url: text('url').notNull(),
+    secreto: text('secreto').notNull(),
+    eventos: text('eventos').array().notNull().default(sql`'{}'::text[]`),
+    activo: boolean('activo').notNull().default(true),
+    createdAt,
+  },
+  (t) => [index('webhook_empresa_idx').on(t.empresaId)],
+)
+
+/**
+ * Bandeja de entrega de webhooks. El payload se congela con el evento: un
+ * reintento envía exactamente el mismo cuerpo y firma.
+ */
+export const webhookEntrega = pgTable(
+  'webhook_entrega',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    webhookId: uuid('webhook_id')
+      .notNull()
+      .references(() => webhook.id, { onDelete: 'cascade' }),
+    outboxId: uuid('outbox_id').references(() => outbox.id, { onDelete: 'set null' }),
+    evento: text('evento').notNull(),
+    payload: jsonb('payload').notNull(),
+    estado: estadoEntregaEnum('estado').notNull().default('PENDIENTE'),
+    intentos: integer('intentos').notNull().default(0),
+    ultimoError: text('ultimo_error'),
+    proximoIntentoAt: timestamp('proximo_intento_at', { withTimezone: true }),
+    enviadoAt: timestamp('enviado_at', { withTimezone: true }),
+    createdAt,
+  },
+  (t) => [
+    uniqueIndex('webhook_entrega_outbox_uq').on(t.webhookId, t.outboxId),
+    index('webhook_entrega_estado_idx').on(t.estado, t.proximoIntentoAt),
+    index('webhook_entrega_webhook_idx').on(t.webhookId, t.createdAt),
+    check('webhook_entrega_intentos_ck', sql`${t.intentos} >= 0`),
+  ],
+)
+
+/**
+ * Patrón outbox: el evento se escribe en la misma transacción que el cambio de
+ * estado. Un despachador posterior crea las entregas, de forma que un webhook
+ * caído no puede revertir ni bloquear la operación de negocio.
+ */
+export const outbox = pgTable(
+  'outbox',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    empresaId: uuid('empresa_id')
+      .notNull()
+      .references(() => empresa.id, { onDelete: 'cascade' }),
+    agregado: text('agregado').notNull(),
+    agregadoId: uuid('agregado_id').notNull(),
+    evento: text('evento').notNull(),
+    payload: jsonb('payload').notNull(),
+    procesadoAt: timestamp('procesado_at', { withTimezone: true }),
+    createdAt,
+  },
+  (t) => [
+    index('outbox_pendiente_idx').on(t.procesadoAt, t.createdAt),
+    index('outbox_empresa_idx').on(t.empresaId, t.createdAt),
+  ],
+)
+
+export type EstadoEntrega = (typeof estadoEntregaEnum.enumValues)[number]

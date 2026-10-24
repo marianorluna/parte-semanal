@@ -3,6 +3,7 @@ import { db } from '@/db/client'
 import { asignacion, auditoria, empleado, imputacion, parte, proyecto, tarea, usuario } from '@/db/schema'
 import type { Rol } from '@/db/schema'
 import { AppError } from '@/shared/errors'
+import { registrarOutbox } from '@/modules/integraciones/infrastructure/outbox'
 import type { FechaIso, SemanaIso } from '../domain/fechas'
 import { esEditable } from '../domain/parte'
 import type {
@@ -249,7 +250,22 @@ export const repositorioPartes = {
         entidadId: parteId,
         accion: 'ENVIAR_PARTE',
         antes: { estado: actual.estado, totalMinutos: actual.totalMinutos },
-        despues: { estado: 'ENVIADO' },
+        despues: {
+          estado: 'ENVIADO',
+          calendarioId: calendario?.id ?? actual.calendarioId,
+          calendarioVersion: calendario?.version ?? actual.calendarioVersion,
+        },
+      })
+
+      await registrarOutbox(tx as unknown as typeof db, {
+        empresaId: actual.empresaId,
+        parteId,
+        evento: 'parte.enviado',
+        isoYear: actual.isoYear,
+        isoWeek: actual.isoWeek,
+        empleadoId: actual.empleadoId,
+        estado: 'ENVIADO',
+        actorId,
       })
     })
   },
@@ -282,6 +298,17 @@ export const repositorioPartes = {
         accion: 'APROBAR_PARTE',
         antes: { estado: actual.estado },
         despues: { estado: 'APROBADO' },
+      })
+
+      await registrarOutbox(tx as unknown as typeof db, {
+        empresaId: actual.empresaId,
+        parteId,
+        evento: 'parte.aprobado',
+        isoYear: actual.isoYear,
+        isoWeek: actual.isoWeek,
+        empleadoId: actual.empleadoId,
+        estado: 'APROBADO',
+        actorId,
       })
     })
   },
@@ -317,6 +344,18 @@ export const repositorioPartes = {
         despues: { estado: 'RECHAZADO' },
         motivo,
       })
+
+      await registrarOutbox(tx as unknown as typeof db, {
+        empresaId: actual.empresaId,
+        parteId,
+        evento: 'parte.rechazado',
+        isoYear: actual.isoYear,
+        isoWeek: actual.isoWeek,
+        empleadoId: actual.empleadoId,
+        estado: 'RECHAZADO',
+        actorId,
+        motivo,
+      })
     })
   },
 
@@ -348,6 +387,18 @@ export const repositorioPartes = {
         accion: 'REABRIR_PARTE',
         antes: { estado: actual.estado },
         despues: { estado: 'BORRADOR' },
+        motivo,
+      })
+
+      await registrarOutbox(tx as unknown as typeof db, {
+        empresaId: actual.empresaId,
+        parteId,
+        evento: 'parte.reabierto',
+        isoYear: actual.isoYear,
+        isoWeek: actual.isoWeek,
+        empleadoId: actual.empleadoId,
+        estado: 'BORRADOR',
+        actorId,
         motivo,
       })
     })

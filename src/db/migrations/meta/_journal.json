@@ -71,6 +71,13 @@
       "when": 1792881305783,
       "tag": "0009_email_y_preferencias",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792881838288,
+      "tag": "0010_api_y_webhooks",
+      "breakpoints": true
     }
   ]
 }

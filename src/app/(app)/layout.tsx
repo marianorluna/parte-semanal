@@ -37,6 +37,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     enlaces.push({ href: '/admin/informes', etiqueta: 'Informes' })
     enlaces.push({ href: '/admin/cierres', etiqueta: 'Cierres' })
     enlaces.push({ href: '/admin/emails', etiqueta: 'Correos' })
+    enlaces.push({ href: '/admin/api', etiqueta: 'API' })
     enlaces.push({ href: '/admin/ausencias', etiqueta: 'Tipos ausencia' })
     enlaces.push({ href: '/admin/auditoria', etiqueta: 'Auditoría' })
     enlaces.push({ href: '/admin/demo', etiqueta: 'Demo' })
