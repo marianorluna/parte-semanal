@@ -145,6 +145,24 @@ npm run test
 | Deploy en `Success` pero el dominio devuelve `503 no available server` y el contenedor `app` está en `Restarting` | El entrypoint aborta al arrancar (típicamente `AUTH_SECRET` corta o `POSTGRES_PASSWORD` con `+`, `/`, `@`) y Docker reinicia en bucle; Coolify no lo refleja porque `docker compose up -d` devolvió 0 | Abrir las **Runtime Logs** del contenedor `app` (no las Deployment Logs), corregir la variable y redesplegar |
 | Puerto 3000 o 5432 ocupado | Otro proceso usa el puerto | Parar solo el proceso propio que sea seguro parar o cambiar el puerto |
 | El demo no aparece en el dashboard | Semanas antiguas cargadas | `npm run db:seed:demo -- --refresh` |
+| Aviso de hidratación en la consola del navegador (`A tree hydrated but some attributes...`) | Una extensión modifica el DOM antes de que React hidrate | Ver [Aviso de hidratación](#aviso-de-hidratación-en-la-consola) |
+
+### Aviso de hidratación en la consola
+
+React avisa cuando el HTML del servidor y el del cliente no coinciden. En desarrollo, el mensaje incluye
+un diff con los atributos que sobran. Antes de tocar código, comprueba si esos atributos son nuestros:
+
+1. Busca en el repositorio los nombres marcados en el diff: `rg "nombre_del_atributo" src`. Si no aparecen,
+   los inyecta una extensión del navegador antes de que React hidrate, no la app.
+2. Los sospechosos habituales son `bis_skin_checked`, `bis_register` (Bitdefender, su valor en base64
+   contiene `"extensionId"`) y `__processed_<uuid>__` (otras extensiones de seguridad).
+3. Confirma con una ventana de incógnito o desactivando la extensión para `localhost`: si el aviso
+   desaparece, el origen está identificado.
+
+Solo es un aviso de desarrollo: en producción no se muestra y la app funciona igual. No añadas
+`suppressHydrationWarning` en `<body>` para silenciarlo, porque también ocultaría desajustes reales del
+render. Si el diff no cuadra con ninguna extensión, entonces sí hay un desajuste propio: revisa los
+patrones del mensaje (fechas o números formateados en el cliente, ramas con `typeof window`, HTML mal anidado).
 
 ---
 
