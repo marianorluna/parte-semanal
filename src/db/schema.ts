@@ -2,6 +2,7 @@ import { relations, sql } from 'drizzle-orm'
 import {
   boolean,
   check,
+  customType,
   date,
   index,
   integer,
@@ -54,6 +55,31 @@ export const estadoAusenciaEnum = pgEnum('estado_ausencia', [
   'RECHAZADA',
   'ANULADA',
 ])
+
+export const tipoInformeEnum = pgEnum('tipo_informe', [
+  'CERTIFICACION_MENSUAL',
+  'LIBRO_JORNADA',
+  'COSTES_PROYECTO',
+  'AUSENCIAS',
+  'HORAS_EXTRA',
+  'AUDITORIA',
+])
+
+export const estadoInformeEnum = pgEnum('estado_informe', [
+  'PENDIENTE',
+  'EN_PROCESO',
+  'COMPLETADO',
+  'FALLIDO',
+])
+
+export const formatoInformeEnum = pgEnum('formato_informe', ['CSV', 'XLSX', 'PDF'])
+
+/** `bytea` para el contenido del informe; ExcelJS y PDF producen Buffer. */
+const bytea = customType<{ data: Buffer; driverData: Buffer }>({
+  dataType() {
+    return 'bytea'
+  },
+})
 
 const createdAt = timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
 
@@ -649,6 +675,39 @@ export const costeImputacion = pgTable(
   ],
 )
 
+/**
+ * Informe generado en segundo plano. El contenido se guarda en la base de datos
+ * con caducidad: pasada la fecha, un job de limpieza lo vacía y se puede pedir
+ * de nuevo. `parametros` es el contrato validado con Zod al solicitar.
+ */
+export const informe = pgTable(
+  'informe',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    empresaId: uuid('empresa_id')
+      .notNull()
+      .references(() => empresa.id, { onDelete: 'cascade' }),
+    solicitanteId: uuid('solicitante_id').references(() => usuario.id, { onDelete: 'set null' }),
+    tipo: tipoInformeEnum('tipo').notNull(),
+    formato: formatoInformeEnum('formato').notNull(),
+    parametros: jsonb('parametros').notNull(),
+    estado: estadoInformeEnum('estado').notNull().default('PENDIENTE'),
+    nombreArchivo: text('nombre_archivo'),
+    contenido: bytea('contenido'),
+    tamanoBytes: integer('tamano_bytes'),
+    error: text('error'),
+    jobId: text('job_id'),
+    completadoAt: timestamp('completado_at', { withTimezone: true }),
+    expiraAt: timestamp('expira_at', { withTimezone: true }).notNull(),
+    createdAt,
+  },
+  (t) => [
+    index('informe_empresa_created_idx').on(t.empresaId, t.createdAt),
+    index('informe_empresa_estado_idx').on(t.empresaId, t.estado),
+    check('informe_tamano_ck', sql`${t.tamanoBytes} is null or ${t.tamanoBytes} >= 0`),
+  ],
+)
+
 export const auditoria = pgTable(
   'auditoria',
   {
@@ -751,3 +810,6 @@ export type OrigenFestivo = (typeof origenFestivoEnum.enumValues)[number]
 export type TipoHora = (typeof tipoHoraEnum.enumValues)[number]
 export type AplicaEn = (typeof aplicaEnEnum.enumValues)[number]
 export type EstadoAusencia = (typeof estadoAusenciaEnum.enumValues)[number]
+export type TipoInforme = (typeof tipoInformeEnum.enumValues)[number]
+export type EstadoInforme = (typeof estadoInformeEnum.enumValues)[number]
+export type FormatoInforme = (typeof formatoInformeEnum.enumValues)[number]

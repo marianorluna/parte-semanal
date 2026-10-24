@@ -43,6 +43,13 @@
       "when": 1792880116510,
       "tag": "0005_illegal_bug",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792880499702,
+      "tag": "0006_harsh_robbie_robertson",
+      "breakpoints": true
     }
   ]
 }
