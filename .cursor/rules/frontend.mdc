@@ -5,7 +5,7 @@ alwaysApply: false
 
 # Frontend / interfaz
 
-Activación por relevancia mientras el layout no esté definido. Al especializar, añade `globs` de las rutas reales según `docs/start.md`; no amplíes patrones a todo el repositorio por defecto.
+Activación por relevancia mientras el layout no esté definido. Al especializar, añade `globs` de las rutas reales según `docs/architecture.md`; no amplíes patrones a todo el repositorio por defecto.
 
 - **UI vs estado:** Componentes presentacionales limpios y predecibles; estilos semánticos según el design system del proyecto.
 - **Lógica extraída:** API, formularios y estado complejo → hooks, composables o módulos (según el framework).

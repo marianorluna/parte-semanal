@@ -2,58 +2,62 @@
 
 Documento vivo del **qué** y el **quién**. Las leyes técnicas (cómo / no) viven en `.cursor/rules/`.
 
-> **Template versión:** 1.2.0
-
 ### Fuente canónica (SSOT)
 
-Este archivo es la **única fuente** de stack (§2), contexto de negocio (§3) y estado de sesión (§4). El resto de docs solo enlazan aquí.
+Este archivo es la **única fuente** de stack (§2), contexto de negocio (§3) y estado de sesión (§4). El resto de documentos solo enlazan aquí.
 
 ---
 
 ## 1. Rol y misión
 
-Eres un arquitecto de software senior y experto en Clean Code. Ayudas a construir y mantener este proyecto con código limpio, escalable y seguro. Analizas antes de codear, anticipas edge cases y respetas las reglas en `.cursor/rules/`.
+Eres un arquitecto de software senior y experto en Clean Code. Ayudas a construir, mantener y entregar LeviParte, el parte semanal de horas de Levitec, con código limpio, escalable y seguro. Analizas antes de codear, anticipas edge cases y respetas las reglas en `.cursor/rules/`.
 
 ---
 
 ## 2. Stack del proyecto
 
-Las versiones exactas de dependencias viven en manifiestos y lockfiles; aquí se resume la elección tecnológica.
+Las versiones exactas viven en `package.json` y `package-lock.json`; aquí se resume la elección tecnológica.
 
-- **Frontend:** Next.js (App Router) + TypeScript estricto + Tailwind CSS. Server Components por defecto; estado de cliente mínimo (sesión y UI local).
-- **Data fetching:** Server Components y Server Actions; Zod en cada frontera (HTTP, formularios, entorno). Sin capa de fetching adicional mientras no exista cliente móvil.
-- **Backend:** monolito modular dentro de Next.js (runtime Node). API REST `/api/v1` solo cuando exista integración externa (fase 2).
-- **Base de datos / ORM:** PostgreSQL 16 + Drizzle ORM + `drizzle-kit` (migraciones versionadas en el repo).
-- **Autenticación:** Auth.js (Credentials) con hash argon2id y sesión en cookie httpOnly. Sin autenticación propia.
-- **Cola de trabajos:** `pg-boss` sobre la misma base de datos (fase 2). Sin Redis.
+- **Frontend:** Next.js 16 (App Router) + React 19 + TypeScript estricto + Tailwind CSS 4. Server Components por defecto; estado de cliente mínimo (sesión, UI local y autoguardado).
+- **Data fetching:** Server Components y Server Actions; Zod en cada frontera (HTTP, formularios, parámetros de ruta y entorno). Sin capa de fetching adicional mientras no exista cliente móvil.
+- **Backend:** monolito modular dentro de Next.js con runtime Node, organizado en puertos y adaptadores. La API REST `/api/v1` existe para integración externa.
+- **Base de datos / ORM:** PostgreSQL 16 + Drizzle ORM + `drizzle-kit`. 36 tablas y migraciones versionadas en `src/db/migrations/`. Concurrencia optimista por columna `version`.
+- **Autenticación:** Auth.js 5 (Credentials) con hash argon2id y sesión JWT en cookie httpOnly. El usuario se relee de base de datos en cada petición para reflejar rol, alcance y baja.
+- **Autorización:** roles `ADMIN`, `ENCARGADO` y `TRABAJADOR`, con alcance adicional por proyecto y por empleado. Se comprueba en los casos de uso, nunca solo en la interfaz.
+- **Cola de trabajos:** `pg-boss` sobre la misma base de datos, en proceso único arrancado desde `instrumentation.ts`. Sin Redis.
 - **Lenguaje:** TypeScript estricto (`strict`, `noUncheckedIndexedAccess`). Prohibido `any`.
-- **Testing:** Vitest (dominio y casos de uso) / Playwright (e2e, fase 2).
-- **Despliegue:** repositorio GitHub → Coolify en VPS propio. Un único recurso Docker Compose (`compose.yml`) levanta la app (imagen del `Dockerfile` multi-stage, Node 22) y Postgres 16 con volumen persistente; las migraciones se aplican en el entrypoint del contenedor. Dominio `https://horas.levitec.marianorluna.com` con TLS gestionado por Coolify. Backups programados fuera del VPS.
+- **Testing:** Vitest para dominio y casos de uso. Playwright pendiente de aprobación para el flujo crítico.
+- **Documentos:** `exceljs` (XLSX) y `@react-pdf/renderer` (PDF).
+- **Correo:** Nodemailer por SMTP. Sin `SMTP_URL`, el envío queda en `SIN_PROVEEDOR` y no se considera fallo.
+- **IA:** cliente compatible con la API de chat de OpenAI. Por defecto DeepSeek; configurable con `IA_BASE_URL`, `IA_API_KEY` y `IA_MODELO`. De solo lectura y con degradación limpia.
+- **Despliegue:** repositorio GitHub → Coolify en VPS propio. Un único recurso Docker Compose (`compose.yml`) levanta la app (imagen del `Dockerfile` multi-stage, Node 22) y PostgreSQL 16 con volumen persistente; las migraciones se aplican en el entrypoint del contenedor. Dominio `https://horas.levitec.marianorluna.com` con TLS gestionado por Coolify. Backups programados fuera del VPS.
 
 ---
 
 ## 3. Contexto de negocio
 
-- **Producto:** parte semanal de horas con imputación a proyecto para Levitec (constructora). El trabajador declara horas por día, proyecto y tarea; el encargado las revisa y aprueba por semana. Sustituye hojas de cálculo y permite explotar horas y costes sin depender de un ERP.
+- **Producto:** parte semanal de horas con imputación a proyecto para Levitec (constructora). El trabajador declara minutos por día, proyecto y tarea; el encargado las revisa y aprueba por semana. Sustituye hojas de cálculo y permite explotar horas y costes sin depender de un ERP.
 - **Escala:** ~20 proyectos activos, ~500 trabajadores hoy y hasta ~1.000 en cinco años. Picos de uso los jueves y viernes.
 - **Reglas de dominio clave:**
-  - El hecho atómico es `(empleado, fecha, tarea) → minutos enteros`. Nunca se almacenan horas decimales.
+  - El hecho atómico es `(empleado, fecha, tarea) -> minutos enteros`. Nunca se almacenan horas decimales ni importes en coma flotante.
   - La semana operativa es ISO (lunes a domingo). Existe como máximo un parte por empleado y semana ISO.
-  - Estados del parte: `BORRADOR → ENVIADO → APROBADO | RECHAZADO`. `BLOQUEADO` llega con el cierre semanal y mensual (fase 2).
-  - Un parte aprobado no se edita: se reabre con motivo y queda auditado.
+  - Estados del parte: `BORRADOR -> ENVIADO -> APROBADO | RECHAZADO`. `BLOQUEADO` llega con el cierre semanal o mensual.
+  - Un parte aprobado no se edita: se reabre con motivo y queda auditado. Un parte bloqueado solo se libera reabriendo el periodo.
   - `total_minutos` se calcula siempre en el servidor; el cliente no lo envía.
-  - Un `ENCARGADO` solo ve y aprueba partes de los proyectos asignados; un `TRABAJADOR` solo los suyos.
-  - Una imputación no puede ser 0, negativa ni superar 24 h/día. El aviso de exceso semanal se muestra y no bloquea.
-- Si una semana ya terminada no cuadra con la jornada teórica, el envío exige un motivo declarado (10-500 caracteres). El parte congela capacidad, desviación firmada y motivo; el borrador, el rechazo y la reapertura los limpian (ADR-020).
-- El defecto de horas es una métrica firmada en el parte, nunca una imputación negativa ni una tarea `DEFECTO`.
-- Existe como máximo un proyecto interno de ajuste (`es_ajuste`) por empresa. Absorbe las horas que no son de un proyecto real, se excluye del semáforo de presupuesto y de las alertas de riesgo, y sigue sumando en las horas y el coste totales como fila "Ajuste".
-- **Integraciones previstas:** exportación a nómina y contabilidad (CSV de A3/Sage o API), fichaje y control de accesos, ERP y BI. Siempre mediante adaptadores: el dominio no conoce formatos externos.
+  - Un `ENCARGADO` solo ve y aprueba partes de usuarios `TRABAJADOR` de los proyectos asignados. No revisa a otros encargados ni a administradores, y tampoco sus propias horas. Un `ADMIN` revisa cualquiera.
+  - Una imputación no puede ser 0, negativa ni superar 24 h/día. El aviso de exceso diario (12 h) o semanal (48 h) se muestra, no bloquea.
+  - El envío de una semana ya terminada con desviación respecto a la capacidad exige un motivo de 10 a 500 caracteres. Se congela en el parte con la capacidad y la desviación (ADR-020).
+  - El proyecto de ajuste (`es_ajuste`) absorbe horas no imputables. Es único por empresa, no tiene presupuesto y se excluye del semáforo de riesgo, pero suma en horas y coste totales.
+  - El cómputo y el coste se calculan al aprobar y se persisten; al reabrir se borran y se recalculan al volver a aprobar.
+  - Los cierres bloquean escritura y revisión de las fechas cubiertas, no solo el botón de enviar.
+- **Integraciones previstas:** exportación a nómina y contabilidad (CSV de A3/Sage o API), ERP y BI mediante adaptadores; la API v1 y los webhooks ya cubren lectura de partes y escritura de imputaciones. El fichaje y el registro legal de jornada viven en Bizneo (ADR-019).
 - **Deuda / limitaciones conocidas:**
-  - Sin registro legal de jornada (art. 34.9 ET): el MVP registra imputación, no fichaje. Fase 3.
-  - Sin motor de cómputo por convenio: en el MVP todas las horas computan igual.
-  - Sin festivos, vacaciones ni ausencias: fase 2.
-  - Sin coste hora ni presupuesto ejecutado: fase 2.
-  - Sin multi-inquilino real: `empresa_id` reservado para subcontratas (ver ADR-004).
+  - Sin registro legal de jornada (art. 34.9 ET): el MVP registra imputación, no fichaje.
+  - Sin motor de cómputo por convenio con hora de inicio y fin: no hay hora nocturna ni pluses que dependan de la franja.
+  - Sin sincronización automática de ausencias con Bizneo: se registran en LeviParte como dato operativo.
+  - Sin coste hora real de nómina: el coste usa tarifa configurada por empleado o categoría.
+  - Sin multi-inquilino real: `empresa_id` reservado para subcontratas (ADR-004).
+  - Sin Playwright: el flujo crítico solo está cubierto por tests de dominio y casos de uso.
 
 ---
 
@@ -61,14 +65,14 @@ Las versiones exactas de dependencias viven en manifiestos y lockfiles; aquí se
 
 Resumen operativo para retomar el trabajo, no historial de sesiones.
 
-- **Última sesión:** 2026-10-24 - Fase 2 implementada y verificada en local: calendario laboral y festivos, cómputo por convenio, ausencias, coste y presupuesto, informes en `pg-boss`, cierre semanal y mensual con estado `BLOQUEADO`, avisos por email, API v1 con claves, idempotencia, outbox y webhooks firmados, y CI ampliado.
-- **Foco actual:** validar la migración `0010` y los flujos de fase 2 en staging; después, smoke test en producción. Playwright queda pendiente de aprobación de la dependencia.
+- **Última sesión:** 2026-10-25 - documentación alineada con el producto en producción: nuevo `docs/product.md`, `docs/api.md` y `docs/operations.md`, `README.md` reescrito y ADR al día.
+- **Foco actual:** validar la migración `0011` y los flujos de fase 2 en staging; después, smoke test en producción. Playwright queda pendiente de aprobación de la dependencia.
+- **Tamaño real del sistema:** 15 módulos, 36 tablas, 12 migraciones (`0000` a `0011`), 32 archivos de test y 30 páginas.
 - **Checklist:**
   - [x] Especializar `AGENTS.md` §2-§4
   - [x] Definir arquitectura modular y modelo de datos del MVP
-  - [x] Registrar ADR-001 a ADR-008
-  - [x] Redactar prompts por fases
-  - [x] Scaffold Next.js, `Dockerfile` y Postgres local
+  - [x] Registrar ADR-001 a ADR-021
+  - [x] Scaffold Next.js, `Dockerfile` y PostgreSQL local
   - [x] Autenticación con argon2id, roles y alcance por proyecto
   - [x] Dominio, esquema Drizzle, migraciones y casos de uso con concurrencia por `version`
   - [x] Seed demo idempotente de 50 usuarios con purga transaccional
@@ -90,10 +94,14 @@ Resumen operativo para retomar el trabajo, no historial de sesiones.
   - [x] Fase 2.7: correo transaccional y preferencias de aviso
   - [x] Fase 2.8: API pública y webhooks
   - [x] Fase 2.9: CI, staging documentado, health ampliado y alerta de jobs fallidos
-  - [x] CI de lint, tipado, tests, migraciones y build
+  - [x] Modo rápido y detalle, presets, copia de semana anterior y deshacer en la rejilla
+  - [x] Desviación firmada y proyecto de ajuste (ADR-020)
+  - [x] Asistente de IA de solo lectura con pseudonimización y auditoría de tokens (ADR-021)
+  - [x] Leyenda de colores del dashboard y menú de usuario
+  - [x] Documentación de producto, API y operaciones
   - [ ] Smoke test completo en producción y restauración de un backup verificada
   - [ ] Playwright para el flujo crítico (dependencia pendiente de aprobación)
-- **Bloqueadores:** restaurar un backup en local o staging para validar la recuperación; aprobación de `@playwright/test`; y un `SMTP_URL` real para probar el envío de correos en producción.
+- **Bloqueadores:** restaurar un backup en local o staging para validar la recuperación; aprobación de `@playwright/test`; un `SMTP_URL` real para probar el envío de correos en producción; y revisión del DPA del proveedor de IA antes de usar datos reales.
 
 ### Protocolo de cierre de sesión
 
@@ -111,23 +119,14 @@ Actualiza esta sección solo cuando el usuario solicite cerrar la sesión o el m
 
 | Recurso | Dueño |
 |---------|-------|
-| `docs/start.md` | **Índice / empieza aquí** - qué tocar, SSOT, orden de especialización |
 | **Este archivo** (`AGENTS.md`) | Stack (§2), producto/dominio (§3), estado de sesión (§4) |
 | `.cursor/rules/` | Cómo programar y qué está prohibido |
-| `docs/architecture.md` | Patrón, capas, carpetas, flujos client ↔ server |
-| `docs/decisions.md` | ADRs - porqués ya tomados |
-| `docs/dev-prompts.md` | Prompts de implementación por fases (MVP y siguientes) |
+| `docs/product.md` | Funcional: roles, permisos, flujos, estados, reglas y pantallas |
+| `docs/architecture.md` | Patrón, capas, módulos, modelo de datos y flujos client ↔ server |
+| `docs/api.md` | API v1, autenticación, idempotencia, errores y webhooks |
+| `docs/operations.md` | Despliegue, backups, colas, cron, salud y runbook |
+| `docs/decisions.md` | ADR - porqués ya tomados |
 | `docs/onboarding.md` | Cómo arrancar el proyecto en local |
 | `.env.example` | Nombres de variables de entorno (sin secretos) |
 
 Si el agente pierde el hilo: menciona `@AGENTS.md` y/o `@docs/architecture.md` en el chat.
-
-<!-- BEGIN:nextjs-agent-rules -->
-
-## This is NOT the Next.js you know
-
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
-
-This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
-
-<!-- END:nextjs-agent-rules -->

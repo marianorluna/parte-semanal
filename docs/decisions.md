@@ -10,6 +10,34 @@ Registro de las decisiones técnicas relevantes del proyecto. Una entrada por de
 - Capas / carpetas / flujos → [`architecture.md`](./architecture.md).
 - Al aceptar un ADR que cierre un ítem de “Decisiones abiertas” en `architecture.md`: marca el checkbox allí (`[x] → ADR-NNN`).
 
+## Índice
+
+| ADR | Decisión | Fecha | Estado |
+|-----|----------|-------|--------|
+| [ADR-001](#adr-001---monolito-modular-con-un-solo-despliegue) | Monolito modular con un solo despliegue | 2026-10-22 | Aceptada |
+| [ADR-002](#adr-002---stack-nextjs-app-router--postgres--drizzle) | Stack Next.js, Postgres y Drizzle | 2026-10-22 | Aceptada |
+| [ADR-003](#adr-003---granularidad-diaria-por-tarea-en-minutos-enteros) | Granularidad diaria por tarea en minutos enteros | 2026-10-22 | Aceptada |
+| [ADR-004](#adr-004---mono-inquilino-con-empresa_id-reservado) | Mono-inquilino con `empresa_id` reservado | 2026-10-22 | Aceptada |
+| [ADR-005](#adr-005---aprobación-de-un-nivel) | Aprobación de un nivel | 2026-10-22 | Aceptada |
+| [ADR-006](#adr-006---despliegue-en-vps-con-coolify-y-postgres-autogestionado) | VPS con Coolify y Postgres autogestionado | 2026-10-22 | Aceptada |
+| [ADR-007](#adr-007---cola-de-trabajos-en-postgres-con-pg-boss) | Cola de trabajos con pg-boss | 2026-10-22 | Aceptada |
+| [ADR-008](#adr-008---demo-aislado-por-empresa-marcada-y-purga-transaccional) | Demo aislado y purga transaccional | 2026-10-22 | Aceptada |
+| [ADR-009](#adr-009---avisos-in-app-con-cron-http-idempotente) | Avisos in-app con cron idempotente | 2026-10-24 | Aceptada |
+| [ADR-010](#adr-010---exportación-xlsx-con-exceljs-y-pdf-en-servidor-con-react-pdfrenderer) | XLSX con ExcelJS y PDF en servidor | 2026-10-24 | Aceptada |
+| [ADR-011](#adr-011---plazo-de-proyecto-y-riesgo-por-desviación-temporal) | Plazo y riesgo por desviación temporal | 2026-10-24 | Aceptada |
+| [ADR-012](#adr-012---calendario-laboral-propio-y-bloqueo-de-días-no-laborables) | Calendario laboral propio | 2026-10-24 | Aceptada |
+| [ADR-013](#adr-013---día-no-laborable-visible-deshabilitado-y-con-excepción-para-horas-existentes) | Día no laborable visible y corregible | 2026-10-24 | Aceptada |
+| [ADR-014](#adr-014---cómputo-versionado-con-resultado-persistido-nocturna-aplazada) | Cómputo versionado persistido | 2026-10-24 | Aceptada |
+| [ADR-015](#adr-015---cierre-por-periodos-y-estado-bloqueado) | Cierre por periodos y estado bloqueado | 2026-10-24 | Aceptada |
+| [ADR-016](#adr-016---worker-de-pg-boss-en-el-mismo-contenedor) | Worker de pg-boss en el mismo contenedor | 2026-10-24 | Aceptada |
+| [ADR-017](#adr-017---claves-de-api-idempotencia-y-outbox) | Claves de API, idempotencia y outbox | 2026-10-24 | Aceptada |
+| [ADR-018](#adr-018---ci-staging-y-observabilidad) | CI, staging y observabilidad | 2026-10-24 | Aceptada |
+| [ADR-019](#adr-019---rrhh-fichaje-horas-extra-y-subcontratas-viven-en-bizneo) | RRHH, fichaje y subcontratas en Bizneo | 2026-10-25 | Aceptada |
+| [ADR-020](#adr-020---justificación-de-la-desviación-de-jornada-y-proyecto-interno-de-ajuste) | Desviación firmada y proyecto de ajuste | 2026-10-25 | Aceptada |
+| [ADR-021](#adr-021---asistente-de-ia-como-capa-de-apoyo-con-proveedor-compatible-con-openai) | Asistente de IA de solo lectura | 2026-10-25 | Aceptada |
+| [ADR-022](#adr-022---coste-en-céntimos-con-tarifa-por-fecha-y-presupuesto-versionado) | Coste en céntimos y presupuesto versionado | 2026-10-25 | Aceptada |
+| [ADR-023](#adr-023---correo-transaccional-opcional-con-estado-de-entrega) | Correo transaccional opcional | 2026-10-25 | Aceptada |
+
 ---
 
 ## Plantilla
@@ -40,8 +68,9 @@ Registro de las decisiones técnicas relevantes del proyecto. Una entrada por de
   1. Microservicios (auth, partes, reporting) - escala y despliegue independiente, pero multiplica infraestructura, transacciones distribuidas y coste operativo para un volumen que una sola base de datos resuelve sin esfuerzo.
   2. Monolito por capas técnicas (`controllers/`, `services/`, `models/`) - arranque rápido, pero los límites se diluyen y el acoplamiento crece con cada feature.
   3. Monolito modular con puertos y adaptadores por módulo - un despliegue, transacciones locales, límites explícitos y posibilidad de extraer un módulo si hiciera falta.
-- **Decisión:** Opción 3. Módulos `identidad`, `organizacion`, `partes`, `reporting` y `auditoria`, cada uno con `domain` / `application` / `infrastructure` y una API pública (`index.ts`).
+- **Decisión:** Opción 3. Módulos `identidad`, `organizacion`, `partes`, `reporting` y `auditoria`, cada uno con `domain` / `application` / `infrastructure`, sin `index.ts`: los casos de uso y los tipos de `application` son la superficie que consume otro módulo, y `src/composition.ts` inyecta los adaptadores.
 - **Consecuencias:** Un solo contenedor y una sola base de datos, con transacciones simples. Exige disciplina: nadie importa repositorios de otro módulo ni tablas ajenas. Extraer `reporting` a un servicio o mover los jobs a otro proceso queda como opción barata si el volumen lo pide.
+- **Actualización 2026-10-25:** el monolito sigue siendo la decisión vigente, pero el número de módulos creció con las fases 2. Hoy son quince: `identidad`, `organizacion`, `partes`, `calendario`, `computo`, `ausencias`, `coste`, `cierre`, `reporting`, `informes`, `email`, `notificaciones`, `integraciones`, `auditoria` y `asistente`. La regla de dependencia y la API pública por módulo no cambian.
 
 ### ADR-002 - Stack: Next.js App Router + Postgres + Drizzle
 
@@ -107,7 +136,7 @@ Registro de las decisiones técnicas relevantes del proyecto. Una entrada por de
 ### ADR-007 - Cola de trabajos en Postgres con pg-boss
 
 - **Fecha:** 2026-10-22
-- **Estado:** Propuesta (se adopta en la fase 2)
+- **Estado:** Aceptada (implementada en la fase 2)
 - **Contexto:** Informes en segundo plano, exportaciones grandes, recordatorios de envío y webhooks necesitan ejecución asíncrona con reintentos. Añadir Redis implica otro servicio que operar en el mismo VPS.
 - **Opciones consideradas:**
   1. `pg-boss` - reutiliza Postgres, transaccional con los datos, sin servicio extra; rendimiento suficiente para decenas de jobs por minuto.
@@ -120,12 +149,12 @@ Registro de las decisiones técnicas relevantes del proyecto. Una entrada por de
 
 - **Fecha:** 2026-10-22
 - **Estado:** Aceptada
-- **Contexto:** Hacen falta datos realistas (50 usuarios, 10 proyectos, 6 semanas de partes) para probar la app y enseñarla antes de cargar datos reales. Ese juego de datos debe poder desaparecer sin tocar nada real, sin migraciones especiales y sin un segundo entorno de base de datos que operar.
+- **Contexto:** Hacen falta datos realistas (50 usuarios, 12 proyectos, 14 semanas de partes) para probar la app y enseñarla antes de cargar datos reales. Ese juego de datos debe poder desaparecer sin tocar nada real, sin migraciones especiales y sin un segundo entorno de base de datos que operar.
 - **Opciones consideradas:**
   1. Base de datos de demo separada con un segundo `DATABASE_URL` - aislamiento total, pero duplica migraciones, configuración y backups, y no permite probar el flujo contra el mismo esquema en un único despliegue.
   2. Columna `es_demo` en cada tabla - marcado explícito por fila, a cambio de tocar el esquema de negocio con una preocupación puramente operativa y de arrastrarla en todas las consultas.
-  3. Marcador de empresa (`empresa.codigo = 'DEMO'`) más emails `@demo.local` - usa una clave natural ya existente, sin columnas nuevas; la purga borra por empresa y sus dependencias en cascada.
-- **Decisión:** Opción 3. `npm run db:seed:demo` es idempotente (crea o actualiza la empresa `DEMO`, sus proyectos, tareas, usuarios, empleados, asignaciones y seis semanas relativas a la semana ISO actual, con RNG de semilla fija). `npm run db:seed:demo:purge` borra solo esa empresa en una única transacción y en orden seguro de claves foráneas. `--refresh` purga y recarga. Con `NODE_ENV=production` ambas órdenes exigen `--yes` y muestran el resumen de lo que van a tocar; el seed nunca forma parte del despliegue.
+  3. Marcador de empresa (`empresa.codigo = 'DEMO'`) más correos `@levitec.es` - usa una clave natural ya existente, sin columnas nuevas; la purga borra por empresa y sus dependencias en cascada.
+- **Decisión:** Opción 3. `npm run db:seed:demo` es idempotente (crea o actualiza la empresa `DEMO`, sus 12 proyectos -11 de obra más el de ajuste-, tareas, usuarios, empleados, asignaciones y 14 semanas ISO relativas a la semana actual, con RNG de semilla fija). `npm run db:seed:demo:purge` borra solo esa empresa en una única transacción y en orden seguro de claves foráneas. `--refresh` purga y recarga. Con `NODE_ENV=production` ambas órdenes exigen `--yes` y muestran el resumen de lo que van a tocar; el seed nunca forma parte del despliegue.
 - **Consecuencias:** No hay cambios de esquema ni consultas condicionadas por el demo, y el desarrollador reproduce la misma carga siempre. La responsabilidad de mantener el marcador recae en el seed: cualquier dato nuevo del demo debe colgar de la empresa `DEMO` para que la purga lo alcance. Si algún día se abre un portal de subcontratas con demo propio, el patrón se extiende con un `codigo` por escenario en lugar de rehacer el mecanismo.
 
 ---
@@ -140,6 +169,7 @@ Registro de las decisiones técnicas relevantes del proyecto. Una entrada por de
   3. Avisos persistidos en la app, generados por un endpoint de cron protegido que también devuelve el lote para que un automatizador externo lo reenvíe - sin proveedor acoplado, con historial consultable y posibilidad de conectar email o WhatsApp después sin tocar el dominio.
 - **Decisión:** Opción 3. Cada aviso se guarda en `notificacion` con una `clave_idempotencia` única por usuario, de modo que repetir el cron no duplica nada. `GET|POST /api/v1/cron/avisos` exige `CRON_SECRET` y admite `modo` (`recordatorios`, `riesgos`, `todo`), `semana` y `dryRun`. La programación (viernes y lunes recordatorios, diario riesgos) la lanza Coolify o n8n; n8n puede consumir el lote devuelto para enviarlo por email o WhatsApp.
 - **Consecuencias:** El MVP entrega avisos sin dependencias nuevas ni credenciales externas, y el canal de entrega queda desacoplado. La app no garantiza la entrega externa: si el cron no se invoca, no hay aviso, así que la programación debe quedar documentada y verificada en el despliegue. Cuando exista proveedor de correo, se añade un adaptador de envío que consume las notificaciones ya persistidas, sin cambiar las reglas de generación.
+- **Actualización 2026-10-25:** el adaptador de correo existe y consume las notificaciones ya persistidas ([ADR-023](#adr-023---correo-transaccional-opcional-con-estado-de-entrega)). Las claves de idempotencia se comparten entre aviso y correo, de modo que reintentar el cron no duplica ninguno de los dos. Sin `SMTP_URL`, el estado es `SIN_PROVEEDOR` y no se considera un fallo reintentable.
 
 ### ADR-010 - Exportación XLSX con ExcelJS y PDF en servidor con @react-pdf/renderer
 
@@ -283,3 +313,27 @@ Registro de las decisiones técnicas relevantes del proyecto. Una entrada por de
   3. IA dentro de las reglas de negocio (aprobar, validar o calcular) - ahorra clics, pero traslada a un modelo una responsabilidad legal y auditada que debe seguir siendo determinista.
 - **Decisión:** Opción 2. El módulo `asistente` expone dos funciones de solo lectura: briefing semanal en el dashboard y borrador del motivo de rechazo que el encargado edita y confirma. La IA nunca escribe, nunca aprueba, nunca rechaza y nunca calcula totales. El proveedor se integra mediante un puerto `ProveedorLLM` y un único adaptador compatible con el protocolo de chat de OpenAI, de modo que DeepSeek, OpenAI y OpenRouter se eligen con `IA_BASE_URL` e `IA_MODELO`. Sin `IA_API_KEY` o sin `IA_MODELO` la app funciona igual y las funciones responden `NO_CONFIGURADO`. El contexto excluye correos e identificadores internos, pseudonimiza nombres por defecto, delimita los textos libres dentro de `<datos>` y se acota con timeout, tope de tokens y límite por usuario. La auditoría guarda solo modelo y consumo de tokens.
 - **Consecuencias:** Se obtiene valor demostrable sin migración ni dependencias nuevas. El coste y la latencia dependen de un tercero, así que el flujo manual debe seguir intacto, como ya ocurre con SMTP. Activar la función con datos reales exige verificar antes el DPA, la retención, el uso para entrenamiento y la transferencia internacional del proveedor; hasta entonces sirve para demo y datos de prueba. Las funciones de precarga por voz y consulta en lenguaje natural siguen fuera de alcance por su mayor superficie de ataque.
+
+### ADR-022 - Coste en céntimos con tarifa por fecha y presupuesto versionado
+
+- **Fecha:** 2026-10-25
+- **Estado:** Aceptada
+- **Contexto:** La dirección necesita saber cuánto cuesta cada obra sin esperar al cierre contable ni depender de un ERP. El coste tiene que ser estable en el tiempo, auditable y no puede introducir errores de redondeo en importes. Las tarifas cambian por convenio o categoría, y el presupuesto de un proyecto se revisa varias veces durante la obra.
+- **Opciones consideradas:**
+  1. Guardar euros en coma flotante y recalcular al vuelo - sencillo, pero acumula error de redondeo, mezcla el histórico con la tarifa actual y no permite auditar qué tarifa se aplicó.
+  2. Importes en céntimos enteros, tarifa con vigencia por fecha, presupuesto inmutable por versiones y snapshot de coste por imputación al aprobar - reproducible, auditable y sin coma flotante, a cambio de más tablas y de una regla de vigencia.
+  3. Delegar el coste en el ERP y no modelarlo - sin duplicidad, pero la app no podría mostrar consumo ni desviación en tiempo de obra.
+- **Decisión:** Opción 2. `coste_hora` guarda tarifas por empleado o categoría con vigencia inclusiva y `activo`; no se admiten tarifas activas solapadas para el mismo ámbito, así que un cambio se hace cerrando la anterior y creando la nueva. La tarifa de empleado prevalece sobre la de categoría. `presupuesto_proyecto` es inmutable por versión, con importe en céntimos y horas opcionales; la vigente es la de mayor número. `coste_imputacion` se escribe al aprobar y se borra al reabrir. Todo cálculo usa `Math.round` una sola vez sobre minutos enteros. El coste se aplica sobre minutos imputados, no sobre los minutos equivalentes del cómputo: el factor de convenio afecta al cómputo, no al importe.
+- **Consecuencias:** Los informes de coste son reproducibles y el histórico no cambia si mañana sube la tarifa. Un proyecto sin tarifa vigente cuesta 0 y se marca `sinTarifa` para avisar, nunca para bloquear la aprobación. El proyecto de ajuste entra en el coste real y en las horas, pero queda fuera del semáforo de presupuesto ([ADR-020](#adr-020---justificación-de-la-desviación-de-jornada-y-proyecto-interno-de-ajuste)). El coste sigue siendo una tarifa configurada, no el coste real de nómina: integrar el coste empresarial exige un adaptador de RRHH y queda fuera del alcance.
+
+### ADR-023 - Correo transaccional opcional con estado de entrega
+
+- **Fecha:** 2026-10-25
+- **Estado:** Aceptada
+- **Contexto:** Los avisos in-app ya existen y se generan por cron, pero nadie los ve si no entra en la aplicación. Hace falta correo para recordatorios y resumen al encargado, sin que un proveedor ausente o caído bloquee la generación del aviso ni la transacción de negocio.
+- **Opciones consideradas:**
+  1. SMTP obligatorio en el arranque - entrega inmediata, pero la app no arranca o falla en cada aviso si no hay credenciales.
+  2. SMTP opcional con estado de entrega persistido, idempotencia compartida con el aviso y cola con reintentos - la app funciona sin proveedor y el fallo es visible y reintentable.
+  3. API de un proveedor transaccional concreto (Resend, SendGrid, SES) - buena entregabilidad, a cambio de acoplar el código y elegir proveedor antes de tenerlo.
+- **Decisión:** Opción 2. `email_envio` guarda destinatario, tipo, asunto, cuerpo, estado, intentos y error. Los estados son `PENDIENTE`, `ENVIADO`, `SIN_PROVEEDOR` y `FALLIDO`. La clave de idempotencia se comparte con la notificación (`tipo:claveAviso`), de modo que un cron repetido no duplica el correo. `nodemailer` se carga de forma diferida solo si existe `SMTP_URL`; `SMTP_FROM` es opcional. Sin proveedor, el envío queda en `SIN_PROVEEDOR` y no se reintenta, porque reintentar no lo arregla. Un error real queda en `FALLIDO` y la cola aplica backoff. Las preferencias son por tipo y permiten elegir in-app y email; sin fila de preferencia se envía, porque el silencio no es un opt-out implícito. Administración > Correos muestra el estado y permite reintentar.
+- **Consecuencias:** La app y los avisos funcionan sin SMTP y la deuda queda visible en la pantalla de correos. El contenido del correo incluye nombres y horas: el proveedor debe cumplir con protección de datos y el envío debe usar TLS. El demo usa direcciones reales sobre `@levitec.es`, pero el email de usuario es único global; cargar el demo en producción puede impedir dar de alta a una persona real con esa dirección, así que debe purgarse antes. Probar la entrega real exige un `SMTP_URL` real, que hoy es un bloqueador declarado.

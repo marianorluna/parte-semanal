@@ -5,7 +5,7 @@ alwaysApply: false
 
 # Backend / dominio
 
-Activación por relevancia mientras el layout no esté definido. Al especializar, añade `globs` de las rutas reales según `docs/start.md`; nombres como `services` o `models` no identifican por sí solos código backend.
+Activación por relevancia mientras el layout no esté definido. Al especializar, añade `globs` de las rutas reales según `docs/architecture.md`; nombres como `services` o `models` no identifican por sí solos código backend.
 
 - **Principios:** SOLID y Composition over Inheritance. Dominio aislado de infraestructura.
 - **Responsabilidades:** Adapta los nombres y estructura a la arquitectura documentada; no crees capas vacías por seguir esta referencia.
