@@ -342,6 +342,7 @@ export function PanelMenu({
                 <Link
                   key={item.href}
                   href={item.href}
+                  onClick={onCerrar}
                   aria-current={activo ? 'page' : undefined}
                   className={`flex min-h-11 items-center justify-between gap-2 rounded-md px-3 py-2 text-base transition-colors ${
                     activo
@@ -389,6 +390,7 @@ export function PanelMenu({
                         <Link
                           key={enlace.href}
                           href={enlace.href}
+                          onClick={onCerrar}
                           aria-current={enlaceActivo ? 'page' : undefined}
                           className={`flex min-h-11 flex-col justify-center gap-0.5 rounded-md px-3 py-2 transition-colors ${
                             enlaceActivo
