@@ -2,9 +2,10 @@
  * Seed de la empresa de demostración.
  *
  * Genera un escenario completo y determinista: 14 semanas ISO, 50 empleados,
- * 11 proyectos y todos los estados que la interfaz sabe pintar. Los snapshots
- * de cómputo y coste se calculan con las funciones puras del dominio, así que
- * una carga del demo equivale a una aprobación real de los partes.
+ * 11 proyectos de obra, el comodín de ajuste y todos los estados que la
+ * interfaz sabe pintar. Los snapshots de jornada, cómputo y coste se calculan
+ * con las funciones del dominio, así que una carga del demo equivale a un envío
+ * y una aprobación reales.
  *
  * Todo el escenario vive en la empresa `DEMO` y se purga antes de recargar:
  * nunca toca datos de otras empresas.
@@ -68,6 +69,7 @@ import {
   AUSENCIAS_DEMO,
   CASOS,
   CODIGO_EMPRESA_DEMO,
+  INDICE_PROYECTO_AJUSTE,
   MOTIVOS_RECHAZO,
   NOMBRE_ADMIN_DEMO,
   NOMBRE_ENCARGADO_DEMO,
@@ -75,8 +77,10 @@ import {
   NOMBRES_ENCARGADOS,
   PROYECTOS_DEMO,
   SEMANAS_DEMO,
+  TAREAS_AJUSTE_DEMO,
   TAREAS_DEMO,
   TOTAL_EMPLEADOS_DEMO,
+  capacidadSemanalDemo,
   categoriaEmpleadoDemo,
   convenioDeEmpleadoDemo,
   crearAleatorio,
@@ -85,10 +89,12 @@ import {
   esDiaLaborable,
   estadoDeParte,
   exigir,
+  motivoDesviacionDemo,
   nombreEmpleadoDemo,
   planDeRiesgo,
   rolEmpleadoDemo,
   sinParte,
+  type AusenciaDemo,
   type CalendarioSeed,
   type ConvenioSeed,
   type EmpleadoSeed,
@@ -392,6 +398,7 @@ async function sembrarBase(tx: Tx, semanaActual: SemanaIso): Promise<BaseDemo> {
         empresaId,
         codigo: `DEMO-${String(indice + 1).padStart(2, '0')}`,
         nombre: proyectoDemo.nombre,
+        esAjuste: proyectoDemo.esAjuste ?? false,
         activo: proyectoDemo.activo,
       })),
     )
@@ -404,17 +411,20 @@ async function sembrarBase(tx: Tx, semanaActual: SemanaIso): Promise<BaseDemo> {
     indice,
     activo: proyectoDemo.activo,
     nivel: proyectoDemo.nivel,
+    esAjuste: proyectoDemo.esAjuste ?? false,
   }))
 
   const tareasCreadas = await tx
     .insert(tarea)
     .values(
       proyectos.flatMap((proyectoSeed) =>
-        TAREAS_DEMO.map((tareaBase, indiceTarea) => ({
+        // El comodín no tiene presupuesto por tarea: su función es recoger
+        // horas, no competir contra un objetivo.
+        (proyectoSeed.esAjuste ? TAREAS_AJUSTE_DEMO : TAREAS_DEMO).map((tareaBase, indiceTarea) => ({
           proyectoId: proyectoSeed.id,
           codigo: tareaBase.codigo,
           nombre: tareaBase.nombre,
-          horasPresupuesto: 420 - indiceTarea * 60 + proyectoSeed.indice * 10,
+          horasPresupuesto: proyectoSeed.esAjuste ? null : 420 - indiceTarea * 60 + proyectoSeed.indice * 10,
           activa: true,
         })),
       ),
@@ -437,6 +447,18 @@ async function sembrarBase(tx: Tx, semanaActual: SemanaIso): Promise<BaseDemo> {
       proyectoId: exigir(proyectos[(inicio + desplazamiento) % 10], 'Proyecto de alcance inexistente').id,
     }))
   })
+  // Sin alcance sobre el comodín, el parte de quien imputa horas de ajuste no
+  // entra en la bandeja de su encargado y nadie puede aprobarlo.
+  const proyectoAjuste = exigir(
+    proyectos[INDICE_PROYECTO_AJUSTE],
+    'Falta el proyecto de ajuste en el demo',
+  )
+  alcance.push(
+    ...encargados.map((usuarioFila) => ({
+      usuarioId: usuarioFila.id,
+      proyectoId: proyectoAjuste.id,
+    })),
+  )
   if (alcance.length > 0) await tx.insert(usuarioProyecto).values(alcance)
 
   const inicioAsignaciones = sumarDias(semanaActual.weekStart, -7 * SEMANAS_DEMO)
@@ -493,7 +515,16 @@ async function sembrarBase(tx: Tx, semanaActual: SemanaIso): Promise<BaseDemo> {
     const principal = tareasPorProyecto.get(exigir(proyectos[indicePrincipal], 'Proyecto inexistente').id) ?? []
     const secundario = tareasPorProyecto.get(exigir(proyectos[indiceSecundario], 'Proyecto inexistente').id) ?? []
 
-    const seleccion = [...principal.slice(0, 2), ...secundario.slice(0, 1)]
+    // Uno de cada cuatro trabajadores imputa parte de su semana al comodín: el
+    // dashboard debe mostrar la fila "Ajuste" con horas reales. La cuenta
+    // destacada también lo tiene para poder enseñarlo en la rejilla.
+    const tareaAjuste = (tareasPorProyecto.get(proyectoAjuste.id) ?? [])[0]
+    const usaAjuste =
+      indiceTrabajador % 4 === 1 || nombreEmpleadoDemo(empleadoSeed.indice) === NOMBRE_TRABAJADOR_DEMO
+    const seleccion =
+      tareaAjuste && usaAjuste
+        ? [exigir(principal[0], 'Trabajador sin tarea principal'), tareaAjuste, ...principal.slice(1, 2)]
+        : [...principal.slice(0, 2), ...secundario.slice(0, 1)]
     tareasPorEmpleado.set(empleadoSeed.id, seleccion)
 
     for (const tareaId of seleccion) {
@@ -565,6 +596,10 @@ type BorradorParte = {
   estado: ParteSeed['estado']
   lineas: { fecha: FechaIso; tareaId: string; minutos: number }[]
   totalMinutos: number
+  /** Snapshot de jornada teórica; nulo en borradores y rechazados. */
+  capacidadMin: number | null
+  desviacionMin: number | null
+  motivoDesviacion: string | null
   enviadoAt: Date | null
   revisadoPor: string | null
   revisadoAt: Date | null
@@ -702,6 +737,30 @@ async function sembrarPartes(
       const enviado = estado !== 'BORRADOR'
       const revisado = estado === 'APROBADO' || estado === 'RECHAZADO'
 
+      // La capacidad y la desviación se congelan como lo haría el envío real.
+      // Borrador y rechazado no declaran nada: se limpian al volver a editar.
+      const ausenciasDelEmpleado: AusenciaDemo[] = ausenciasAprobadas
+        .filter((ausencia) => ausencia.indiceEmpleado === empleadoSeed.indice)
+        .map((ausencia) => ({
+          desde: ausencia.desde,
+          hasta: ausencia.hasta,
+          minutos: ausencia.minutos,
+        }))
+      const capacidadSemana = capacidadSemanalDemo(
+        calendario,
+        weekStart,
+        empleadoSeed.indice === CASOS.indiceJornadaParcial ? 240 : (calendario.horasDiariasMin ?? 480),
+        ausenciasDelEmpleado,
+      )
+      const congelar = estado !== 'BORRADOR' && estado !== 'RECHAZADO'
+      const capacidadMin = congelar ? capacidadSemana : null
+      const desviacionMin = capacidadMin === null ? null : totalMinutos - capacidadMin
+      const semanaCerrada = sumarDias(weekStart, 6) < hoy
+      const motivoDesviacion =
+        semanaCerrada && desviacionMin !== null && desviacionMin !== 0
+          ? motivoDesviacionDemo(empleadoSeed.indice, desplazamiento, desviacionMin)
+          : null
+
       const revisores = encargados.length > 0 ? encargados : [destacados.encargado]
       const revisor =
         usuarioFila.rol === 'TRABAJADOR'
@@ -720,6 +779,9 @@ async function sembrarPartes(
         estado,
         lineas,
         totalMinutos,
+        capacidadMin,
+        desviacionMin,
+        motivoDesviacion,
         enviadoAt: enviado ? new Date(`${sumarDias(weekStart, 4)}T16:00:00.000Z`) : null,
         revisadoPor: revisado ? revisor : null,
         revisadoAt: revisado ? new Date(`${sumarDias(weekStart, 7)}T09:00:00.000Z`) : null,
@@ -748,6 +810,9 @@ async function sembrarPartes(
         weekStart: borrador.semana.weekStart,
         estado: borrador.estado,
         totalMinutos: borrador.totalMinutos,
+        capacidadMin: borrador.capacidadMin,
+        desviacionMin: borrador.desviacionMin,
+        motivoDesviacion: borrador.motivoDesviacion,
         version: borrador.version,
         calendarioId: borrador.calendarioId,
         calendarioVersion: borrador.calendarioVersion,
@@ -968,6 +1033,9 @@ async function ajustarRiesgo(
   const horasPorProyecto = new Map<string, number>()
 
   for (const proyectoSeed of proyectos) {
+    // El comodín no compite contra presupuesto ni plazo: sin fechas y sin horas.
+    if (proyectoSeed.esAjuste) continue
+
     const minutos = consumoPorProyecto.get(proyectoSeed.id) ?? 0
     const plan = planDeRiesgo(proyectoSeed.nivel, minutos, hoy)
 

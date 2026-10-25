@@ -13,9 +13,12 @@ import {
   NOMBRE_TRABAJADOR_DEMO,
   SEMANAS_DEMO,
   TOTAL_EMPLEADOS_DEMO,
+  capacidadSemanalDemo,
   estadoDeParte,
+  motivoDesviacionDemo,
   nombreEmpleadoDemo,
   planDeRiesgo,
+  type CalendarioSeed,
 } from './demo-datos'
 
 const HOY = '2026-10-24'
@@ -129,6 +132,45 @@ describe('planDeRiesgo', () => {
     })
 
     expect(riesgo.nivel).toBe(nivel)
+  })
+})
+
+describe('jornada del demo', () => {
+  const calendario: CalendarioSeed = {
+    id: 'calendario',
+    codigo: 'DEMO-MD',
+    version: 1,
+    diasSemana: [1, 2, 3, 4, 5],
+    festivos: new Map([[sumarDias(SEMANA_ACTUAL.weekStart, 2), false]]),
+    excepciones: new Map(),
+    horasDiariasMin: 480,
+  }
+
+  it('suma cinco jornadas de lunes a viernes descontando el festivo', () => {
+    expect(capacidadSemanalDemo(calendario, SEMANA_ACTUAL.weekStart, 480, [])).toBe(1920)
+  })
+
+  it('una ausencia de jornada completa quita el día y una parcial descuenta minutos', () => {
+    const completo = capacidadSemanalDemo(calendario, SEMANA_ACTUAL.weekStart, 480, [
+      { desde: SEMANA_ACTUAL.weekStart, hasta: SEMANA_ACTUAL.weekStart, minutos: null },
+    ])
+    const parcial = capacidadSemanalDemo(calendario, SEMANA_ACTUAL.weekStart, 480, [
+      { desde: SEMANA_ACTUAL.weekStart, hasta: SEMANA_ACTUAL.weekStart, minutos: 240 },
+    ])
+
+    expect(completo).toBe(1440)
+    expect(parcial).toBe(1680)
+  })
+
+  it('el motivo declarado respeta el signo y la longitud que exige el dominio', () => {
+    const exceso = motivoDesviacionDemo(0, 0, 120)
+    const defecto = motivoDesviacionDemo(0, 0, -120)
+
+    expect(exceso).not.toBe(defecto)
+    for (const motivo of [exceso, defecto]) {
+      expect(motivo.length).toBeGreaterThanOrEqual(10)
+      expect(motivo.length).toBeLessThanOrEqual(500)
+    }
   })
 })
 

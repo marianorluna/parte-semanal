@@ -102,12 +102,14 @@ export type ProyectoDemo = {
   activo: boolean
   /** Nivel que debe alcanzar el motor de riesgo con los datos sembrados. */
   nivel: NivelRiesgo
+  /** Proyecto interno de ajuste: sin presupuesto, sin plazo y sin semáforo. */
+  esAjuste?: boolean
 }
 
 /**
- * Once proyectos: uno por cada nivel de riesgo que puede pintar el dashboard y
- * uno inactivo. El reparto doble de niveles evita que la pantalla de proyectos
- * muestre una sola fila por color.
+ * Doce proyectos: uno por cada nivel de riesgo que puede pintar el dashboard,
+ * uno inactivo y el comodín de ajuste. El reparto doble de niveles evita que la
+ * pantalla de proyectos muestre una sola fila por color.
  */
 export const PROYECTOS_DEMO: readonly ProyectoDemo[] = [
   { nombre: 'Rehabilitación Edificio Colón', activo: true, nivel: 'AGOTADO' },
@@ -121,7 +123,36 @@ export const PROYECTOS_DEMO: readonly ProyectoDemo[] = [
   { nombre: 'Viviendas Unifamiliares La Vega', activo: true, nivel: 'AVISO' },
   { nombre: 'Adecuación Local Comercial Centro', activo: true, nivel: 'OK' },
   { nombre: 'Obra Civil Corredor Norte', activo: false, nivel: 'OK' },
+  { nombre: 'Ajuste de jornada', activo: true, nivel: 'SIN_PRESUPUESTO', esAjuste: true },
 ]
+
+/** Único comodín del demo: absorbe las horas que no son de un proyecto real. */
+export const INDICE_PROYECTO_AJUSTE = PROYECTOS_DEMO.findIndex((proyecto) => proyecto.esAjuste === true)
+
+/**
+ * Tareas del comodín. No se crea una tarea `DEFECTO`: el defecto es una métrica
+ * firmada en el parte, nunca una imputación positiva (ADR-020).
+ */
+export const TAREAS_AJUSTE_DEMO = [
+  { codigo: 'AJ1', nombre: 'Horas no imputables' },
+  { codigo: 'AJ2', nombre: 'Exceso de jornada' },
+] as const
+
+/** Motivos plausibles para las semanas sembradas con exceso de horas. */
+export const MOTIVOS_EXCESO_DEMO = [
+  'Pico de obra para cerrar el forjado antes de la lluvia',
+  'Guardia de sábado acordada con el jefe de obra',
+  'Remate de la entrega en curso, con horas de más',
+  'Apoyo puntual a otro proyecto del mismo encargado',
+] as const
+
+/** Motivos plausibles para las semanas sembradas con defecto de horas. */
+export const MOTIVOS_DEFECTO_DEMO = [
+  'Permiso parcial no registrado todavía en RRHH',
+  'Jornada reducida por cita médica a media semana',
+  'Retraso de material: no hubo trabajo el martes',
+  'Formación interna a media jornada el jueves',
+] as const
 
 export const TAREAS_DEMO = [
   { codigo: 'T01', nombre: 'Jefatura de obra' },
@@ -514,6 +545,7 @@ export type ProyectoSeed = {
   indice: number
   activo: boolean
   nivel: NivelRiesgo
+  esAjuste: boolean
 }
 
 export type TareaSeed = {
@@ -614,6 +646,49 @@ export function esDiaLaborable(calendario: CalendarioSeed, fecha: FechaIso): boo
 export function esDiaFestivo(calendario: CalendarioSeed, fecha: FechaIso): boolean {
   if (calendario.excepciones.has(fecha)) return false
   return calendario.festivos.get(fecha) === false
+}
+
+export type AusenciaDemo = {
+  desde: FechaIso
+  hasta: FechaIso
+  /** Minutos descontados; `null` = jornada completa. */
+  minutos: number | null
+}
+
+/**
+ * Capacidad semanal con la misma regla que la aplicación: días laborables por
+ * su jornada diaria, y una ausencia de jornada completa quita el día. El demo
+ * congela esta cifra en el parte para que sus datos sean coherentes con la
+ * validación de envío (ADR-020).
+ */
+export function capacidadSemanalDemo(
+  calendario: CalendarioSeed,
+  weekStart: FechaIso,
+  horasDiariasMin: number,
+  ausencias: readonly AusenciaDemo[],
+): number {
+  let total = 0
+  for (let dia = 0; dia < 7; dia += 1) {
+    const fecha = sumarDias(weekStart, dia)
+    if (!esDiaLaborable(calendario, fecha)) continue
+
+    const ausencia = ausencias.find((candidata) => candidata.desde <= fecha && fecha <= candidata.hasta)
+    if (ausencia?.minutos === null) continue
+
+    const jornada = horasDiariasMin - (ausencia?.minutos ?? 0)
+    if (jornada > 0) total += jornada
+  }
+  return total
+}
+
+/** Motivo declarado, coherente con el signo de la desviación de la semana. */
+export function motivoDesviacionDemo(
+  indiceEmpleado: number,
+  desplazamiento: number,
+  desviacionMin: number,
+): string {
+  const motivos = desviacionMin > 0 ? MOTIVOS_EXCESO_DEMO : MOTIVOS_DEFECTO_DEMO
+  return motivos[(indiceEmpleado + desplazamiento) % motivos.length] as string
 }
 
 export const CICLO_ESTADOS: readonly EstadoParte[] = [

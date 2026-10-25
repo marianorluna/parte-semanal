@@ -777,6 +777,8 @@ export async function sembrarPresupuestos(
 
   for (const proyectoSeed of proyectos) {
     if (!proyectoSeed.activo) continue
+    // El comodín no tiene presupuesto de proyecto (ADR-020).
+    if (proyectoSeed.esAjuste) continue
     if (proyectoSeed.nivel === 'SIN_PRESUPUESTO') continue
 
     const horas = horasPorProyecto.get(proyectoSeed.id) ?? null

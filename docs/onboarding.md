@@ -74,7 +74,7 @@ Comandos auxiliares:
 |---------|-----|
 | `npm run db:generate` | Genera una migración tras cambiar el esquema |
 | `npm run db:studio` | Abre Drizzle Studio |
-| `npm run db:seed:demo` | Carga el demo completo (50 usuarios, 11 proyectos, 14 semanas y datos de fase 2) |
+| `npm run db:seed:demo` | Carga el demo completo (50 usuarios, 11 proyectos de obra más el comodín de ajuste, 14 semanas y datos de fase 2) |
 | `npm run db:seed:demo -- --refresh` | Purga y recarga el demo relativo a la semana actual |
 | `npm run db:seed:demo:purge` | Borra solo la empresa `DEMO` |
 

@@ -34,9 +34,10 @@ export function AccionesDemo({ existeDemo }: { existeDemo: boolean }) {
           {existeDemo ? 'Recargar datos de demostración' : 'Cargar datos de demostración'}
         </h2>
         <p className="mt-1 text-xs text-slate-600">
-          Crea 50 empleados, 11 proyectos, 14 semanas de partes y todos los datos de fase 2: calendario,
-          convenios, ausencias, costes, presupuestos, cierres, informes, avisos, correo, API y webhooks.
-          Si ya existe la empresa DEMO, se purga antes de volver a cargarla.
+          Crea 50 empleados, 11 proyectos de obra más el comodín de ajuste, 14 semanas de partes y
+          todos los datos de fase 2: calendario, convenios, ausencias, costes, presupuestos, cierres,
+          informes, avisos, correo, API y webhooks. Si ya existe la empresa DEMO, se purga antes de
+          volver a cargarla.
         </p>
 
         <form action={accionCarga} className="mt-3 space-y-2">

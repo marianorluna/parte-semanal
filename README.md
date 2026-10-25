@@ -38,7 +38,7 @@ npm run dev                   # http://localhost:3000
 ### Datos de demostración
 
 ```bash
-npm run db:seed:demo                  # 50 empleados, 11 proyectos y 14 semanas de partes
+npm run db:seed:demo                  # 50 empleados, 11 proyectos de obra + comodín y 14 semanas de partes
 npm run db:seed:demo -- --refresh     # purga y recarga las semanas relativas a hoy
 npm run db:seed:demo:purge            # borra solo la empresa DEMO
 ```
