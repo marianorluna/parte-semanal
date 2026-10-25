@@ -6,6 +6,7 @@ import { ETIQUETAS_ESTADO_AUSENCIA } from '@/modules/ausencias/domain/ausencia'
 import { formatearFecha } from '@/modules/partes/domain/fechas'
 import { formatearHorasReloj } from '@/modules/partes/domain/horas'
 import { AccionesAusencia } from './AccionesAusencia'
+import { AvisoOrigenRrhh } from '@/components/AvisoOrigenRrhh'
 
 export const dynamic = 'force-dynamic'
 
@@ -26,6 +27,8 @@ export default async function ControlAusenciasPage() {
           trabajador con el motivo visible.
         </p>
       </div>
+
+      <AvisoOrigenRrhh contexto="gestion" />
 
       <div>
         <h2 className="mb-2 text-sm font-semibold text-slate-900">

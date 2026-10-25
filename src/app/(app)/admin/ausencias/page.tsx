@@ -9,6 +9,7 @@ import {
   FormularioSaldo,
   FormularioTipo,
 } from './FormulariosAusenciasAdmin'
+import { AvisoOrigenRrhh } from '@/components/AvisoOrigenRrhh'
 
 export const dynamic = 'force-dynamic'
 
@@ -31,6 +32,8 @@ export default async function AdminAusenciasPage() {
           parcial solo reduce la jornada teórica.
         </p>
       </div>
+
+      <AvisoOrigenRrhh contexto="gestion" />
 
       <details className="tarjeta p-4" open={tipos.length === 0}>
         <summary className="cursor-pointer text-sm font-semibold text-marca-800">Crear tipo</summary>

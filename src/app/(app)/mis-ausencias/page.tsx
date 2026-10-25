@@ -10,6 +10,7 @@ import { ETIQUETAS_ESTADO_AUSENCIA } from '@/modules/ausencias/domain/ausencia'
 import { formatearFecha, hoyEnZona } from '@/modules/partes/domain/fechas'
 import { formatearHorasReloj } from '@/modules/partes/domain/horas'
 import { BotonAnular, FormularioSolicitud } from './FormulariosAusencia'
+import { AvisoOrigenRrhh } from '@/components/AvisoOrigenRrhh'
 
 export const dynamic = 'force-dynamic'
 
@@ -42,6 +43,8 @@ export default async function MisAusenciasPage() {
         </p>
       </div>
 
+      <AvisoOrigenRrhh contexto="trabajador" />
+
       <div className="tarjeta p-4">
         <h2 className="text-sm font-semibold text-slate-900">Saldo de vacaciones {saldo.anio}</h2>
         <dl className="mt-3 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
@@ -71,8 +74,14 @@ export default async function MisAusenciasPage() {
       </div>
 
       <details className="tarjeta p-4">
-        <summary className="cursor-pointer text-sm font-semibold text-marca-800">Solicitar ausencia</summary>
+        <summary className="cursor-pointer text-sm font-semibold text-marca-800">
+          Registrar ausencia en LeviParte
+        </summary>
         <div className="mt-4">
+          <p className="mb-3 text-xs text-slate-600">
+            La solicitud oficial se tramita en Bizneo. Este registro solo sirve para bloquear los días
+            en tu rejilla mientras la sincronización no esté activa.
+          </p>
           {tiposActivos.length === 0 ? (
             <p className="text-sm text-slate-600">
               No hay tipos de ausencia activos. Pide a administración que los configure.
