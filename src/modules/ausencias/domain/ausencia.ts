@@ -18,6 +18,14 @@ export const ETIQUETAS_ESTADO_AUSENCIA: Record<EstadoAusencia, string> = {
   ANULADA: 'Anulada',
 }
 
+/** Clases del pill de estado, alineadas con el resto de la app. */
+export const CLASES_ESTADO_AUSENCIA: Record<EstadoAusencia, string> = {
+  SOLICITADA: 'bg-amber-100 text-amber-800',
+  APROBADA: 'bg-acento-100 text-acento-800',
+  RECHAZADA: 'bg-red-100 text-red-800',
+  ANULADA: 'bg-slate-200 text-slate-600',
+}
+
 export type AusenciaVigente = {
   id: string
   empleadoId: string

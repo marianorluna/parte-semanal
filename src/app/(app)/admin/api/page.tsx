@@ -22,6 +22,13 @@ const ESTILO_ENTREGA: Record<string, string> = {
   AGOTADO: 'bg-slate-200 text-slate-700',
 }
 
+const ETIQUETA_ENTREGA: Record<string, string> = {
+  PENDIENTE: 'Pendiente',
+  ENVIADO: 'Enviado',
+  FALLIDO: 'Fallido',
+  AGOTADO: 'Agotado',
+}
+
 export default async function AdminApiPage() {
   const actor = await requireRol('ADMIN')
   const [claves, webhooks, entregas] = await Promise.all([
@@ -193,7 +200,7 @@ export default async function AdminApiPage() {
                     <td className="px-3 py-2 text-xs text-slate-600">{entrega.evento}</td>
                     <td className="px-3 py-2">
                       <span className={`etiqueta ${ESTILO_ENTREGA[entrega.estado] ?? 'bg-slate-100 text-slate-600'}`}>
-                        {entrega.estado}
+                        {ETIQUETA_ENTREGA[entrega.estado] ?? entrega.estado}
                       </span>
                       {entrega.ultimoError ? (
                         <p className="mt-1 max-w-56 truncate text-[11px] text-red-600">

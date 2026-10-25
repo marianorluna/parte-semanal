@@ -5,7 +5,7 @@ import { proyectosPermitidos } from '@/modules/identidad/infrastructure/reposito
 import { obtenerProyecto } from '@/modules/organizacion/infrastructure/comandos'
 import { hoyEnZona, semanaIsoDe, sumarDias } from '@/modules/partes/domain/fechas'
 import { formatearHorasReloj } from '@/modules/partes/domain/horas'
-import { evaluarRiesgo, ritmoAdmisible } from '@/modules/reporting/domain/riesgo'
+import { evaluarRiesgo, ritmoAdmisible, CLASES_RIESGO } from '@/modules/reporting/domain/riesgo'
 import { detalleTareasProyecto, tendenciaProyecto } from '@/modules/reporting/infrastructure/consultas'
 import { TablaRiesgo } from '@/components/TablaRiesgo'
 import { GraficoEvolucion } from '@/components/GraficoEvolucion'
@@ -99,7 +99,7 @@ export default async function ProyectoDetallePage({ params }: Props) {
       <div className="tarjeta p-4">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-sm font-semibold text-slate-900">Riesgo</h2>
-          <span className={`etiqueta ${riesgo.nivel === 'OK' ? 'bg-acento-100 text-acento-800' : ''}`}>
+          <span className={`etiqueta ${CLASES_RIESGO[riesgo.nivel]}`}>
             {riesgo.etiqueta}
           </span>
         </div>

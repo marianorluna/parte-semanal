@@ -6,20 +6,13 @@ import {
   listarTipos,
   saldoDeEmpleado,
 } from '@/modules/ausencias/application/servicio'
-import { ETIQUETAS_ESTADO_AUSENCIA } from '@/modules/ausencias/domain/ausencia'
+import { CLASES_ESTADO_AUSENCIA, ETIQUETAS_ESTADO_AUSENCIA } from '@/modules/ausencias/domain/ausencia'
 import { formatearFecha, hoyEnZona } from '@/modules/partes/domain/fechas'
 import { formatearHorasReloj } from '@/modules/partes/domain/horas'
 import { BotonAnular, FormularioSolicitud } from './FormulariosAusencia'
 import { AvisoOrigenRrhh } from '@/components/AvisoOrigenRrhh'
 
 export const dynamic = 'force-dynamic'
-
-function colorEstado(estado: keyof typeof ETIQUETAS_ESTADO_AUSENCIA): string {
-  if (estado === 'APROBADA') return 'bg-acento-100 text-acento-800'
-  if (estado === 'RECHAZADA') return 'bg-red-100 text-red-800'
-  if (estado === 'ANULADA') return 'bg-slate-200 text-slate-600'
-  return 'bg-amber-100 text-amber-800'
-}
 
 export default async function MisAusenciasPage() {
   const usuario = await requireUsuario()
@@ -123,7 +116,7 @@ export default async function MisAusenciasPage() {
                       </p>
                     ) : null}
                   </div>
-                  <span className={`etiqueta ${colorEstado(ausencia.estado)}`}>
+                  <span className={`etiqueta ${CLASES_ESTADO_AUSENCIA[ausencia.estado]}`}>
                     {ETIQUETAS_ESTADO_AUSENCIA[ausencia.estado]}
                   </span>
                 </div>

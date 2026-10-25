@@ -57,7 +57,17 @@ export default async function AdminUsuarioDetallePage({ params }: Props) {
 
           <div className="tarjeta p-4 text-xs text-slate-600">
             <h2 className="mb-2 text-sm font-semibold text-slate-900">Empleado vinculado</h2>
-            <p>{usuario.empleadoId ? usuario.empleadoId : 'Sin empleado asignado'}</p>
+            {usuario.empleadoNombre ? (
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-slate-800">{usuario.empleadoNombre}</p>
+                <p>
+                  Código <span className="font-mono text-slate-700">{usuario.empleadoCodigo}</span>
+                  {usuario.empleadoCategoria ? ` · ${usuario.empleadoCategoria}` : ''}
+                </p>
+              </div>
+            ) : (
+              <p>Sin empleado asignado</p>
+            )}
             <p className="mt-2 text-slate-500">
               El vínculo con el empleado determina qué parte semanal ve el usuario. Se define al crear la cuenta.
             </p>

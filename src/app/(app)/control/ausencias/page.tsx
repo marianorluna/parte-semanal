@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { requireRol } from '@/modules/identidad/application/sesion'
 import { depsAusencias } from '@/composition'
 import { listarPendientes, listarTodas } from '@/modules/ausencias/application/servicio'
-import { ETIQUETAS_ESTADO_AUSENCIA } from '@/modules/ausencias/domain/ausencia'
+import { CLASES_ESTADO_AUSENCIA, ETIQUETAS_ESTADO_AUSENCIA } from '@/modules/ausencias/domain/ausencia'
 import { formatearFecha } from '@/modules/partes/domain/fechas'
 import { formatearHorasReloj } from '@/modules/partes/domain/horas'
 import { AccionesAusencia } from './AccionesAusencia'
@@ -59,7 +59,7 @@ export default async function ControlAusenciasPage() {
                       <p className="mt-1 text-xs text-slate-500">{ausencia.motivoSolicitud}</p>
                     ) : null}
                   </div>
-                  <span className="etiqueta bg-amber-100 text-amber-800">Solicitada</span>
+                  <span className={`etiqueta ${CLASES_ESTADO_AUSENCIA.SOLICITADA}`}>Solicitada</span>
                 </div>
                 <AccionesAusencia ausenciaId={ausencia.id} />
               </li>
@@ -93,8 +93,10 @@ export default async function ControlAusenciasPage() {
                       {formatearFecha(ausencia.desde)}
                       {ausencia.desde === ausencia.hasta ? '' : ` - ${formatearFecha(ausencia.hasta)}`}
                     </td>
-                    <td className="px-3 py-2 text-slate-600">
-                      {ETIQUETAS_ESTADO_AUSENCIA[ausencia.estado]}
+                    <td className="px-3 py-2">
+                      <span className={`etiqueta ${CLASES_ESTADO_AUSENCIA[ausencia.estado]}`}>
+                        {ETIQUETAS_ESTADO_AUSENCIA[ausencia.estado]}
+                      </span>
                     </td>
                     <td className="px-3 py-2 text-slate-600">{ausencia.resueltoPorNombre ?? '-'}</td>
                   </tr>

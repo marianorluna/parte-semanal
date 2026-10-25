@@ -6,9 +6,16 @@ import { AppError } from '@/shared/errors'
 
 export async function buscarUsuario(usuarioId: string) {
   const filas = await db
-    .select({ ...getTableColumns(usuario), empresaCodigo: empresa.codigo })
+    .select({
+      ...getTableColumns(usuario),
+      empresaCodigo: empresa.codigo,
+      empleadoNombre: empleado.nombre,
+      empleadoCodigo: empleado.codigo,
+      empleadoCategoria: empleado.categoria,
+    })
     .from(usuario)
     .innerJoin(empresa, eq(empresa.id, usuario.empresaId))
+    .leftJoin(empleado, eq(empleado.id, usuario.empleadoId))
     .where(eq(usuario.id, usuarioId))
     .limit(1)
 
