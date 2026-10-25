@@ -3,9 +3,10 @@ import type { ReactNode } from 'react'
 import { Icono, type NombreIcono } from './Iconos'
 
 /**
- * Acciones con icono y etiqueta contextual. En móvil el hueco es escaso, así
- * que el botón se queda en icono cuadrado de 44 px (el texto sigue existiendo
- * para lectores de pantalla); desde `md` se muestra la etiqueta al lado.
+ * Acciones con icono y etiqueta contextual. En móvil la etiqueta se apila bajo
+ * el icono en 11 px: no hay `hover` ni `title` en táctil, así que el único
+ * modo de saber qué hace el botón es leerlo. Desde `md` icono y etiqueta
+ * vuelven a compartir fila.
  */
 export type VarianteAccion = 'primario' | 'secundario' | 'acento' | 'peligro' | 'fantasma'
 
@@ -28,8 +29,10 @@ const VARIANTES_OSCURAS: Record<VarianteAccion, string> = {
 
 export type PropsAccionIcono = {
   icono: NombreIcono
-  /** Texto visible desde `md` y nombre accesible siempre. */
+  /** Nombre accesible completo: se usa en `aria-label` y `title`. */
   etiqueta: string
+  /** Variante abreviada para móvil; desde `md` se muestra la etiqueta completa. */
+  etiquetaCorta?: string
   variante?: VarianteAccion
   /** Contrapartida sobre superficie oscura. */
   oscuro?: boolean
@@ -42,26 +45,42 @@ export type PropsAccionIcono = {
 export function clasesAccion({
   variante = 'secundario',
   oscuro = false,
-}: Pick<PropsAccionIcono, 'variante' | 'oscuro'>): string {
+  soloIcono = false,
+}: Pick<PropsAccionIcono, 'variante' | 'oscuro' | 'soloIcono'>): string {
   const base = oscuro ? VARIANTES_OSCURAS[variante] : VARIANTES[variante]
-  return `inline-flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-md border px-2.5 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${base}`
+  const disposicion = soloIcono
+    ? 'gap-2 px-2.5 text-sm'
+    : 'flex-col gap-0.5 px-2 py-1 text-[11px] leading-tight md:flex-row md:gap-2 md:px-2.5 md:py-0 md:text-sm md:leading-normal'
+  return `inline-flex min-h-11 min-w-11 items-center justify-center rounded-md border font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${disposicion} ${base}`
 }
 
 function ContenidoAccion({
   icono,
   etiqueta,
+  etiquetaCorta,
   contador,
   soloIcono = false,
-}: Pick<PropsAccionIcono, 'icono' | 'etiqueta' | 'contador' | 'soloIcono'>) {
+}: Pick<PropsAccionIcono, 'icono' | 'etiqueta' | 'etiquetaCorta' | 'contador' | 'soloIcono'>) {
   return (
     <>
-      <Icono nombre={icono} className="h-5 w-5" />
-      <span className={soloIcono ? 'sr-only' : 'sr-only md:not-sr-only'}>{etiqueta}</span>
-      {contador && contador > 0 ? (
-        <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-acento-500 px-1 text-[11px] font-bold text-marca-950">
-          {contador > 99 ? '99+' : contador}
-        </span>
-      ) : null}
+      <span className="relative inline-flex">
+        <Icono nombre={icono} className="h-5 w-5" />
+        {contador && contador > 0 ? (
+          <span className="absolute -top-2 -right-2.5 inline-flex min-w-4.5 items-center justify-center rounded-full bg-acento-500 px-1 text-[10px] leading-4 font-bold text-marca-950">
+            {contador > 99 ? '99+' : contador}
+          </span>
+        ) : null}
+      </span>
+      {soloIcono ? (
+        <span className="sr-only">{etiqueta}</span>
+      ) : etiquetaCorta ? (
+        <>
+          <span className="text-center md:hidden">{etiquetaCorta}</span>
+          <span className="hidden text-left md:inline">{etiqueta}</span>
+        </>
+      ) : (
+        <span className="text-center md:text-left">{etiqueta}</span>
+      )}
     </>
   )
 }

@@ -108,6 +108,7 @@ export function AccionesPartes({
           <BotonIcono
             icono="check"
             etiqueta={`Aprobar los ${aprobables.length} enviados`}
+            etiquetaCorta={`Aprobar ${aprobables.length}`}
             variante="primario"
             oscuro
             disabled={pendiente}
@@ -123,6 +124,7 @@ export function AccionesPartes({
         <BotonIcono
           icono="campana"
           etiqueta={`Recordar a los ${recordables.length} pendientes`}
+          etiquetaCorta={`Recordar ${recordables.length}`}
           variante="secundario"
           oscuro
           disabled={pendiente}

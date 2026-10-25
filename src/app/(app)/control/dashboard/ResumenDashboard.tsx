@@ -13,6 +13,8 @@ import {
 } from '@/modules/reporting/domain/severidad'
 import { EnlaceIcono } from '@/components/AccionesIcono'
 import { Icono } from '@/components/Iconos'
+import { MenuExportar } from '@/components/MenuExportar'
+import { nombreArchivo } from '@/modules/reporting/infrastructure/exportadores/comun'
 
 export type MetricasDashboard = {
   cumplimientoPct: number
@@ -211,26 +213,32 @@ export function ResumenDashboard({
             href="/control/partes?estado=ENVIADO"
             icono="bandeja"
             etiqueta="Partes pendientes"
+            etiquetaCorta="Pendientes"
             contador={metricas.pendientes}
             variante="primario"
             oscuro
           />
           <EnlaceIcono href="/control/equipo" icono="usuarios" etiqueta="Equipo" variante="secundario" oscuro />
-          <EnlaceIcono
-            href={`/control/dashboard/exportar?formato=xlsx&${consultaExport}`}
-            icono="hoja"
-            etiqueta="Excel"
-            variante="secundario"
+          <MenuExportar
             oscuro
-            prefetch={false}
-          />
-          <EnlaceIcono
-            href={`/control/dashboard/exportar?formato=pdf&${consultaExport}`}
-            icono="documento"
-            etiqueta="PDF"
-            variante="secundario"
-            oscuro
-            prefetch={false}
+            acciones={[
+              {
+                formato: 'Excel',
+                etiqueta: 'Exportar Excel',
+                descripcion: 'Resumen, proyectos y avisos',
+                href: `/control/dashboard/exportar?formato=xlsx&${consultaExport}`,
+                archivo: nombreArchivo(`dashboard-${isoYear}-W${isoWeek}`, 'xlsx'),
+                icono: 'hoja',
+              },
+              {
+                formato: 'PDF',
+                etiqueta: 'Exportar PDF',
+                descripcion: 'Informe listo para imprimir',
+                href: `/control/dashboard/exportar?formato=pdf&${consultaExport}`,
+                archivo: nombreArchivo(`dashboard-${isoYear}-W${isoWeek}`, 'pdf'),
+                icono: 'documento',
+              },
+            ]}
           />
         </div>
       </section>

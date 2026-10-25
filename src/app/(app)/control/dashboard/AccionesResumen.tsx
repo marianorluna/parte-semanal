@@ -31,6 +31,7 @@ export function RecordarPendientes({
       <BotonIcono
         icono="campana"
         etiqueta={pendiente ? 'Enviando recordatorios' : etiqueta}
+        etiquetaCorta="Recordar"
         variante="acento"
         disabled={pendiente}
         onClick={() =>

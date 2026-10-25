@@ -9,6 +9,8 @@ import {
 } from '@/modules/reporting/domain/cumplimiento'
 import { EnlaceIcono } from '@/components/AccionesIcono'
 import { Icono } from '@/components/Iconos'
+import { MenuExportar } from '@/components/MenuExportar'
+import { nombreArchivo } from '@/modules/reporting/infrastructure/exportadores/comun'
 
 const SEGMENTOS: { estado: EstadoCumplimiento; clase: string }[] = [
   { estado: 'APROBADO', clase: 'bg-acento-500' },
@@ -154,29 +156,34 @@ export function ResumenPartes({
       <div className="flex flex-wrap items-center gap-2 border-t border-marca-600/60 pt-3">
         {acciones}
         <span className="mx-1 hidden h-6 w-px bg-marca-600 md:block" aria-hidden="true" />
-        <EnlaceIcono
-          href={`/control/partes/exportar?formato=csv&${consultaExport}`}
-          icono="descarga"
-          etiqueta="Exportar CSV"
-          variante="secundario"
+        <MenuExportar
           oscuro
-          prefetch={false}
-        />
-        <EnlaceIcono
-          href={`/control/partes/exportar?formato=xlsx&${consultaExport}`}
-          icono="hoja"
-          etiqueta="Exportar Excel"
-          variante="secundario"
-          oscuro
-          prefetch={false}
-        />
-        <EnlaceIcono
-          href={`/control/partes/exportar?formato=pdf&${consultaExport}`}
-          icono="documento"
-          etiqueta="Exportar PDF"
-          variante="secundario"
-          oscuro
-          prefetch={false}
+          acciones={[
+            {
+              formato: 'CSV',
+              etiqueta: 'Exportar CSV',
+              descripcion: 'Una fila por imputación',
+              href: `/control/partes/exportar?formato=csv&${consultaExport}`,
+              archivo: nombreArchivo(`partes-${isoYear}-W${isoWeek}`, 'csv'),
+              icono: 'descarga',
+            },
+            {
+              formato: 'Excel',
+              etiqueta: 'Exportar Excel',
+              descripcion: 'Resumen y detalle por hoja',
+              href: `/control/partes/exportar?formato=xlsx&${consultaExport}`,
+              archivo: nombreArchivo(`partes-${isoYear}-W${isoWeek}`, 'xlsx'),
+              icono: 'hoja',
+            },
+            {
+              formato: 'PDF',
+              etiqueta: 'Exportar PDF',
+              descripcion: 'Informe listo para imprimir',
+              href: `/control/partes/exportar?formato=pdf&${consultaExport}`,
+              archivo: nombreArchivo(`partes-${isoYear}-W${isoWeek}`, 'pdf'),
+              icono: 'documento',
+            },
+          ]}
         />
         <span className="ml-auto hidden items-center gap-1.5 text-[11px] text-marca-200 sm:flex">
           <Icono nombre="usuarios" className="h-3.5 w-3.5" />
