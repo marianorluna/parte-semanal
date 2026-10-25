@@ -132,14 +132,20 @@ export default async function EquipoPage({ searchParams }: Props) {
             Semana {semana.isoWeek} de {semana.isoYear} · {formatearRango(semana.weekStart, semana.weekEnd)}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Link href={query({ y: String(anterior.isoYear), w: String(anterior.isoWeek) })} className="boton-secundario px-3 py-1.5 text-xs">
+        <div className="grid w-full grid-cols-3 gap-2 sm:flex sm:w-auto sm:items-center">
+          <Link
+            href={query({ y: String(anterior.isoYear), w: String(anterior.isoWeek) })}
+            className="boton-secundario w-full px-3 py-1.5 text-xs sm:w-auto"
+          >
             Anterior
           </Link>
-          <Link href="/control/equipo" className="boton-secundario px-3 py-1.5 text-xs">
+          <Link href="/control/equipo" className="boton-secundario w-full px-3 py-1.5 text-xs sm:w-auto">
             Esta semana
           </Link>
-          <Link href={query({ y: String(siguiente.isoYear), w: String(siguiente.isoWeek) })} className="boton-secundario px-3 py-1.5 text-xs">
+          <Link
+            href={query({ y: String(siguiente.isoYear), w: String(siguiente.isoWeek) })}
+            className="boton-secundario w-full px-3 py-1.5 text-xs sm:w-auto"
+          >
             Siguiente
           </Link>
         </div>
@@ -163,7 +169,7 @@ export default async function EquipoPage({ searchParams }: Props) {
       </div>
 
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <form method="get" className="flex flex-wrap items-end gap-2">
+        <form method="get" className="grid w-full gap-2 sm:flex sm:w-auto sm:flex-wrap sm:items-end">
           <input type="hidden" name="y" value={semana.isoYear} />
           <input type="hidden" name="w" value={semana.isoWeek} />
           <Select
@@ -171,6 +177,7 @@ export default async function EquipoPage({ searchParams }: Props) {
             name="proyecto"
             valorInicial={proyectoId ?? ''}
             className="py-1.5 text-sm"
+            classNameContenedor="w-full md:max-w-72"
             opciones={[
               { valor: '', etiqueta: 'Todos' },
               ...proyectos.map((proyecto) => ({
@@ -184,6 +191,7 @@ export default async function EquipoPage({ searchParams }: Props) {
             name="estado"
             valorInicial={estadoFiltro ?? ''}
             className="py-1.5 text-sm"
+            classNameContenedor="w-full md:w-56"
             opciones={[
               { valor: '', etiqueta: 'Todos' },
               ...ESTADOS_CUMPLIMIENTO.map((estado) => ({
@@ -192,7 +200,7 @@ export default async function EquipoPage({ searchParams }: Props) {
               })),
             ]}
           />
-          <button type="submit" className="boton-secundario boton-campo px-3 text-xs">
+          <button type="submit" className="boton-secundario boton-campo w-full px-3 text-xs sm:w-auto">
             Filtrar
           </button>
         </form>

@@ -48,7 +48,10 @@ export function ResumenSemana({
         : mensaje || 'Todo guardado'
 
   return (
-    <section className="superficie-hero cifra p-4 sm:p-5" aria-label="Resumen de la semana">
+    <section
+      className="superficie-hero cifra sticky top-cabecera-movil z-20 p-4 shadow-lg md:static md:p-5 md:shadow-sm"
+      aria-label="Resumen de la semana"
+    >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-xs font-semibold tracking-widest text-acento-300 uppercase">

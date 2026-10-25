@@ -113,7 +113,7 @@ export function AccionesLote({
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center">
       {aprobables.length > 0 ? (
         <button
           type="button"
@@ -121,7 +121,7 @@ export function AccionesLote({
           onClick={() =>
             ejecutar(() => aprobarEnviadosAction({ partes: aprobables, isoYear, isoWeek }))
           }
-          className="boton-primario boton-campo px-3 text-xs"
+          className="boton-primario boton-campo w-full px-3 text-xs sm:w-auto"
         >
           Aprobar los {aprobables.length} enviados
         </button>
@@ -132,7 +132,7 @@ export function AccionesLote({
           type="button"
           disabled={pendiente}
           onClick={() => ejecutar(() => recordarUsuariosAction({ usuarioIds: recordables, isoYear, isoWeek }))}
-          className="boton-secundario boton-campo px-3 text-xs"
+          className="boton-secundario boton-campo w-full px-3 text-xs sm:w-auto"
         >
           Recordar a los {recordables.length} pendientes
         </button>

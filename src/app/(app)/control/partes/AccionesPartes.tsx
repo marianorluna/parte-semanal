@@ -79,10 +79,10 @@ export function AccionesPartes({
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center">
       {aprobables.length > 0 ? (
         confirmando ? (
-          <div className="flex flex-wrap items-center gap-2 rounded-md bg-white/10 p-1.5 ring-1 ring-white/20">
+          <div className="flex w-full flex-wrap items-center gap-2 rounded-md bg-white/10 p-1.5 ring-1 ring-white/20 sm:w-auto">
             <span className="px-1 text-xs font-medium text-white">
               ¿Aprobar {aprobables.length} {aprobables.length === 1 ? 'parte' : 'partes'}?
             </span>
@@ -90,7 +90,7 @@ export function AccionesPartes({
               type="button"
               onClick={aprobarTodos}
               disabled={pendiente}
-              className="inline-flex min-h-9 cursor-pointer items-center gap-1.5 rounded bg-acento-500 px-3 text-xs font-bold text-marca-950 hover:bg-acento-400 disabled:opacity-50"
+              className="inline-flex min-h-9 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded bg-acento-500 px-3 text-xs font-bold text-marca-950 hover:bg-acento-400 disabled:opacity-50 sm:flex-none"
             >
               <Icono nombre="check" className="h-4 w-4" />
               {pendiente ? 'Aprobando...' : 'Sí, aprobar'}
@@ -99,7 +99,7 @@ export function AccionesPartes({
               type="button"
               onClick={() => setConfirmando(false)}
               disabled={pendiente}
-              className="inline-flex min-h-9 cursor-pointer items-center rounded px-2 text-xs font-semibold text-marca-100 hover:bg-white/10 disabled:opacity-50"
+              className="inline-flex min-h-9 flex-1 cursor-pointer items-center justify-center rounded px-2 text-xs font-semibold text-marca-100 hover:bg-white/10 disabled:opacity-50 sm:flex-none"
             >
               Cancelar
             </button>
@@ -112,6 +112,7 @@ export function AccionesPartes({
             variante="primario"
             oscuro
             disabled={pendiente}
+            className="w-full sm:w-auto"
             onClick={() => {
               setEstado(null)
               setConfirmando(true)
@@ -128,6 +129,7 @@ export function AccionesPartes({
           variante="secundario"
           oscuro
           disabled={pendiente}
+          className="w-full sm:w-auto"
           onClick={recordar}
         />
       ) : null}

@@ -18,6 +18,7 @@ import { Icono } from '@/components/Iconos'
 import { EnlaceIcono } from '@/components/AccionesIcono'
 import { guardarSemanaAction, enviarSemanaAction } from './actions'
 import { ModalEnvio } from './ModalEnvio'
+import { AjusteManual } from './AjusteManual'
 import { PanelRapido, type ResultadoAnadir } from './PanelRapido'
 import { ModoCargaRapida, type CopiaDisponible } from './ModoCargaRapida'
 import { ResumenSemana } from './ResumenSemana'
@@ -562,8 +563,6 @@ export function RejillaSemanal({
                 grupos={grupos}
                 deshabilitado={deshabilitado}
                 totalDia={totalDia}
-                diaSeleccionado={diaAjuste}
-                onSeleccionarDia={setDiaAjuste}
                 onRellenarDias={rellenarDias}
                 copia={{
                   origen: copiaSemanaAnterior.origen,
@@ -576,17 +575,16 @@ export function RejillaSemanal({
                 onDeshacer={deshacerUltimo}
               />
 
-              <PanelRapido
-                key={diaAjuste}
+              <AjusteManual
                 dias={dias}
                 grupos={grupos}
-                diaInicial={diaAjuste}
+                diaSeleccionado={diaAjuste}
                 deshabilitado={deshabilitado}
-                puedeDeshacer={deshacer !== null}
+                totalDia={totalDia}
+                onSeleccionarDia={setDiaAjuste}
                 onAnadir={anadirRapido}
-                onRellenarSemana={rellenarSemana}
+                puedeDeshacer={deshacer !== null}
                 onDeshacer={deshacerUltimo}
-                compacto
               />
 
               <p className="text-[11px] text-slate-500">

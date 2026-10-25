@@ -35,6 +35,16 @@
   --color-acento-950: #00261f;
 }
 
+/*
+ * Alto de la cabecera fija en móvil (contenido de 36 px + 16 px de relleno +
+ * 2 px de borde). Lo consumen los bloques que se pegan justo debajo, como el
+ * resumen verde de Mi Semana: si cambia la cabecera, cambia este valor y los
+ * dos elementos siguen alineados sin números mágicos repartidos por el código.
+ */
+@theme {
+  --spacing-cabecera-movil: 3.375rem;
+}
+
 @layer base {
   html {
     -webkit-text-size-adjust: 100%;
@@ -157,8 +167,11 @@
     padding-bottom: env(safe-area-inset-bottom);
   }
 
+  /* Píldora de estado: el texto se centra y nunca se parte. El padding
+     vertical reserva el aire necesario para que una etiqueta de dos palabras
+     no quede pegada al borde redondeado. */
   .etiqueta {
-    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
+    @apply inline-flex items-center justify-center rounded-full px-2.5 py-1 text-center text-xs leading-none font-medium whitespace-nowrap;
   }
 
   /* Variante para superficies oscuras (cabecera y menú lateral): el pulgar

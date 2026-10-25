@@ -14,6 +14,7 @@ import {
 import { EnlaceIcono } from '@/components/AccionesIcono'
 import { Icono } from '@/components/Iconos'
 import { MenuExportar } from '@/components/MenuExportar'
+import { TarjetaColapsable } from '@/components/TarjetaColapsable'
 import { nombreArchivo } from '@/modules/reporting/infrastructure/exportadores/comun'
 
 export type MetricasDashboard = {
@@ -50,21 +51,21 @@ const TILE: Record<Severidad, { caja: string; pastilla: string; icono: string }>
 function TileMetrica({ tile }: { tile: Tile }) {
   const clases = TILE[tile.severidad]
   const contenido = (
-    <div className={`flex h-full flex-col justify-between rounded-lg border p-3 ${clases.caja}`}>
+    <div className={`flex h-full flex-col rounded-lg border p-3 ${clases.caja}`}>
       <div className="flex items-start justify-between gap-1">
         <p className="text-[11px] leading-tight font-medium tracking-wide text-white/80 uppercase">
           {tile.etiqueta}
         </p>
         <Icono nombre={tile.icono} className={`h-4 w-4 ${clases.icono}`} />
       </div>
-      <div className="mt-2">
-        <p className="cifra text-2xl leading-none font-bold text-white sm:text-3xl">{tile.valor}</p>
-        <p className="mt-1 flex flex-wrap items-center gap-1 text-[11px] leading-tight text-marca-100">
-          <span>{tile.detalle}</span>
-          {tile.severidad !== 'NEUTRO' ? (
-            <span className={`etiqueta ${clases.pastilla}`}>{ETIQUETAS_SEVERIDAD[tile.severidad]}</span>
-          ) : null}
-        </p>
+      <p className="cifra mt-2 text-2xl leading-none font-bold text-white sm:text-3xl">{tile.valor}</p>
+      <p className="mt-1 text-[11px] leading-tight text-marca-100">{tile.detalle}</p>
+      {/* Reserva la altura de la píldora también cuando no hay aviso: así las
+          cuatro tarjetas comparten la misma retícula vertical. */}
+      <div className="mt-auto flex min-h-5 items-start pt-1.5">
+        {tile.severidad !== 'NEUTRO' ? (
+          <span className={`etiqueta ${clases.pastilla}`}>{ETIQUETAS_SEVERIDAD[tile.severidad]}</span>
+        ) : null}
       </div>
     </div>
   )
@@ -208,7 +209,7 @@ export function ResumenDashboard({
           </span>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="grid grid-cols-3 gap-2">
           <EnlaceIcono
             href="/control/partes?estado=ENVIADO"
             icono="bandeja"
@@ -217,10 +218,19 @@ export function ResumenDashboard({
             contador={metricas.pendientes}
             variante="primario"
             oscuro
+            className="w-full"
           />
-          <EnlaceIcono href="/control/equipo" icono="usuarios" etiqueta="Equipo" variante="secundario" oscuro />
+          <EnlaceIcono
+            href="/control/equipo"
+            icono="usuarios"
+            etiqueta="Equipo"
+            variante="secundario"
+            oscuro
+            className="w-full"
+          />
           <MenuExportar
             oscuro
+            anchoCompleto
             acciones={[
               {
                 formato: 'Excel',
@@ -243,22 +253,29 @@ export function ResumenDashboard({
         </div>
       </section>
 
-      <section className="tarjeta p-4" aria-labelledby="necesitan-ayuda">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 id="necesitan-ayuda" className="flex items-center gap-1.5 text-sm font-semibold text-slate-900">
+      <TarjetaColapsable
+        titulo={
+          <span className="flex items-center gap-1.5">
             <Icono nombre="alerta" className="h-4 w-4 text-amber-600" />
             Necesitan ayuda
             {personas.length > 0 ? (
               <span className="etiqueta bg-amber-100 text-amber-800">{personas.length}</span>
             ) : null}
-          </h2>
+          </span>
+        }
+        resumen={
+          personas.length === 0
+            ? 'Nadie tiene el parte pendiente esta semana'
+            : `${personas.length} ${personas.length === 1 ? 'persona necesita' : 'personas necesitan'} atención`
+        }
+        accion={
           <Link href="/control/equipo" className="text-xs font-medium text-marca-700 hover:underline">
             Abrir equipo
           </Link>
-        </div>
-
+        }
+      >
         {urgentes.length === 0 ? (
-          <p className="mt-3 flex items-center gap-2 rounded-md bg-acento-50 px-3 py-2 text-sm text-acento-900">
+          <p className="flex items-center gap-2 rounded-md bg-acento-50 px-3 py-2 text-sm text-acento-900">
             <Icono nombre="check" className="h-4 w-4" />
             Nadie tiene el parte pendiente en esta semana.
           </p>
@@ -326,7 +343,7 @@ export function ResumenDashboard({
           })}
           <span className="ml-auto text-slate-500">{cumplimiento.total} personas en tu ámbito</span>
         </div>
-      </section>
+      </TarjetaColapsable>
     </>
   )
 }

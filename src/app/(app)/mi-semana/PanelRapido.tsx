@@ -17,10 +17,13 @@ type Props = {
   deshabilitado: boolean
   puedeDeshacer: boolean
   onAnadir: (fecha: string, tareaId: string, minutos: number) => ResultadoAnadir
-  onRellenarSemana: (tareaId: string, minutos: number) => ResultadoAnadir
+  /** Sólo hace falta en el modo detalle; el compacto no rellena la semana. */
+  onRellenarSemana?: (tareaId: string, minutos: number) => ResultadoAnadir
   onDeshacer: () => void
   /** Variante para el modo rápido: título de un día y sin relleno semanal. */
   compacto?: boolean
+  /** Sin borde ni relleno propios: el bloque ya vive dentro de otra tarjeta. */
+  sinTarjeta?: boolean
 }
 
 const PRESETS = [4, 7, 7.5, 8, 9] as const
@@ -43,6 +46,7 @@ export function PanelRapido({
   onRellenarSemana,
   onDeshacer,
   compacto = false,
+  sinTarjeta = false,
 }: Props) {
   const [fecha, setFecha] = useState(() => {
     const solicitado = dias.find((candidato) => candidato.fecha === diaInicial && candidato.laborable)
@@ -112,6 +116,8 @@ export function PanelRapido({
     setMensaje('')
     setError('')
 
+    if (!onRellenarSemana) return
+
     const parseado = horasAMinutos(horas)
     if (!parseado.ok) {
       setError(parseado.error)
@@ -140,9 +146,15 @@ export function PanelRapido({
   const dia = dias.find((candidato) => candidato.fecha === fecha) ?? dias[0]
 
   return (
-    <section className="tarjeta p-3 sm:p-4" aria-labelledby="carga-rapida-titulo">
+    <section
+      className={sinTarjeta ? '' : 'tarjeta p-3 sm:p-4'}
+      aria-labelledby={sinTarjeta ? undefined : 'carga-rapida-titulo'}
+    >
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-        <h2 id="carga-rapida-titulo" className="text-sm font-semibold text-slate-900">
+        <h2
+          id={sinTarjeta ? undefined : 'carga-rapida-titulo'}
+          className="text-sm font-semibold text-slate-900"
+        >
           {compacto ? 'Añadir horas a este día' : 'Añadir horas'}
         </h2>
         <p className="text-xs text-slate-500">

@@ -26,8 +26,6 @@ type Props = {
   grupos: GrupoProyecto[]
   deshabilitado: boolean
   totalDia: Record<string, number>
-  diaSeleccionado: string
-  onSeleccionarDia: (fecha: string) => void
   onRellenarDias: (fechas: string[], tareaId: string, minutos: number) => ResultadoAnadir
   copia: CopiaDisponible
   onCopiarSemana: () => ResultadoAnadir
@@ -37,16 +35,14 @@ type Props = {
 
 /**
  * Modo de carga rápida: elegir proyecto, tarea y horas, y aplicarlas a los
- * días laborables marcados. La idea es resolver la semana en tres toques, y
- * dejar el ajuste fino a la tira de días que hay debajo.
+ * días laborables marcados. La idea es resolver la semana en tres toques; el
+ * ajuste fino de un día concreto vive en `AjusteManual`.
  */
 export function ModoCargaRapida({
   dias,
   grupos,
   deshabilitado,
   totalDia,
-  diaSeleccionado,
-  onSeleccionarDia,
   onRellenarDias,
   copia,
   onCopiarSemana,
@@ -387,49 +383,6 @@ export function ModoCargaRapida({
               no asignada o día no laborable.
             </p>
           ) : null}
-        </div>
-      </section>
-
-      <section className="tarjeta p-3 sm:p-4" aria-labelledby="ajustar-dia-titulo">
-        <div className="mb-2 flex items-baseline justify-between gap-2">
-          <h2 id="ajustar-dia-titulo" className="text-sm font-semibold text-slate-900">
-            Ajustar un día
-          </h2>
-          <p className="text-[11px] text-slate-500">Toca el día que quieras corregir</p>
-        </div>
-        <div className="grid grid-cols-7 gap-1" role="group" aria-label="Días de la semana">
-          {dias.map((dia) => {
-            const activo = dia.fecha === diaSeleccionado
-            const minutosDia = totalDia[dia.fecha] ?? 0
-            return (
-              <button
-                key={dia.fecha}
-                type="button"
-                onClick={() => onSeleccionarDia(dia.fecha)}
-                aria-pressed={activo}
-                title={dia.motivo ?? undefined}
-                className={`flex min-h-16 min-w-0 flex-col items-center justify-center rounded-md border px-0.5 py-1 transition-colors ${
-                  activo
-                    ? 'border-marca-700 bg-marca-700 text-white'
-                    : dia.esHoy
-                      ? 'border-acento-400 bg-acento-50 text-marca-900'
-                      : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-100'
-                } ${dia.laborable ? '' : 'opacity-60'}`}
-              >
-                <span className="text-[11px] font-semibold capitalize">{dia.dia}</span>
-                <span className={`cifra text-[11px] ${activo ? 'text-marca-100' : 'text-slate-500'}`}>
-                  {dia.fecha.slice(8, 10)}
-                </span>
-                <span
-                  className={`cifra text-[11px] font-bold ${
-                    minutosDia > 0 ? (activo ? 'text-white' : 'text-marca-800') : activo ? 'text-marca-200' : 'text-slate-300'
-                  }`}
-                >
-                  {minutosDia > 0 ? formatearHorasReloj(minutosDia) : '·'}
-                </span>
-              </button>
-            )
-          })}
         </div>
       </section>
     </div>

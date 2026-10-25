@@ -17,9 +17,48 @@ import {
   grupoActivo,
   type ItemNav,
 } from './navegacion-modelo'
-import { Icono } from '@/components/Iconos'
+import { Icono, type NombreIcono } from '@/components/Iconos'
+import { Marca } from '@/components/Marca'
 
 export type { EnlaceNav, GrupoNav, ItemNav } from './navegacion-modelo'
+
+/** Icono de cada sección; el mapa evita tocar el modelo de navegación. */
+const ICONOS_RUTA: Record<string, NombreIcono> = {
+  '/mi-semana': 'calendario',
+  '/mis-ausencias': 'reloj',
+  '/control/dashboard': 'grafico',
+  '/control/partes': 'bandeja',
+  '/control/equipo': 'usuarios',
+  '/control/ausencias': 'reloj',
+  '/control/proyectos': 'alerta',
+  '/admin/usuarios': 'usuarios',
+  '/admin/proyectos': 'hoja',
+  '/admin/calendario': 'calendario',
+  '/admin/convenios': 'documento',
+  '/admin/ausencias': 'reloj',
+  '/admin/costes': 'grafico',
+  '/admin/informes': 'documento',
+  '/admin/cierres': 'reloj',
+  '/admin/emails': 'campana',
+  '/admin/api': 'documento',
+  '/admin/auditoria': 'lupa',
+  '/admin/demo': 'rayo',
+}
+
+const ICONOS_GRUPO: Record<string, NombreIcono> = {
+  Control: 'bandeja',
+  Configuración: 'documento',
+  Análisis: 'grafico',
+  Sistema: 'campana',
+}
+
+function iconoDeRuta(href: string): NombreIcono {
+  return ICONOS_RUTA[href] ?? 'documento'
+}
+
+function iconoDeGrupo(etiqueta: string): NombreIcono {
+  return ICONOS_GRUPO[etiqueta] ?? 'documento'
+}
 
 function Contador({ valor }: { valor?: number }) {
   if (!valor || valor <= 0) return null
@@ -305,6 +344,10 @@ export function PanelMenu({
     }
   }, [onCerrar])
 
+  const directos = items.flatMap((item) => (esGrupo(item) ? [] : [item]))
+  const grupos = items.flatMap((item, indice) => (esGrupo(item) ? [{ grupo: item, indice }] : []))
+  const inicial = usuario.nombre.trim().charAt(0).toUpperCase()
+
   const panel = (
     <div className="fixed inset-0 z-50" role="presentation">
       <button
@@ -312,7 +355,7 @@ export function PanelMenu({
         aria-hidden="true"
         tabIndex={-1}
         onClick={onCerrar}
-        className="absolute inset-0 h-full w-full cursor-default bg-slate-950/50"
+        className="absolute inset-0 h-full w-full cursor-default bg-slate-950/60"
       />
       <div
         ref={panelRef}
@@ -320,71 +363,103 @@ export function PanelMenu({
         role="dialog"
         aria-modal="true"
         aria-label="Navegación principal"
-        className="absolute inset-y-0 right-0 flex w-80 max-w-[88vw] flex-col bg-marca-900 pb-[env(safe-area-inset-bottom)] text-white shadow-2xl"
+        className="absolute inset-y-0 right-0 flex w-80 max-w-[88vw] flex-col bg-linear-to-b from-marca-800 via-marca-900 to-marca-950 pb-[env(safe-area-inset-bottom)] text-white shadow-2xl ring-1 ring-white/10"
       >
-        <div className="flex items-center justify-between border-b border-marca-800 px-4 py-3">
-          <span className="text-xs font-semibold tracking-widest text-acento-300 uppercase">Menú</span>
+        <div className="flex items-start justify-between gap-3 border-b border-white/10 px-4 py-3">
+          <div className="min-w-0">
+            <Marca className="text-xs" />
+            <p className="mt-0.5 text-[11px] font-semibold tracking-widest text-marca-300 uppercase">
+              Navegación
+            </p>
+          </div>
           <button
             type="button"
             onClick={onCerrar}
-            className="inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-md border border-marca-600 text-white transition-colors hover:bg-marca-800"
+            className="inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-md text-marca-200 transition-colors hover:bg-white/10 hover:text-white"
             aria-label="Cerrar menú"
           >
             <Icono nombre="cerrar" className="h-5 w-5" />
           </button>
         </div>
 
-        <nav aria-label="Navegación principal" className="scroll-oscuro flex flex-1 flex-col gap-1 overflow-y-auto p-3">
-          {items.map((item, indice) => {
-            if (!esGrupo(item)) {
-              const activo = estaActivo(ruta, item.href)
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={onCerrar}
-                  aria-current={activo ? 'page' : undefined}
-                  className={`flex min-h-11 items-center justify-between gap-2 rounded-md px-3 py-2 text-base transition-colors ${
-                    activo
-                      ? 'bg-white font-semibold text-marca-900 shadow-sm'
-                      : 'font-medium text-marca-100 hover:bg-marca-800 hover:text-white'
-                  }`}
-                >
-                  {item.etiqueta}
-                  <Contador valor={item.contador} />
-                </Link>
-              )
-            }
+        <div className="border-b border-white/10 px-4 py-3">
+          <div className="flex items-center gap-3">
+            <span
+              aria-hidden="true"
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-acento-500/20 text-sm font-bold text-acento-200 ring-1 ring-acento-400/40"
+            >
+              {inicial}
+            </span>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-white">{usuario.nombre}</p>
+              <p className="text-xs text-marca-300">{usuario.rol}</p>
+            </div>
+          </div>
+        </div>
 
+        <nav aria-label="Navegación principal" className="scroll-oscuro flex-1 space-y-3 overflow-y-auto p-3">
+          {directos.length > 0 ? (
+            <ul className="overflow-hidden rounded-lg border border-white/10 bg-white/5 p-1">
+              {directos.map((item) => {
+                const activo = estaActivo(ruta, item.href)
+                return (
+                  <li key={item.href}>
+                    <Link
+                      href={item.href}
+                      onClick={onCerrar}
+                      aria-current={activo ? 'page' : undefined}
+                      className={`flex min-h-11 items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors ${
+                        activo
+                          ? 'bg-acento-500/15 font-semibold text-white ring-1 ring-acento-400/50 ring-inset'
+                          : 'font-medium text-marca-100 hover:bg-white/10 hover:text-white'
+                      }`}
+                    >
+                      <Icono
+                        nombre={iconoDeRuta(item.href)}
+                        className={`h-4 w-4 ${activo ? 'text-acento-300' : 'text-marca-300'}`}
+                      />
+                      <span className="min-w-0 flex-1 truncate">{item.etiqueta}</span>
+                      <Contador valor={item.contador} />
+                    </Link>
+                  </li>
+                )
+              })}
+            </ul>
+          ) : null}
+
+          {grupos.map(({ grupo, indice }) => {
             const clave = claveGrupo(indice)
             const expandido = gruposAbiertos.includes(clave)
             const panelId = `${clave}-movil`
-            const activo = grupoActivo(ruta, item)
+            const activo = grupoActivo(ruta, grupo)
 
             return (
-              <div key={clave} className="flex flex-col">
+              <div key={clave} className="overflow-hidden rounded-lg border border-white/10 bg-white/5">
                 <button
                   type="button"
                   aria-expanded={expandido}
                   aria-controls={expandido ? panelId : undefined}
                   aria-current={activo ? 'true' : undefined}
                   onClick={() => alternarGrupo(clave)}
-                  className={`flex min-h-11 cursor-pointer items-center justify-between gap-2 rounded-md px-3 py-2 text-base transition-colors ${
-                    activo
-                      ? 'bg-marca-800 font-semibold text-white'
-                      : 'font-medium text-marca-100 hover:bg-marca-800 hover:text-white'
+                  className={`flex min-h-11 w-full cursor-pointer items-center justify-between gap-2 px-3 py-2.5 transition-colors hover:bg-white/5 ${
+                    activo ? 'text-acento-200' : 'text-marca-200'
                   }`}
                 >
-                  <span className="min-w-0">{item.etiqueta}</span>
+                  <span className="flex min-w-0 items-center gap-2.5">
+                    <Icono nombre={iconoDeGrupo(grupo.etiqueta)} className="h-4 w-4 shrink-0" />
+                    <span className="truncate text-[11px] font-bold tracking-widest uppercase">
+                      {grupo.etiqueta}
+                    </span>
+                  </span>
                   <span className="flex shrink-0 items-center gap-2">
-                    <Contador valor={contadorVisible(item)} />
+                    <Contador valor={contadorVisible(grupo)} />
                     <Chevron abierto={expandido} />
                   </span>
                 </button>
 
                 {expandido ? (
-                  <div id={panelId} className="mt-1 ml-3 flex flex-col gap-1 border-l border-marca-700 pl-2">
-                    {item.enlaces.map((enlace) => {
+                  <div id={panelId} className="space-y-0.5 border-t border-white/10 p-1">
+                    {grupo.enlaces.map((enlace) => {
                       const enlaceActivo = estaActivo(ruta, enlace.href)
                       return (
                         <Link
@@ -392,18 +467,26 @@ export function PanelMenu({
                           href={enlace.href}
                           onClick={onCerrar}
                           aria-current={enlaceActivo ? 'page' : undefined}
-                          className={`flex min-h-11 flex-col justify-center gap-0.5 rounded-md px-3 py-2 transition-colors ${
+                          className={`flex min-h-11 flex-col justify-center gap-0.5 rounded-md px-2.5 py-2 transition-colors ${
                             enlaceActivo
-                              ? 'bg-white font-semibold text-marca-900 shadow-sm'
-                              : 'font-medium text-marca-100 hover:bg-marca-800 hover:text-white'
+                              ? 'bg-acento-500/15 text-white ring-1 ring-acento-400/50 ring-inset'
+                              : 'text-marca-100 hover:bg-white/10 hover:text-white'
                           }`}
                         >
-                          <span className="flex items-center justify-between gap-2 text-sm">
-                            {enlace.etiqueta}
+                          <span className="flex items-center justify-between gap-2 text-sm font-medium">
+                            <span className="flex min-w-0 items-center gap-2">
+                              <Icono
+                                nombre={iconoDeRuta(enlace.href)}
+                                className={`h-4 w-4 shrink-0 ${
+                                  enlaceActivo ? 'text-acento-300' : 'text-marca-300'
+                                }`}
+                              />
+                              <span className="truncate">{enlace.etiqueta}</span>
+                            </span>
                             <Contador valor={enlace.contador} />
                           </span>
                           {enlace.descripcion ? (
-                            <span className="text-xs leading-snug opacity-70">{enlace.descripcion}</span>
+                            <span className="pl-6 text-xs leading-snug text-marca-300">{enlace.descripcion}</span>
                           ) : null}
                         </Link>
                       )
@@ -415,13 +498,11 @@ export function PanelMenu({
           })}
         </nav>
 
-        <div className="border-t border-marca-800 p-3">
-          <p className="truncate text-sm font-medium text-white">{usuario.nombre}</p>
-          <p className="text-xs text-marca-300">{usuario.rol}</p>
-          <form action={cerrarSesion} className="mt-2">
+        <div className="border-t border-white/10 p-3">
+          <form action={cerrarSesion}>
             <button
               type="submit"
-              className="inline-flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-md border border-marca-600 px-3 text-sm font-semibold text-white hover:bg-marca-800"
+              className="inline-flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-md border border-white/15 px-3 text-sm font-semibold text-marca-100 transition-colors hover:bg-white/10 hover:text-white"
             >
               <Icono nombre="salir" />
               Salir

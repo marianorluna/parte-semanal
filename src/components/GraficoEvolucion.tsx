@@ -30,8 +30,13 @@ export function GraficoEvolucion({
   const area = `${margen},${alto - margen} ${trazo} ${(margen + (datos.length - 1) * paso).toFixed(1)},${alto - margen}`
 
   return (
-    <figure>
-      <svg viewBox={`0 0 ${ancho} ${alto}`} role="img" aria-label={etiqueta} className="w-full">
+    <figure className="m-0 min-w-0">
+      <svg
+        viewBox={`0 0 ${ancho} ${alto}`}
+        role="img"
+        aria-label={etiqueta}
+        className="block h-auto w-full"
+      >
         <polygon points={area} fill="rgb(0 84 83 / 0.12)" />
         <polyline points={trazo} fill="none" stroke="rgb(3 106 105)" strokeWidth="2" strokeLinejoin="round" />
         {puntos.map((punto) => (

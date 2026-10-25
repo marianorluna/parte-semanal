@@ -77,7 +77,7 @@ export function ResumenPartes({
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="grid w-full grid-cols-3 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center">
           <EnlaceIcono
             href={navegacion.anterior}
             icono="flecha-izquierda"
@@ -85,10 +85,11 @@ export function ResumenPartes({
             variante="secundario"
             oscuro
             soloIcono
+            className="w-full sm:w-auto"
           />
           <Link
             href={navegacion.actual}
-            className="inline-flex min-h-11 items-center rounded-md border border-marca-600 bg-marca-800/60 px-3 text-xs font-semibold text-white hover:bg-marca-700"
+            className="inline-flex min-h-11 w-full items-center justify-center rounded-md border border-marca-600 bg-marca-800/60 px-3 text-xs font-semibold text-white hover:bg-marca-700 sm:w-auto"
           >
             Esta semana
           </Link>
@@ -99,6 +100,7 @@ export function ResumenPartes({
             variante="secundario"
             oscuro
             soloIcono
+            className="w-full sm:w-auto"
           />
         </div>
       </div>

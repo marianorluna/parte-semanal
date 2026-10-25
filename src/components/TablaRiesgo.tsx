@@ -4,7 +4,7 @@ import { CLASES_RIESGO, type NivelRiesgo } from '@/modules/reporting/domain/ries
 import type { ProyectoConRiesgo } from '@/modules/reporting/application/panel'
 
 export function RiesgoBadge({ nivel, etiqueta }: { nivel: NivelRiesgo; etiqueta: string }) {
-  return <span className={`etiqueta ${CLASES_RIESGO[nivel]}`}>{etiqueta}</span>
+  return <span className={`etiqueta shrink-0 ${CLASES_RIESGO[nivel]}`}>{etiqueta}</span>
 }
 
 function porcentaje(valor: number | null): string {
@@ -85,8 +85,8 @@ export function TablaRiesgo({ filas }: { filas: ProyectoConRiesgo[] }) {
       <ul className="space-y-3 md:hidden">
         {filas.map((fila) => (
           <li key={fila.proyectoId} className="rounded-lg border border-slate-200 p-3">
-            <div className="flex items-start justify-between gap-2">
-              <Link href={`/control/proyectos/${fila.proyectoId}`} className="min-w-0 hover:text-marca-700">
+            <div className="flex items-start justify-between gap-3">
+              <Link href={`/control/proyectos/${fila.proyectoId}`} className="min-w-0 flex-1 hover:text-marca-700">
                 <span className="block truncate font-medium text-slate-900">
                   {fila.codigo} · {fila.nombre}
                 </span>

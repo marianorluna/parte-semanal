@@ -23,6 +23,7 @@ import {
 } from '@/modules/reporting/infrastructure/consultas'
 import { TablaRiesgo } from '@/components/TablaRiesgo'
 import { GraficoEvolucion } from '@/components/GraficoEvolucion'
+import { TarjetaColapsable } from '@/components/TarjetaColapsable'
 import { ResumenDashboard } from './ResumenDashboard'
 import { RecordarPendientes } from './AccionesResumen'
 
@@ -128,30 +129,37 @@ export default async function DashboardPage({ searchParams }: Props) {
         }
       />
 
-      <div className="tarjeta p-4">
-        <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+      <TarjetaColapsable
+        titulo={
+          <span className="flex flex-wrap items-center gap-2">
             Presupuesto y plazo por proyecto
             {proyectosEnRiesgo > 0 ? (
               <span className="etiqueta bg-red-100 text-red-800">{proyectosEnRiesgo} en riesgo</span>
             ) : (
               <span className="etiqueta bg-acento-100 text-acento-800">Todo en ritmo</span>
             )}
-          </h2>
+          </span>
+        }
+        resumen={`${panel.filas.filter((fila) => fila.activo).length} proyectos activos · ${
+          proyectosEnRiesgo > 0 ? `${proyectosEnRiesgo} en riesgo` : 'sin desviaciones'
+        }`}
+        accion={
           <Link href="/control/proyectos" className="text-xs font-medium text-marca-700 hover:underline">
             Ver detalle
           </Link>
-        </div>
+        }
+      >
         <TablaRiesgo filas={panel.filas} />
-      </div>
+      </TarjetaColapsable>
 
       <div className="grid gap-4 lg:grid-cols-5">
-        <div className="tarjeta p-4 lg:col-span-3">
-          <div className="mb-3 flex items-baseline justify-between">
-            <h2 className="text-sm font-semibold text-slate-900">Horas por proyecto</h2>
-            <span className="cifra text-xs text-slate-500">{formatearHorasReloj(totalProyectos)}</span>
-          </div>
-
+        <TarjetaColapsable
+          className="min-w-0 lg:col-span-3"
+          titulo="Horas por proyecto"
+          resumen={`${formatearHorasReloj(totalProyectos)} imputadas en ${porProyecto.length} ${
+            porProyecto.length === 1 ? 'proyecto' : 'proyectos'
+          }`}
+        >
           {porProyecto.length === 0 ? (
             <p className="py-6 text-center text-sm text-slate-500">Sin imputaciones esta semana.</p>
           ) : (
@@ -182,9 +190,9 @@ export default async function DashboardPage({ searchParams }: Props) {
               })}
             </ul>
           )}
-        </div>
+        </TarjetaColapsable>
 
-        <div className="tarjeta p-4 lg:col-span-2">
+        <div className="tarjeta min-w-0 p-4 lg:col-span-2">
           <h2 className="mb-3 text-sm font-semibold text-slate-900">Tendencia 8 semanas</h2>
           <GraficoEvolucion datos={evolucion} maximo={maximoSemana} />
           <ul className="mt-3 space-y-1 text-xs">

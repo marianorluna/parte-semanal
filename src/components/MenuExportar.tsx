@@ -31,9 +31,12 @@ const DURACION_AVISO_MS = 8000
 export function MenuExportar({
   acciones,
   oscuro = false,
+  anchoCompleto = false,
 }: {
   acciones: AccionExportacion[]
   oscuro?: boolean
+  /** El disparador llena su celda: se usa dentro de una retícula de acciones. */
+  anchoCompleto?: boolean
 }) {
   const detallesRef = useRef<HTMLDetailsElement>(null)
   const disparadorRef = useRef<HTMLElement>(null)
@@ -87,15 +90,19 @@ export function MenuExportar({
   }
 
   return (
-    <div className="flex max-md:basis-full flex-wrap items-center gap-2">
+    <div
+      className={`flex flex-wrap items-center gap-2 ${anchoCompleto ? 'w-full' : 'max-md:basis-full'}`}
+    >
       <details
         ref={detallesRef}
         onToggle={(evento) => setAbierto(evento.currentTarget.open)}
-        className="group relative max-md:basis-full"
+        className={`group relative ${anchoCompleto ? 'w-full' : 'max-md:basis-full'}`}
       >
         <summary
           ref={disparadorRef}
-          className={`${clasesAccion({ variante: 'secundario', oscuro })} cursor-pointer list-none select-none [&::-webkit-details-marker]:hidden`}
+          className={`${clasesAccion({ variante: 'secundario', oscuro })} cursor-pointer list-none select-none [&::-webkit-details-marker]:hidden ${
+            anchoCompleto ? 'w-full' : ''
+          }`}
         >
           <Icono nombre="descarga" className="h-5 w-5" />
           <span className="text-center md:text-left">Exportar</span>
@@ -105,7 +112,7 @@ export function MenuExportar({
           />
         </summary>
 
-        <div className="absolute inset-x-0 z-20 mt-1 overflow-hidden rounded-md border border-marca-100 bg-white shadow-lg md:inset-x-auto md:right-0 md:w-72">
+        <div className="absolute right-0 z-20 mt-1 w-72 max-w-[calc(100vw-2rem)] overflow-hidden rounded-md border border-marca-100 bg-white shadow-lg">
           <ul className="divide-y divide-marca-50">
             {acciones.map((accion) => (
               <li key={accion.formato}>

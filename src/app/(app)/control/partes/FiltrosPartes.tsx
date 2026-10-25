@@ -28,14 +28,14 @@ export function FiltrosPartes({
 
   return (
     <div className="tarjeta p-3">
-      <div className="flex items-center justify-between gap-2 md:hidden">
-        <button
-          type="button"
-          onClick={() => setAbierto((valor) => !valor)}
-          aria-expanded={abierto}
-          aria-controls="filtros-partes"
-          className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-md border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-700"
-        >
+      <button
+        type="button"
+        onClick={() => setAbierto((valor) => !valor)}
+        aria-expanded={abierto}
+        aria-controls="filtros-partes"
+        className="flex min-h-11 w-full cursor-pointer items-center justify-between gap-2 rounded-md border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-700 md:hidden"
+      >
+        <span className="flex items-center gap-2">
           <Icono nombre="filtro" />
           Filtros
           {activos > 0 ? (
@@ -43,14 +43,12 @@ export function FiltrosPartes({
               {activos}
             </span>
           ) : null}
-        </button>
-        <a
-          href="#bandeja"
-          className="inline-flex min-h-11 items-center text-xs font-medium text-marca-700 hover:underline"
-        >
-          Ir a la lista
-        </a>
-      </div>
+        </span>
+        <Icono
+          nombre="desplegable"
+          className={`h-4 w-4 text-slate-500 transition-transform ${abierto ? 'rotate-180' : ''}`}
+        />
+      </button>
 
       <form
         id="filtros-partes"
@@ -65,6 +63,7 @@ export function FiltrosPartes({
           name="estado"
           valorInicial={estado}
           className="py-1.5 text-sm"
+          classNameContenedor="w-full md:w-56"
           opciones={[
             { valor: '', etiqueta: 'Todos' },
             ...ESTADOS.map((valor) => ({ valor, etiqueta: etiquetaEstado(valor) })),
@@ -74,7 +73,8 @@ export function FiltrosPartes({
           etiqueta="Proyecto"
           name="proyecto"
           valorInicial={proyecto}
-          className="max-w-64 py-1.5 text-sm"
+          className="py-1.5 text-sm"
+          classNameContenedor="w-full md:max-w-72 md:flex-1"
           opciones={[
             { valor: '', etiqueta: 'Todos' },
             ...proyectos.map((fila) => ({

@@ -11,6 +11,7 @@ import { TablaPartes } from './TablaPartes'
 import { ResumenPartes } from './ResumenPartes'
 import { AccionesPartes } from './AccionesPartes'
 import { FiltrosPartes } from './FiltrosPartes'
+import { BandejaPartes } from './BandejaPartes'
 
 export const dynamic = 'force-dynamic'
 
@@ -134,47 +135,49 @@ export default async function ControlPartesPage({ searchParams }: Props) {
         activos={filtrosActivos}
       />
 
-      <div id="bandeja" className="scroll-mt-24">
-        {resultado.filas.length === 0 ? (
-          <div className="tarjeta p-10 text-center">
-            <p className="text-sm text-slate-600">No hay partes con estos filtros.</p>
-          </div>
-        ) : (
-          <TablaPartes
-            filas={resultado.filas.map((fila) => ({
-              id: fila.id,
-              version: fila.version,
-              empleadoNombre: fila.empleadoNombre,
-              empleadoCodigo: fila.empleadoCodigo,
-              totalMinutos: fila.totalMinutos,
-              estado: fila.estado,
-              motivoRechazo: fila.motivoRechazo,
-            }))}
-          />
-        )}
-      </div>
+      <BandejaPartes total={resultado.total} abiertaInicial={pagina > 1 || filtrosActivos > 0}>
+        <div id="bandeja" className="scroll-mt-24">
+          {resultado.filas.length === 0 ? (
+            <div className="tarjeta p-10 text-center">
+              <p className="text-sm text-slate-600">No hay partes con estos filtros.</p>
+            </div>
+          ) : (
+            <TablaPartes
+              filas={resultado.filas.map((fila) => ({
+                id: fila.id,
+                version: fila.version,
+                empleadoNombre: fila.empleadoNombre,
+                empleadoCodigo: fila.empleadoCodigo,
+                totalMinutos: fila.totalMinutos,
+                estado: fila.estado,
+                motivoRechazo: fila.motivoRechazo,
+              }))}
+            />
+          )}
+        </div>
 
-      {totalPaginas > 1 ? (
-        <nav aria-label="Paginación" className="flex flex-wrap items-center justify-center gap-2">
-          {Array.from({ length: totalPaginas }, (_, indice) => indice + 1).map((numero) => (
-            <Link
-              key={numero}
-              href={query({ pagina: String(numero) })}
-              aria-current={numero === pagina ? 'page' : undefined}
-              className={`inline-flex min-h-11 min-w-11 items-center justify-center rounded px-3 text-sm ${
-                numero === pagina ? 'bg-marca-700 text-white' : 'bg-white text-slate-700 ring-1 ring-slate-300'
-              }`}
-            >
-              {numero}
-            </Link>
-          ))}
-        </nav>
-      ) : null}
+        {totalPaginas > 1 ? (
+          <nav aria-label="Paginación" className="flex flex-wrap items-center justify-center gap-2">
+            {Array.from({ length: totalPaginas }, (_, indice) => indice + 1).map((numero) => (
+              <Link
+                key={numero}
+                href={query({ pagina: String(numero) })}
+                aria-current={numero === pagina ? 'page' : undefined}
+                className={`inline-flex min-h-11 min-w-11 items-center justify-center rounded px-3 text-sm ${
+                  numero === pagina ? 'bg-marca-700 text-white' : 'bg-white text-slate-700 ring-1 ring-slate-300'
+                }`}
+              >
+                {numero}
+              </Link>
+            ))}
+          </nav>
+        ) : null}
 
-      <p className="text-xs text-slate-500">
-        Solo ves partes de los proyectos que tienes asignados. Los borradores se pueden consultar, pero no aprobar
-        hasta que el trabajador los envíe.
-      </p>
+        <p className="text-xs text-slate-500">
+          Solo ves partes de los proyectos que tienes asignados. Los borradores se pueden consultar, pero no aprobar
+          hasta que el trabajador los envíe.
+        </p>
+      </BandejaPartes>
     </section>
   )
 }
