@@ -43,7 +43,10 @@ Las versiones exactas de dependencias viven en manifiestos y lockfiles; aquí se
   - Un parte aprobado no se edita: se reabre con motivo y queda auditado.
   - `total_minutos` se calcula siempre en el servidor; el cliente no lo envía.
   - Un `ENCARGADO` solo ve y aprueba partes de los proyectos asignados; un `TRABAJADOR` solo los suyos.
-  - Una imputación no puede ser 0, negativa ni superar 24 h/día. El aviso de exceso semanal se muestra, no bloquea.
+  - Una imputación no puede ser 0, negativa ni superar 24 h/día. El aviso de exceso semanal se muestra y no bloquea.
+- Si una semana ya terminada no cuadra con la jornada teórica, el envío exige un motivo declarado (10-500 caracteres). El parte congela capacidad, desviación firmada y motivo; el borrador, el rechazo y la reapertura los limpian (ADR-020).
+- El defecto de horas es una métrica firmada en el parte, nunca una imputación negativa ni una tarea `DEFECTO`.
+- Existe como máximo un proyecto interno de ajuste (`es_ajuste`) por empresa. Absorbe las horas que no son de un proyecto real, se excluye del semáforo de presupuesto y de las alertas de riesgo, y sigue sumando en las horas y el coste totales como fila "Ajuste".
 - **Integraciones previstas:** exportación a nómina y contabilidad (CSV de A3/Sage o API), fichaje y control de accesos, ERP y BI. Siempre mediante adaptadores: el dominio no conoce formatos externos.
 - **Deuda / limitaciones conocidas:**
   - Sin registro legal de jornada (art. 34.9 ET): el MVP registra imputación, no fichaje. Fase 3.

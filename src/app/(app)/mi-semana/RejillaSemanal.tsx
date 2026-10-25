@@ -13,6 +13,7 @@ import {
   sumarMinutos,
 } from '@/modules/partes/domain/horas'
 import { formatearRango } from '@/modules/partes/domain/fechas'
+import { evaluarDesviacion, requiereJustificacion } from '@/modules/partes/domain/desviacion'
 import { EstadoBadge } from '@/components/EstadoBadge'
 import { Icono } from '@/components/Iconos'
 import { EnlaceIcono } from '@/components/AccionesIcono'
@@ -58,6 +59,8 @@ type Props = {
   navegacion: { anterior: string; siguiente: string; actual: string }
   nombreEmpleado: string
   calendario: { capacidadMin: number | null; porDefecto: boolean }
+  /** La semana ya terminó: la desviación exige motivo declarado. */
+  semanaCerrada: boolean
 }
 
 function clave(fecha: string, tareaId: string): string {
@@ -108,6 +111,7 @@ export function RejillaSemanal({
   navegacion,
   nombreEmpleado,
   calendario,
+  semanaCerrada,
 }: Props) {
   const router = useRouter()
   const [valores, setValores] = useState<Record<string, string>>(inicial)
@@ -205,7 +209,9 @@ export function RejillaSemanal({
   }
   if (total > 48 * 60) avisos.push('La semana supera 48 horas')
   const hayErrores = celdas.some((celda) => celda.error !== null)
-  const desviacion = calendario.capacidadMin === null ? null : total - calendario.capacidadMin
+  const desviacion = evaluarDesviacion(total, calendario.capacidadMin)
+  const desviacionMin = desviacion.diferenciaMin
+  const exigeMotivo = requiereJustificacion(desviacion, { semanaCerrada })
 
   // Con un valor inválido o un conflicto de versión no se permite guardar:
   // el parte quedaría con datos erróneos o sobre una versión obsoleta.
@@ -454,14 +460,20 @@ export function RejillaSemanal({
     )
   }
 
-  function enviar() {
+  function enviar(motivoDesviacion: string) {
     iniciarEnvio(async () => {
       const versionGuardada = await guardar()
       if (versionGuardada === null) return
 
-      const respuesta = await enviarSemanaAction({ isoYear, isoWeek, version: versionGuardada })
+      const respuesta = await enviarSemanaAction({
+        isoYear,
+        isoWeek,
+        version: versionGuardada,
+        motivoDesviacion: motivoDesviacion.trim() || undefined,
+      })
       if (!respuesta.success) {
-        setError(respuesta.error.message)
+        // El motivo es el error más probable en este paso: se muestra tal cual.
+        setError(respuesta.error.fieldErrors?.motivoDesviacion ?? respuesta.error.message)
         return
       }
 
@@ -548,7 +560,8 @@ export function RejillaSemanal({
             total={total}
             capacidadMin={calendario.capacidadMin}
             porDefecto={calendario.porDefecto}
-            desviacion={desviacion}
+            desviacion={desviacionMin}
+            exigeMotivo={exigeMotivo}
             estado={estado}
             guardando={guardando}
             mensaje={mensaje}
@@ -867,6 +880,9 @@ export function RejillaSemanal({
           celdas={celdas}
           avisos={avisos}
           total={total}
+          capacidadMin={calendario.capacidadMin}
+          desviacion={desviacionMin}
+          exigeMotivo={exigeMotivo}
           onCerrar={() => setModalAbierto(false)}
           onConfirmar={enviar}
         />

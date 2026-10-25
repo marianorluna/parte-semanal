@@ -67,6 +67,7 @@ export default async function AdminProyectoDetallePage({ params }: Props) {
               horasPresupuesto: proyecto.horasPresupuesto,
               fechaInicio: proyecto.fechaInicio,
               fechaFin: proyecto.fechaFin,
+              esAjuste: proyecto.esAjuste,
             }}
           />
         </div>

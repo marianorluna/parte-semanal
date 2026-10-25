@@ -27,6 +27,8 @@ export type ProyectoApi = {
   codigo: string
   nombre: string
   activo: boolean
+  /** Proyecto interno de ajuste: excluirlo al cruzar con presupuestos. */
+  esAjuste: boolean
 }
 
 export type FiltrosPartes = {
@@ -78,6 +80,7 @@ export async function listarProyectosApi(empresaId: string): Promise<ProyectoApi
       codigo: proyecto.codigo,
       nombre: proyecto.nombre,
       activo: proyecto.activo,
+      esAjuste: proyecto.esAjuste,
     })
     .from(proyecto)
     .where(eq(proyecto.empresaId, empresaId))

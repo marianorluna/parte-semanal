@@ -138,6 +138,11 @@ export const proyecto = pgTable(
     // desviación temporal (ver ADR-011).
     fechaInicio: date('fecha_inicio'),
     fechaFin: date('fecha_fin'),
+    /**
+     * Proyecto interno de ajuste: absorbe las horas que no corresponden a un
+     * proyecto real. Queda fuera del semáforo de presupuesto (ADR-020).
+     */
+    esAjuste: boolean('es_ajuste').notNull().default(false),
     activo: boolean('activo').notNull().default(true),
     createdAt,
   },
@@ -145,6 +150,11 @@ export const proyecto = pgTable(
     index('proyecto_empresa_idx').on(t.empresaId),
     index('proyecto_empresa_activo_idx').on(t.empresaId, t.activo),
     check('proyecto_plazo_ck', sql`${t.fechaFin} is null or (${t.fechaInicio} is not null and ${t.fechaInicio} <= ${t.fechaFin})`),
+    // Un único comodín por empresa: dos proyectos de ajuste harían ambiguo el
+    // reparto de las horas no imputables.
+    uniqueIndex('proyecto_ajuste_empresa_uq')
+      .on(t.empresaId)
+      .where(sql`${t.esAjuste}`),
   ],
 )
 
@@ -517,6 +527,13 @@ export const parte = pgTable(
     // aunque después se editen festivos o excepciones.
     calendarioId: uuid('calendario_id').references(() => calendario.id, { onDelete: 'set null' }),
     calendarioVersion: integer('calendario_version'),
+    /**
+     * Snapshot de la jornada teórica al enviar, con la desviación firmada
+     * (negativa = faltan horas). La declaración caduca al volver a borrador.
+     */
+    capacidadMin: integer('capacidad_min'),
+    desviacionMin: integer('desviacion_min'),
+    motivoDesviacion: text('motivo_desviacion'),
     enviadoAt: timestamp('enviado_at', { withTimezone: true }),
     revisadoPor: uuid('revisado_por').references(() => usuario.id, { onDelete: 'set null' }),
     revisadoAt: timestamp('revisado_at', { withTimezone: true }),
@@ -530,6 +547,13 @@ export const parte = pgTable(
     index('parte_empresa_semana_idx').on(t.empresaId, t.isoYear, t.isoWeek),
     check('parte_semana_ck', sql`${t.isoWeek} between 1 and 53`),
     check('parte_total_ck', sql`${t.totalMinutos} >= 0`),
+    // El motivo solo tiene sentido con una capacidad conocida. Que una
+    // desviación distinta de cero exija motivo depende de si la semana ya
+    // terminó, y eso el motor no lo puede evaluar: lo impone la aplicación.
+    check(
+      'parte_desviacion_ck',
+      sql`(${t.motivoDesviacion} is null or ${t.capacidadMin} is not null) and (${t.capacidadMin} is null or ${t.capacidadMin} >= 0)`,
+    ),
   ],
 )
 

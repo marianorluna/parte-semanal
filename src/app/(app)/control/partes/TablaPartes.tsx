@@ -18,6 +18,9 @@ export type FilaParte = {
   totalMinutos: number
   estado: EstadoParte
   motivoRechazo: string | null
+  /** Imputado menos jornada teórica; negativo = defecto. */
+  desviacionMin: number | null
+  motivoDesviacion: string | null
 }
 
 export function TablaPartes({ filas }: { filas: FilaParte[] }) {
@@ -196,7 +199,13 @@ export function TablaPartes({ filas }: { filas: FilaParte[] }) {
                   </Link>
                   <span className="block text-xs text-slate-500">{fila.empleadoCodigo}</span>
                 </td>
-                <td className="px-3 py-2 font-mono">{formatearHorasReloj(fila.totalMinutos)}</td>
+                <td className="px-3 py-2 font-mono">
+                  {formatearHorasReloj(fila.totalMinutos)}
+                  <IndicadorDesviacion
+                    desviacionMin={fila.desviacionMin}
+                    motivo={fila.motivoDesviacion}
+                  />
+                </td>
                 <td className="px-3 py-2">
                   <EstadoBadge estado={fila.estado} />
                   {fila.motivoRechazo ? (
@@ -250,6 +259,10 @@ export function TablaPartes({ filas }: { filas: FilaParte[] }) {
 
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   <span className="font-mono text-sm text-slate-800">{formatearHorasReloj(fila.totalMinutos)}</span>
+                  <IndicadorDesviacion
+                    desviacionMin={fila.desviacionMin}
+                    motivo={fila.motivoDesviacion}
+                  />
                   <EstadoBadge estado={fila.estado} />
                 </div>
 
@@ -283,5 +296,35 @@ export function TablaPartes({ filas }: { filas: FilaParte[] }) {
         ))}
       </ul>
     </div>
+  )
+}
+
+/**
+ * Desviación frente a la jornada teórica en la bandeja. El motivo completo
+ * vive en el detalle; aquí basta con señalar la diferencia y si está declarada.
+ */
+function IndicadorDesviacion({
+  desviacionMin,
+  motivo,
+}: {
+  desviacionMin: number | null
+  motivo: string | null
+}) {
+  if (desviacionMin === null || desviacionMin === 0) return null
+
+  const signo = desviacionMin > 0 ? '+' : '-'
+  const texto = `${signo}${formatearHorasReloj(Math.abs(desviacionMin))}`
+  const titulo = motivo ? `Motivo declarado: ${motivo}` : 'Sin motivo declarado'
+
+  return (
+    <span
+      className={`mt-1 block text-xs font-semibold ${
+        desviacionMin > 0 ? 'text-amber-700' : 'text-marca-700'
+      }`}
+      title={titulo}
+    >
+      {texto}
+      {motivo ? <span className="ml-1 font-normal text-slate-500">· justificado</span> : null}
+    </span>
   )
 }

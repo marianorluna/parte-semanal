@@ -90,6 +90,8 @@ export type EjecucionProyecto = {
   proyectoId: string
   codigo: string
   nombre: string
+  /** Proyecto interno de ajuste: mantiene sus horas y coste, sin presupuesto. */
+  esAjuste: boolean
   presupuestoCents: number | null
   versionPresupuesto: number | null
   horasPresupuesto: number | null

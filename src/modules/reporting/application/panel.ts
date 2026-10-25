@@ -15,6 +15,7 @@ import {
   type ResumenCumplimiento,
 } from '../domain/cumplimiento'
 import {
+  consumoProyectoAjuste,
   consumoTotalPorProyecto,
   miembrosEquipo,
   partesDeEmpleados,
@@ -27,6 +28,8 @@ export type PanelRiesgo = {
   filas: ProyectoConRiesgo[]
   resumen: ResumenRiesgo
   enAlerta: ProyectoConRiesgo[]
+  /** Comodín de la empresa. Fuera del semáforo, pero visible para revisar sus horas. */
+  ajuste: FilaConsumoProyecto | null
 }
 
 /**
@@ -38,7 +41,10 @@ export async function panelRiesgo(
   permitidos: string[] | null,
   hoy: FechaIso,
 ): Promise<PanelRiesgo> {
-  const proyectos = await consumoTotalPorProyecto(empresaId, permitidos)
+  const [proyectos, ajuste] = await Promise.all([
+    consumoTotalPorProyecto(empresaId, permitidos),
+    consumoProyectoAjuste(empresaId, permitidos),
+  ])
 
   const filas = proyectos.map((proyecto) => ({
     ...proyecto,
@@ -57,6 +63,7 @@ export async function panelRiesgo(
     enAlerta: filas.filter(
       (fila) => fila.riesgo.nivel === 'AGOTADO' || fila.riesgo.nivel === 'CRITICO' || fila.riesgo.nivel === 'AVISO',
     ),
+    ajuste,
   }
 }
 

@@ -18,6 +18,8 @@ export type FilaProyecto = {
   codigo: string
   nombre: string
   horasPresupuesto: number | null
+  /** Proyecto interno de ajuste: no compite contra presupuesto (ADR-020). */
+  esAjuste: boolean
   minutos: number
 }
 
@@ -77,6 +79,7 @@ export async function horasPorProyecto(
       codigo: proyecto.codigo,
       nombre: proyecto.nombre,
       horasPresupuesto: proyecto.horasPresupuesto,
+      esAjuste: proyecto.esAjuste,
       minutos: sql<number>`coalesce(sum(${imputacion.minutos}), 0)`.mapWith(Number),
     })
     .from(parte)
@@ -84,7 +87,7 @@ export async function horasPorProyecto(
     .innerJoin(tarea, eq(tarea.id, imputacion.tareaId))
     .innerJoin(proyecto, eq(proyecto.id, tarea.proyectoId))
     .where(and(...condiciones))
-    .groupBy(proyecto.id, proyecto.codigo, proyecto.nombre, proyecto.horasPresupuesto)
+    .groupBy(proyecto.id, proyecto.codigo, proyecto.nombre, proyecto.horasPresupuesto, proyecto.esAjuste)
     .orderBy(desc(sql`coalesce(sum(${imputacion.minutos}), 0)`))
 
   return filas
@@ -293,7 +296,9 @@ export async function consumoTotalPorProyecto(
   empresaId: string,
   permitidos: string[] | null,
 ): Promise<FilaConsumoProyecto[]> {
-  const condiciones = [eq(proyecto.empresaId, empresaId)]
+  // El proyecto de ajuste no compite contra presupuesto ni plazo: si entrara en
+  // el semáforo lo teñiría de rojo por horas que no son de ningún proyecto.
+  const condiciones = [eq(proyecto.empresaId, empresaId), eq(proyecto.esAjuste, false)]
   if (permitidos !== null) {
     if (permitidos.length === 0) return []
     condiciones.push(inArray(proyecto.id, permitidos))
@@ -328,6 +333,52 @@ export async function consumoTotalPorProyecto(
       proyecto.activo,
     )
     .orderBy(asc(proyecto.codigo))
+}
+
+/**
+ * Consumo del proyecto interno de ajuste. Va aparte del semáforo porque no
+ * tiene presupuesto: el encargado sí necesita ver cuántas horas absorbe.
+ */
+export async function consumoProyectoAjuste(
+  empresaId: string,
+  permitidos: string[] | null,
+): Promise<FilaConsumoProyecto | null> {
+  if (permitidos !== null && permitidos.length === 0) return null
+
+  const condiciones = [eq(proyecto.empresaId, empresaId), eq(proyecto.esAjuste, true)]
+  if (permitidos !== null) condiciones.push(inArray(proyecto.id, permitidos))
+
+  const filas = await db
+    .select({
+      proyectoId: proyecto.id,
+      codigo: proyecto.codigo,
+      nombre: proyecto.nombre,
+      horasPresupuesto: proyecto.horasPresupuesto,
+      fechaInicio: proyecto.fechaInicio,
+      fechaFin: proyecto.fechaFin,
+      activo: proyecto.activo,
+      minutos:
+        sql<number>`coalesce(sum(${imputacion.minutos}) filter (where ${parte.estado} in ('ENVIADO', 'APROBADO', 'BLOQUEADO')), 0)`.mapWith(
+          Number,
+        ),
+    })
+    .from(proyecto)
+    .leftJoin(tarea, eq(tarea.proyectoId, proyecto.id))
+    .leftJoin(imputacion, eq(imputacion.tareaId, tarea.id))
+    .leftJoin(parte, eq(parte.id, imputacion.parteId))
+    .where(and(...condiciones))
+    .groupBy(
+      proyecto.id,
+      proyecto.codigo,
+      proyecto.nombre,
+      proyecto.horasPresupuesto,
+      proyecto.fechaInicio,
+      proyecto.fechaFin,
+      proyecto.activo,
+    )
+    .limit(1)
+
+  return filas[0] ?? null
 }
 
 export type FilaTareaProyecto = {

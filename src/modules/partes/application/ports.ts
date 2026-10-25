@@ -16,6 +16,11 @@ export type ParteResumen = {
   revisadoPor: string | null
   revisadoAt: Date | null
   motivoRechazo: string | null
+  /** Snapshot de la jornada teórica al enviar. Nulo en borradores. */
+  capacidadMin: number | null
+  /** Imputado menos capacidad; negativo = defecto. Nulo sin declaración. */
+  desviacionMin: number | null
+  motivoDesviacion: string | null
 }
 
 export type ImputacionGuardada = {
@@ -24,6 +29,13 @@ export type ImputacionGuardada = {
   tareaId: string
   minutos: number
   nota: string | null
+}
+
+/** Declaración de desviación que se congela al enviar el parte. */
+export type DesviacionEnviada = {
+  capacidadMin: number | null
+  desviacionMin: number | null
+  motivo: string | null
 }
 
 export type ParteCompleto = ParteResumen & {
@@ -120,6 +132,7 @@ export type RepositorioPartes = {
     versionEsperada: number,
     actorId: string,
     calendario?: { id: string | null; version: number | null },
+    desviacion?: DesviacionEnviada,
   ): Promise<void>
   aprobar(parteId: string, versionEsperada: number, actorId: string): Promise<void>
   rechazar(parteId: string, versionEsperada: number, actorId: string, motivo: string): Promise<void>

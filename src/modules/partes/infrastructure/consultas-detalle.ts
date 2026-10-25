@@ -29,6 +29,9 @@ export type ParteDetalle = {
   empleadoId: string
   empleadoNombre: string
   empleadoCodigo: string
+  capacidadMin: number | null
+  desviacionMin: number | null
+  motivoDesviacion: string | null
   imputaciones: ImputacionDetalle[]
 }
 
@@ -57,6 +60,9 @@ export async function obtenerParteDetalle(parteId: string): Promise<ParteDetalle
       empleadoId: empleado.id,
       empleadoNombre: empleado.nombre,
       empleadoCodigo: empleado.codigo,
+      capacidadMin: parte.capacidadMin,
+      desviacionMin: parte.desviacionMin,
+      motivoDesviacion: parte.motivoDesviacion,
     })
     .from(parte)
     .innerJoin(empleado, eq(empleado.id, parte.empleadoId))

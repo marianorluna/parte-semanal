@@ -60,6 +60,17 @@ export function FormularioProyecto() {
         <input name="fechaFin" type="date" className="campo mt-1" />
         {estado.campo?.fechaFin ? <span className="text-red-600">{estado.campo.fechaFin}</span> : null}
       </label>
+      <label className="flex items-start gap-2 text-xs text-slate-600 sm:col-span-4">
+        <input name="esAjuste" type="checkbox" className="mt-0.5" />
+        <span>
+          Proyecto interno de ajuste
+          <span className="block font-normal text-slate-500">
+            Absorbe las horas que no corresponden a un proyecto real. No computa en el semáforo de
+            presupuesto. Solo puede existir uno por empresa.
+          </span>
+          {estado.campo?.esAjuste ? <span className="text-red-600">{estado.campo.esAjuste}</span> : null}
+        </span>
+      </label>
       <p className="self-end text-xs text-slate-500 sm:col-span-2">
         Las fechas permiten avisar de desviación entre horas consumidas y plazo transcurrido.
       </p>
@@ -85,6 +96,7 @@ export function FormularioEdicionProyecto({
     horasPresupuesto: number | null
     fechaInicio: string | null
     fechaFin: string | null
+    esAjuste: boolean
   }
 }) {
   const [estado, accion, pendiente] = useActionState(actualizarProyectoAction, inicial)
@@ -118,6 +130,21 @@ export function FormularioEdicionProyecto({
         Fin
         <input name="fechaFin" type="date" defaultValue={proyecto.fechaFin ?? ''} className="campo mt-1" />
         {estado.campo?.fechaFin ? <span className="text-red-600">{estado.campo.fechaFin}</span> : null}
+      </label>
+      <label className="flex items-start gap-2 text-xs text-slate-600 sm:col-span-4">
+        <input
+          name="esAjuste"
+          type="checkbox"
+          defaultChecked={proyecto.esAjuste}
+          className="mt-0.5"
+        />
+        <span>
+          Proyecto interno de ajuste
+          <span className="block font-normal text-slate-500">
+            No computa en el semáforo de presupuesto. Solo puede existir uno por empresa.
+          </span>
+          {estado.campo?.esAjuste ? <span className="text-red-600">{estado.campo.esAjuste}</span> : null}
+        </span>
       </label>
       <div className="sm:col-span-4">
         <Mensajes estado={estado} />

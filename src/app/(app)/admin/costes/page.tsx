@@ -205,7 +205,12 @@ export default async function AdminCostesPage() {
               {ejecucion.map((fila) => (
                 <tr key={fila.proyectoId} className="border-b border-slate-100 last:border-0">
                   <td className="px-3 py-2">
-                    <span className="block font-medium text-slate-800">{fila.nombre}</span>
+                    <span className="block font-medium text-slate-800">
+                      {fila.nombre}
+                      {fila.esAjuste ? (
+                        <span className="ml-2 etiqueta bg-slate-200 text-slate-600">Ajuste</span>
+                      ) : null}
+                    </span>
                     <span className="text-xs text-slate-500">{fila.codigo}</span>
                   </td>
                   <td className="px-3 py-2 text-right font-mono">

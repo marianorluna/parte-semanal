@@ -66,6 +66,7 @@ export default async function MiSemanaPage({ searchParams }: Props) {
         capacidadMin: vista.calendario.capacidadMin,
         porDefecto: vista.calendario.porDefecto,
       }}
+      semanaCerrada={vista.semana.weekEnd < hoy}
       editable={puedeEditar}
       modoInicial={modoInicial}
       copiaSemanaAnterior={{

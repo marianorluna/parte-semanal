@@ -112,7 +112,10 @@ export const consultasAvisos: ConsultasAvisos = {
       .leftJoin(tarea, eq(tarea.proyectoId, proyecto.id))
       .leftJoin(imputacion, eq(imputacion.tareaId, tarea.id))
       .leftJoin(parte, eq(parte.id, imputacion.parteId))
-      .where(and(eq(proyecto.empresaId, empresaId), eq(proyecto.activo, true)))
+      // El proyecto de ajuste no genera alertas de presupuesto (ADR-020).
+      .where(
+        and(eq(proyecto.empresaId, empresaId), eq(proyecto.activo, true), eq(proyecto.esAjuste, false)),
+      )
       .groupBy(
         proyecto.id,
         proyecto.codigo,

@@ -49,6 +49,8 @@ export const proyectoApi = z.object({
   codigo: z.string(),
   nombre: z.string(),
   activo: z.boolean(),
+  /** Proyecto interno de ajuste, ajeno al presupuesto de proyecto. */
+  esAjuste: z.boolean(),
 })
 
 export const imputacionRespuesta = z.object({

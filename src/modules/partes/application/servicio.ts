@@ -11,6 +11,7 @@ import {
 } from '../domain/fechas'
 import { type ImputacionEntrada, validarParte } from '../domain/parte'
 import { semanaAnterior } from '../domain/parte'
+import { evaluarDesviacion, requiereJustificacion, validarMotivoDesviacion } from '../domain/desviacion'
 import { proyectarSemanaAnterior } from '../domain/copia'
 import { puedeRevisarParte } from '../domain/permisos'
 import { agruparTareas, type GrupoProyecto } from './agrupacion'
@@ -68,6 +69,18 @@ function semanaDesde(isoYear?: number, isoWeek?: number): SemanaIso {
 
   const zona = process.env.TZ ?? 'Europe/Madrid'
   return semanaIsoDe(hoyEnZona(zona))
+}
+
+/** Hoy en la zona de negocio; `deps.ahora` permite fijarlo en tests. */
+function hoyDe(deps: DepsPartes): FechaIso {
+  const ahora = deps.ahora?.()
+  if (!ahora) return hoyEnZona(process.env.TZ ?? 'Europe/Madrid')
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: process.env.TZ ?? 'Europe/Madrid',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(ahora)
 }
 
 function exigirEmpleado(usuario: UsuarioSesion): string {
@@ -227,10 +240,15 @@ export async function guardarSemana(
   return input.version + 1
 }
 
+/**
+ * Envío del parte. La desviación respecto a la jornada teórica no bloquea:
+ * si la semana ya terminó y el total no coincide, se exige el motivo
+ * declarado y se congela junto con la capacidad (ADR-020).
+ */
 export async function enviarSemana(
   deps: DepsPartes,
   usuario: UsuarioSesion,
-  input: { isoYear: number; isoWeek: number; version: number },
+  input: { isoYear: number; isoWeek: number; version: number; motivoDesviacion?: string },
 ): Promise<void> {
   const empleadoId = exigirEmpleado(usuario)
   const parte = await deps.repo.buscarPorSemana(empleadoId, input.isoYear, input.isoWeek)
@@ -243,11 +261,36 @@ export async function enviarSemana(
   )
 
   const calendario = await deps.calendario.semana(empleadoId, semana)
+  const desviacion = evaluarDesviacion(parte.totalMinutos, calendario.capacidadMin)
+  const semanaCerrada = semana.weekEnd < hoyDe(deps)
+  const requiereMotivo = requiereJustificacion(desviacion, { semanaCerrada })
+  const motivo = (input.motivoDesviacion ?? '').trim()
 
-  await deps.repo.enviar(parte.id, input.version, usuario.id, {
-    id: calendario.calendarioId,
-    version: calendario.calendarioVersion,
-  })
+  if (requiereMotivo) {
+    const error = validarMotivoDesviacion(motivo)
+    if (error) {
+      throw new AppError('VALIDACION', 'Explica la diferencia con la jornada teórica', {
+        motivoDesviacion: error,
+      })
+    }
+  }
+
+  await deps.repo.enviar(
+    parte.id,
+    input.version,
+    usuario.id,
+    {
+      id: calendario.calendarioId,
+      version: calendario.calendarioVersion,
+    },
+    {
+      capacidadMin: desviacion.capacidadMin,
+      desviacionMin: desviacion.diferenciaMin,
+      // Sin desviación que justificar no se guarda texto: evita que un motivo
+      // escrito antes de cuadrar las horas quede como declaración del parte.
+      motivo: requiereMotivo ? motivo : null,
+    },
+  )
 }
 
 export async function aprobarSemana(

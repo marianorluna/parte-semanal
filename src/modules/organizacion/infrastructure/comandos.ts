@@ -10,6 +10,7 @@ export type ProyectoConTotales = {
   horasPresupuesto: number | null
   fechaInicio: string | null
   fechaFin: string | null
+  esAjuste: boolean
   activo: boolean
   tareas: number
   minutos: number
@@ -24,6 +25,7 @@ export async function listarProyectosConTotales(empresaId: string): Promise<Proy
       horasPresupuesto: proyecto.horasPresupuesto,
       fechaInicio: proyecto.fechaInicio,
       fechaFin: proyecto.fechaFin,
+      esAjuste: proyecto.esAjuste,
       activo: proyecto.activo,
     })
     .from(proyecto)
@@ -66,9 +68,32 @@ export type DatosProyecto = {
   horasPresupuesto: number | null
   fechaInicio: string | null
   fechaFin: string | null
+  esAjuste: boolean
+}
+
+/**
+ * Un solo proyecto de ajuste por empresa. El índice parcial de la base de datos
+ * es la última red; esta comprobación da un error legible antes de intentarlo.
+ */
+async function exigirAjusteUnico(empresaId: string, excluirProyectoId?: string): Promise<void> {
+  const filas = await db
+    .select({ id: proyecto.id, codigo: proyecto.codigo })
+    .from(proyecto)
+    .where(and(eq(proyecto.empresaId, empresaId), eq(proyecto.esAjuste, true)))
+
+  const otro = filas.find((fila) => fila.id !== excluirProyectoId)
+  if (!otro) return
+
+  throw new AppError(
+    'VALIDACION',
+    `Ya existe un proyecto de ajuste en la empresa (${otro.codigo}). Desmárcalo antes de marcar otro.`,
+    { esAjuste: 'Solo puede haber un proyecto de ajuste' },
+  )
 }
 
 export async function crearProyecto(empresaId: string, datos: DatosProyecto): Promise<void> {
+  if (datos.esAjuste) await exigirAjusteUnico(empresaId)
+
   const filas = await db
     .insert(proyecto)
     .values({ empresaId, ...datos, activo: true })
@@ -86,6 +111,17 @@ export async function actualizarProyecto(
   proyectoId: string,
   datos: Omit<DatosProyecto, 'codigo'>,
 ): Promise<void> {
+  if (datos.esAjuste) {
+    const actual = await db
+      .select({ empresaId: proyecto.empresaId })
+      .from(proyecto)
+      .where(eq(proyecto.id, proyectoId))
+      .limit(1)
+    const empresaId = actual[0]?.empresaId
+    if (!empresaId) throw new AppError('NO_ENCONTRADO', 'El proyecto no existe')
+    await exigirAjusteUnico(empresaId, proyectoId)
+  }
+
   const filas = await db
     .update(proyecto)
     .set({
@@ -93,6 +129,7 @@ export async function actualizarProyecto(
       horasPresupuesto: datos.horasPresupuesto,
       fechaInicio: datos.fechaInicio,
       fechaFin: datos.fechaFin,
+      esAjuste: datos.esAjuste,
     })
     .where(eq(proyecto.id, proyectoId))
     .returning({ id: proyecto.id })

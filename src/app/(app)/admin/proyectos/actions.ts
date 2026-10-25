@@ -32,6 +32,7 @@ const proyectoSchema = z
     horasPresupuesto: z.coerce.number().int().min(0).max(1_000_000).optional(),
     fechaInicio: fechaIsoSchema,
     fechaFin: fechaIsoSchema,
+    esAjuste: z.boolean(),
   })
   .refine((datos) => plazoRefinements(datos).inicio, {
     message: 'Indica la fecha de inicio si hay fecha de fin',
@@ -49,6 +50,7 @@ const edicionProyectoSchema = z
     horasPresupuesto: z.coerce.number().int().min(0).max(1_000_000).optional(),
     fechaInicio: fechaIsoSchema,
     fechaFin: fechaIsoSchema,
+    esAjuste: z.boolean(),
   })
   .refine((datos) => plazoRefinements(datos).inicio, {
     message: 'Indica la fecha de inicio si hay fecha de fin',
@@ -75,6 +77,9 @@ function leerProyectoDelFormulario(formData: FormData) {
     horasPresupuesto: horas ? Number(horas) : undefined,
     fechaInicio: String(formData.get('fechaInicio') ?? ''),
     fechaFin: String(formData.get('fechaFin') ?? ''),
+    // Un checkbox ausente llega como null y su valor es 'on' cuando se marca.
+    // `z.coerce.boolean()` convertiría 'false' en true.
+    esAjuste: formData.get('esAjuste') === 'on',
   })
 }
 
@@ -101,13 +106,14 @@ export async function crearProyectoAction(
       horasPresupuesto: parsed.data.horasPresupuesto ?? null,
       fechaInicio: parsed.data.fechaInicio || null,
       fechaFin: parsed.data.fechaFin || null,
+      esAjuste: parsed.data.esAjuste,
     })
 
     await registrarAuditoria({
       actorId: actor.id,
       entidad: 'proyecto',
       accion: 'CREAR_PROYECTO',
-      despues: { codigo: parsed.data.codigo },
+      despues: { codigo: parsed.data.codigo, esAjuste: parsed.data.esAjuste },
     })
 
     revalidatePath('/admin/proyectos')
@@ -130,6 +136,7 @@ export async function actualizarProyectoAction(
       horasPresupuesto: horas ? Number(horas) : undefined,
       fechaInicio: String(formData.get('fechaInicio') ?? ''),
       fechaFin: String(formData.get('fechaFin') ?? ''),
+      esAjuste: formData.get('esAjuste') === 'on',
     })
 
     if (!parsed.success) {
@@ -146,6 +153,7 @@ export async function actualizarProyectoAction(
       horasPresupuesto: parsed.data.horasPresupuesto ?? null,
       fechaInicio: parsed.data.fechaInicio || null,
       fechaFin: parsed.data.fechaFin || null,
+      esAjuste: parsed.data.esAjuste,
     })
 
     await registrarAuditoria({
@@ -158,6 +166,7 @@ export async function actualizarProyectoAction(
         horasPresupuesto: parsed.data.horasPresupuesto ?? null,
         fechaInicio: parsed.data.fechaInicio || null,
         fechaFin: parsed.data.fechaFin || null,
+        esAjuste: parsed.data.esAjuste,
       },
     })
 

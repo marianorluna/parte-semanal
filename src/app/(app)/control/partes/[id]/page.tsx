@@ -94,6 +94,29 @@ export default async function ParteDetallePage({ params }: Props) {
         </p>
       ) : null}
 
+      <div className="rounded-md border border-slate-200 bg-white px-4 py-3 text-sm">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <p className="font-semibold text-slate-800">Jornada teórica y desviación</p>
+          {parte.capacidadMin !== null ? (
+            <p className="cifra text-slate-600">
+              Teóricas {formatearHorasReloj(parte.capacidadMin)}
+              {parte.desviacionMin !== null
+                ? ` · Desviación ${parte.desviacionMin > 0 ? '+' : parte.desviacionMin < 0 ? '-' : ''}${formatearHorasReloj(Math.abs(parte.desviacionMin))}`
+                : ''}
+            </p>
+          ) : (
+            <p className="text-slate-500">Sin jornada teórica registrada en este parte</p>
+          )}
+        </div>
+        {parte.motivoDesviacion ? (
+          <p className="mt-2 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-amber-900">
+            <strong>Motivo declarado:</strong> {parte.motivoDesviacion}
+          </p>
+        ) : (
+          <p className="mt-1 text-xs text-slate-500">Sin desviación declarada.</p>
+        )}
+      </div>
+
       <div className="tarjeta hidden overflow-x-auto md:block">
         <table className="w-full text-sm">
           <thead>

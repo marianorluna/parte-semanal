@@ -7,6 +7,7 @@ import { registrarOutbox } from '@/modules/integraciones/infrastructure/outbox'
 import type { FechaIso, SemanaIso } from '../domain/fechas'
 import { esEditable } from '../domain/parte'
 import type {
+  DesviacionEnviada,
   FiltrosAprobables,
   FiltrosControl,
   ImputacionGuardada,
@@ -32,6 +33,9 @@ const columnasResumen = {
   revisadoPor: parte.revisadoPor,
   revisadoAt: parte.revisadoAt,
   motivoRechazo: parte.motivoRechazo,
+  capacidadMin: parte.capacidadMin,
+  desviacionMin: parte.desviacionMin,
+  motivoDesviacion: parte.motivoDesviacion,
 }
 
 type FilaResumen = {
@@ -48,6 +52,9 @@ type FilaResumen = {
   revisadoPor: string | null
   revisadoAt: Date | null
   motivoRechazo: string | null
+  capacidadMin: number | null
+  desviacionMin: number | null
+  motivoDesviacion: string | null
 }
 
 function aResumen(fila: FilaResumen): ParteResumen {
@@ -206,7 +213,15 @@ export const repositorioPartes = {
 
       await tx
         .update(parte)
-        .set({ totalMinutos: total, version: actual.version + 1, updatedAt: new Date() })
+        .set({
+          totalMinutos: total,
+          version: actual.version + 1,
+          // Al volver a editar, la declaración anterior deja de valer.
+          capacidadMin: null,
+          desviacionMin: null,
+          motivoDesviacion: null,
+          updatedAt: new Date(),
+        })
         .where(eq(parte.id, parteId))
 
       nuevaVersion = actual.version + 1
@@ -220,6 +235,7 @@ export const repositorioPartes = {
     versionEsperada: number,
     actorId: string,
     calendario?: { id: string | null; version: number | null },
+    desviacion?: DesviacionEnviada,
   ): Promise<void> {
     await db.transaction(async (tx) => {
       const actual = (await tx.select().from(parte).where(eq(parte.id, parteId)).limit(1))[0]
@@ -244,6 +260,9 @@ export const repositorioPartes = {
           motivoRechazo: null,
           calendarioId: calendario?.id ?? actual.calendarioId,
           calendarioVersion: calendario?.version ?? actual.calendarioVersion,
+          capacidadMin: desviacion?.capacidadMin ?? null,
+          desviacionMin: desviacion?.desviacionMin ?? null,
+          motivoDesviacion: desviacion?.motivo ?? null,
         })
         .where(eq(parte.id, parteId))
 
@@ -256,6 +275,9 @@ export const repositorioPartes = {
           estado: 'ENVIADO',
           calendarioId: calendario?.id ?? actual.calendarioId,
           calendarioVersion: calendario?.version ?? actual.calendarioVersion,
+          capacidadMin: desviacion?.capacidadMin ?? null,
+          desviacionMin: desviacion?.desviacionMin ?? null,
+          motivoDesviacion: desviacion?.motivo ?? null,
         },
       })
 
@@ -334,6 +356,11 @@ export const repositorioPartes = {
           revisadoPor: actorId,
           revisadoAt: new Date(),
           motivoRechazo: motivo,
+          // La declaración de desviación caduca con el rechazo: el trabajador
+          // puede cambiar las horas y deberá volver a justificarla.
+          capacidadMin: null,
+          desviacionMin: null,
+          motivoDesviacion: null,
           updatedAt: new Date(),
         })
         .where(eq(parte.id, parteId))
@@ -380,7 +407,14 @@ export const repositorioPartes = {
 
       await tx
         .update(parte)
-        .set({ estado: 'BORRADOR', version: actual.version + 1, updatedAt: new Date() })
+        .set({
+          estado: 'BORRADOR',
+          version: actual.version + 1,
+          capacidadMin: null,
+          desviacionMin: null,
+          motivoDesviacion: null,
+          updatedAt: new Date(),
+        })
         .where(eq(parte.id, parteId))
 
       await auditar(tx as unknown as typeof db, {

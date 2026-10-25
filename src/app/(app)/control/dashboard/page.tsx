@@ -167,13 +167,22 @@ export default async function DashboardPage({ searchParams }: Props) {
               {porProyecto.map((fila) => {
                 const porcentaje = Math.round((fila.minutos / maximoProyecto) * 100)
                 const presupuestoMinutos = fila.horasPresupuesto ? fila.horasPresupuesto * 60 : null
-                const consumo = presupuestoMinutos ? Math.round((fila.minutos / presupuestoMinutos) * 100) : null
+                // El comodín no se compara con presupuesto: el porcentaje no significaría nada.
+                const consumo =
+                  presupuestoMinutos && !fila.esAjuste
+                    ? Math.round((fila.minutos / presupuestoMinutos) * 100)
+                    : null
 
                 return (
                   <li key={fila.proyectoId}>
                     <div className="mb-1 flex items-baseline justify-between gap-2 text-xs">
                       <span className="truncate text-slate-700">
                         <span className="font-medium text-slate-900">{fila.codigo}</span> · {fila.nombre}
+                        {fila.esAjuste ? (
+                          <span className="ml-1.5 rounded bg-slate-200 px-1 text-[10px] font-semibold text-slate-600">
+                            Ajuste
+                          </span>
+                        ) : null}
                       </span>
                       <span className="cifra shrink-0 text-slate-600">{formatearHorasReloj(fila.minutos)}</span>
                     </div>

@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { requireRol } from '@/modules/identidad/application/sesion'
 import { proyectosPermitidos } from '@/modules/identidad/infrastructure/repositorio-identidad'
 import { hoyEnZona } from '@/modules/partes/domain/fechas'
+import { formatearHorasReloj } from '@/modules/partes/domain/horas'
 import {
   CLASES_RIESGO,
   ETIQUETAS_RIESGO,
@@ -75,6 +76,29 @@ export default async function ProyectosPage({ searchParams }: Props) {
       <div className="tarjeta p-4">
         <TablaRiesgo filas={filas} />
       </div>
+
+      {panel.ajuste ? (
+        <div className="tarjeta p-4">
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-sm font-semibold text-slate-900">
+              Horas de ajuste
+              <span className="ml-2 rounded bg-slate-200 px-1.5 py-0.5 align-middle text-[10px] font-semibold text-slate-600">
+                Comodín
+              </span>
+            </h2>
+            <span className="cifra text-sm font-semibold text-slate-900">
+              {formatearHorasReloj(panel.ajuste.minutos)}
+            </span>
+          </div>
+          <p className="text-sm text-slate-600">
+            <Link href={`/control/proyectos/${panel.ajuste.proyectoId}`} className="font-medium hover:text-marca-700">
+              {panel.ajuste.codigo} · {panel.ajuste.nombre}
+            </Link>{' '}
+            recoge las horas que no corresponden a un proyecto real. No tiene semáforo ni genera alertas,
+            pero suma en el total de la empresa.
+          </p>
+        </div>
+      ) : null}
 
       <p className="text-xs text-slate-500">
         Los proyectos sin fechas o sin presupuesto aparecen como «sin datos»: informan consumo, pero no se les

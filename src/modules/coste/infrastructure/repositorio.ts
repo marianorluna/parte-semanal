@@ -313,6 +313,7 @@ export const repositorioCoste: RepositorioCoste = {
         proyectoId: proyecto.id,
         codigo: proyecto.codigo,
         nombre: proyecto.nombre,
+        esAjuste: proyecto.esAjuste,
         horasPresupuesto: proyecto.horasPresupuesto,
       })
       .from(proyecto)

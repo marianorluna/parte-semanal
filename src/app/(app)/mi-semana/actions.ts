@@ -36,6 +36,9 @@ const enviarSchema = z.object({
   isoYear: z.number().int().min(2000).max(2100),
   isoWeek: z.number().int().min(1).max(53),
   version: z.number().int().positive(),
+  // La obligatoriedad depende de la semana y del calendario: el servicio es
+  // quien decide si falta. Aquí solo se acota el tamaño.
+  motivoDesviacion: z.string().trim().max(500).optional(),
 })
 
 export async function enviarSemanaAction(input: unknown): Promise<Respuesta<{ enviado: true }>> {

@@ -65,6 +65,9 @@ export default async function ProyectoDetallePage({ params }: Props) {
           </Link>
           <h1 className="mt-1 text-xl font-semibold text-slate-900">
             {proyecto.codigo} · {proyecto.nombre}
+            {proyecto.esAjuste ? (
+              <span className="ml-2 align-middle etiqueta bg-slate-200 text-slate-600">Ajuste</span>
+            ) : null}
           </h1>
           <p className="text-sm text-slate-600">
             {proyecto.horasPresupuesto ? `Presupuesto: ${proyecto.horasPresupuesto} h` : 'Sin presupuesto'}
@@ -76,43 +79,53 @@ export default async function ProyectoDetallePage({ params }: Props) {
         </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Dato titulo="Consumido" valor={`${formatearHorasReloj(minutosConsumidos)} (${riesgo.consumoPct ?? 0}%)`} />
-        <Dato
-          titulo="Restante"
-          valor={riesgo.minutosRestantes === null ? '—' : formatearHorasReloj(Math.max(riesgo.minutosRestantes, 0))}
-        />
-        <Dato
-          titulo="Plazo transcurrido"
-          valor={
-            riesgo.plazoPct === null
-              ? 'Sin fechas'
-              : `${riesgo.plazoPct}% (${riesgo.diasTranscurridos} de ${riesgo.diasTotales} días)`
-          }
-        />
-        <Dato
-          titulo="Proyección al cierre"
-          valor={riesgo.proyeccionPct === null ? '—' : `${riesgo.proyeccionPct}% de consumo`}
-        />
-      </div>
-
-      <div className="tarjeta p-4">
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-sm font-semibold text-slate-900">Riesgo</h2>
-          <span className={`etiqueta ${CLASES_RIESGO[riesgo.nivel]}`}>
-            {riesgo.etiqueta}
-          </span>
+      {proyecto.esAjuste ? (
+        <div className="rounded-md border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+          <strong>Proyecto interno de ajuste.</strong> Recoge horas que no corresponden a un proyecto
+          real. No tiene semáforo de presupuesto ni genera alertas de riesgo, pero sus horas y su
+          coste sí suman en los totales de la empresa.
         </div>
-        <p className="text-sm text-slate-700">{riesgo.detalle}</p>
-        <p className="mt-1 text-xs text-slate-500">
-          Desviación: {riesgo.desviacionPp === null ? '—' : `${riesgo.desviacionPp > 0 ? '+' : ''}${riesgo.desviacionPp} pp`}
-          {ritmo !== null
-            ? ` · Ritmo admisible desde hoy: ${formatearHorasReloj(ritmo)} al día para terminar en plazo.`
-            : ''}
-        </p>
-      </div>
+      ) : (
+        <>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <Dato titulo="Consumido" valor={`${formatearHorasReloj(minutosConsumidos)} (${riesgo.consumoPct ?? 0}%)`} />
+            <Dato
+              titulo="Restante"
+              valor={riesgo.minutosRestantes === null ? '—' : formatearHorasReloj(Math.max(riesgo.minutosRestantes, 0))}
+            />
+            <Dato
+              titulo="Plazo transcurrido"
+              valor={
+                riesgo.plazoPct === null
+                  ? 'Sin fechas'
+                  : `${riesgo.plazoPct}% (${riesgo.diasTranscurridos} de ${riesgo.diasTotales} días)`
+              }
+            />
+            <Dato
+              titulo="Proyección al cierre"
+              valor={riesgo.proyeccionPct === null ? '—' : `${riesgo.proyeccionPct}% de consumo`}
+            />
+          </div>
 
-      <TablaRiesgo filas={[fila]} />
+          <div className="tarjeta p-4">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <h2 className="text-sm font-semibold text-slate-900">Riesgo</h2>
+              <span className={`etiqueta ${CLASES_RIESGO[riesgo.nivel]}`}>
+                {riesgo.etiqueta}
+              </span>
+            </div>
+            <p className="text-sm text-slate-700">{riesgo.detalle}</p>
+            <p className="mt-1 text-xs text-slate-500">
+              Desviación: {riesgo.desviacionPp === null ? '—' : `${riesgo.desviacionPp > 0 ? '+' : ''}${riesgo.desviacionPp} pp`}
+              {ritmo !== null
+                ? ` · Ritmo admisible desde hoy: ${formatearHorasReloj(ritmo)} al día para terminar en plazo.`
+                : ''}
+            </p>
+          </div>
+
+          <TablaRiesgo filas={[fila]} />
+        </>
+      )}
 
       <div className="grid gap-4 lg:grid-cols-5">
         <div className="tarjeta p-4 lg:col-span-3">

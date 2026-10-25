@@ -15,6 +15,7 @@ export function ResumenSemana({
   capacidadMin,
   porDefecto,
   desviacion,
+  exigeMotivo,
   estado,
   guardando,
   mensaje,
@@ -28,6 +29,8 @@ export function ResumenSemana({
   capacidadMin: number | null
   porDefecto: boolean
   desviacion: number | null
+  /** La semana ya terminó y el total no cuadra: el envío pedirá motivo. */
+  exigeMotivo: boolean
   estado: EstadoParte
   guardando: boolean
   mensaje: string
@@ -111,6 +114,12 @@ export function ResumenSemana({
           <span className="font-semibold text-acento-200">En jornada</span>
         ) : null}
       </div>
+
+      {exigeMotivo ? (
+        <p className="mt-2 rounded border border-amber-300/40 bg-marca-950/30 px-2 py-1 text-[11px] text-amber-100">
+          La semana ya terminó: al enviar tendrás que explicar la diferencia con tu jornada teórica.
+        </p>
+      ) : null}
 
       {children ? <div className="mt-3">{children}</div> : null}
     </section>

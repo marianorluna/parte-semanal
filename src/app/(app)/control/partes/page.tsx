@@ -151,6 +151,8 @@ export default async function ControlPartesPage({ searchParams }: Props) {
                 totalMinutos: fila.totalMinutos,
                 estado: fila.estado,
                 motivoRechazo: fila.motivoRechazo,
+                desviacionMin: fila.desviacionMin,
+                motivoDesviacion: fila.motivoDesviacion,
               }))}
             />
           )}

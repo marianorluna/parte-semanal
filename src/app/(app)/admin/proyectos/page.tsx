@@ -43,7 +43,12 @@ export default async function AdminProyectosPage() {
                     {proyecto.codigo}
                   </Link>
                 </td>
-                <td className="px-3 py-2 text-slate-700">{proyecto.nombre}</td>
+                <td className="px-3 py-2 text-slate-700">
+                  {proyecto.nombre}
+                  {proyecto.esAjuste ? (
+                    <span className="ml-2 etiqueta bg-slate-200 text-slate-600">Ajuste</span>
+                  ) : null}
+                </td>
                 <td className="px-3 py-2 text-right">{proyecto.tareas}</td>
                 <td className="px-3 py-2 text-right font-mono">{formatearHorasReloj(proyecto.minutos)}</td>
                 <td className="px-3 py-2">
@@ -62,8 +67,13 @@ export default async function AdminProyectosPage() {
           <li key={proyecto.id} className="tarjeta p-3">
             <div className="flex items-start justify-between gap-2">
               <Link href={`/admin/proyectos/${proyecto.id}`} className="min-w-0 hover:text-marca-700">
-                <span className="block text-xs font-semibold text-marca-800">{proyecto.codigo}</span>
+                <span className="mt-0.5 block text-xs font-semibold text-marca-800">{proyecto.codigo}</span>
                 <span className="block truncate font-medium text-slate-900">{proyecto.nombre}</span>
+                {proyecto.esAjuste ? (
+                  <span className="mt-1 inline-block rounded bg-slate-200 px-1 text-[10px] font-semibold text-slate-600">
+                    Ajuste
+                  </span>
+                ) : null}
               </Link>
               <span
                 className={`etiqueta shrink-0 ${proyecto.activo ? 'bg-acento-100 text-acento-800' : 'bg-slate-200 text-slate-600'}`}
