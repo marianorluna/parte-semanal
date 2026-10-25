@@ -199,8 +199,8 @@ No hay datos personales reales en staging: si no se puede anonimizar con garant�
 
 ## Decisiones abiertas
 
-- [ ] Registro legal de jornada (fichaje): fase 3. Afecta al modelo si se decide unificar con imputación.
-- [ ] Multi-inquilino real y RLS para subcontratas: pendiente de si se abre portal externo.
+- [x] Registro legal de jornada (fichaje): se gestiona en Bizneo → [ADR-019](./decisions.md#adr-019---rrhh-fichaje-horas-extra-y-subcontratas-viven-en-bizneo).
+- [x] Multi-inquilino real y RLS para subcontratas: sin portal externo previsto → [ADR-019](./decisions.md#adr-019---rrhh-fichaje-horas-extra-y-subcontratas-viven-en-bizneo).
 - [ ] SSO con Microsoft Entra ID: depende de la gestión de identidades de la empresa.
 
 Decisiones ya tomadas → [`decisions.md`](./decisions.md).

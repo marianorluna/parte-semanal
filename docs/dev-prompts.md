@@ -526,9 +526,9 @@ Cada fila es un prompt independiente. No mezclar con lo anterior.
 
 | Orden | Prompt | Valor |
 |-------|--------|-------|
-| 3.1 | Registro legal de jornada: fichaje de entrada, salida y pausas, inmutabilidad, corrección por registro nuevo, exportación para inspección, sellado diario con hash | Cumplimiento |
-| 3.2 | Horas extra: autorización previa, topes, compensación en descanso o pago | Legal y coste |
-| 3.3 | Portal de subcontratas: usuarios externos, aislamiento por `empresa_id` con RLS, documentación (seguros, TC2, formación), certificación de horas | Alcance |
+| ~~3.1~~ | ~~Registro legal de jornada (fichaje)~~ - descartado: se gestiona en Bizneo ([ADR-019](./decisions.md#adr-019---rrhh-fichaje-horas-extra-y-subcontratas-viven-en-bizneo)) | Cumplimiento |
+| ~~3.2~~ | ~~Horas extra~~ - descartado: se gestionan en Bizneo ([ADR-019](./decisions.md#adr-019---rrhh-fichaje-horas-extra-y-subcontratas-viven-en-bizneo)) | Legal y coste |
+| ~~3.3~~ | ~~Portal de subcontratas~~ - descartado: sin portal externo previsto ([ADR-019](./decisions.md#adr-019---rrhh-fichaje-horas-extra-y-subcontratas-viven-en-bizneo)) | Alcance |
 | 3.4 | PWA offline: cola local, resolución de conflictos por versión, indicador de sincronización | Adopción en obra |
 | 3.5 | Parte diario de obra: personal, maquinaria, materiales, meteorología, incidencias y producción, enlazado a las horas del día | Productividad |
 | 3.6 | Rendimientos reales frente a presupuesto por unidad de obra, con avisos de desviación | Estimación |

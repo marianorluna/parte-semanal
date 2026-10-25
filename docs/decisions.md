@@ -248,3 +248,16 @@ Registro de las decisiones técnicas relevantes del proyecto. Una entrada por de
   3. Añadir Playwright al mismo pipeline desde el primer día - más cobertura de UI, a cambio de una dependencia y un navegador que aún no están aprobados.
 - **Decisión:** Opción 2 por ahora. GitHub Actions levanta Postgres 16, aplica migraciones sobre base limpia, ejecuta lint, tipado, tests y build. `/api/health` informa base de datos, estado de la cola y jobs fallidos sin devolver 503 por un job fallido; `/api/v1/cron/salud` responde 503 a partir de cinco jobs fallidos para que el monitor externo alerte. Staging es un recurso Coolify sobre la rama `staging`, con volumen propio y datos anonimizados o demo. Playwright queda como propuesta pendiente de aprobación.
 - **Consecuencias:** Las migraciones se prueban antes de producción y la cola tiene una señal de alerta. El health no reinicia el contenedor por jobs fallidos, que se reintentan. Si se aprueba Playwright, se añade un job separado que arranca la app con el seed demo y no bloquea el pipeline de calidad.
+
+### ADR-019 - RRHH, fichaje, horas extra y subcontratas viven en Bizneo
+
+- **Fecha:** 2026-10-25
+- **Estado:** Aceptada
+- **Contexto:** La empresa ya gestiona con Bizneo las vacaciones, los permisos, las bajas, el fichaje y las horas extra. LeviParte necesita conocer las ausencias aprobadas para bloquear los días en la rejilla y explicar los huecos al encargado, pero replicar los flujos de RRHH crearía dos fuentes de verdad y dos aprobaciones para el mismo hecho.
+- **Opciones consideradas:**
+  1. Implementar fichaje, horas extra y portal de subcontratas dentro de LeviParte (fase 3.1 a 3.3) - cobertura completa, a cambio de duplicar un sistema que ya existe, asumir responsabilidad legal sobre el registro de jornada y mantener dos aprobaciones.
+  2. Consumir Bizneo como fuente de verdad y limitar LeviParte a las ausencias aprobadas que afectan a la imputación - una sola fuente de verdad, con integración pendiente.
+  3. No mostrar ausencias y dejar que cada encargado consulte Bizneo por su cuenta - sin código nuevo, pero el parte pierde el contexto de por qué falta una persona.
+- **Decisión:** Opción 2. Bizneo es la fuente de verdad de RRHH: fichaje, horas extra y subcontratas quedan fuera del alcance del producto y se retiran del backlog de fase 3. LeviParte conserva el módulo de ausencias como registro operativo para bloquear la rejilla, con un aviso en las pantallas de ausencias que indica el origen de los datos y que la sincronización automática está prevista; mientras no exista, los registros de LeviParte se mantienen a mano. Las ausencias aprobadas de la semana se muestran al encargado en `/control/equipo`.
+- **Consecuencias:** El aviso no debe prometer datos actualizados hasta que exista el adaptador. La integración futura se hará con un importador de ausencias y fichajes, sin reimplementar la solicitud ni la aprobación de RRHH. `empresa_id` sigue reservado (ADR-004) por si algún día se abre un portal externo, pero el multi-inquilino real deja de ser prioridad. La responsabilidad del registro legal de jornada queda en Bizneo.
+
