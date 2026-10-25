@@ -22,6 +22,9 @@ out/
 .nuxt/
 .output/
 *.egg-info/
+# Generado por Next en cada `dev`, `build` o `typegen`: sus rutas cambian según
+# el comando, así que ensucia el árbol sin aportar nada. Lo usa `tsconfig.json`.
+next-env.d.ts
 
 # ─── Caché y herramientas ────────────────────────────────────────────────────
 .cache/
