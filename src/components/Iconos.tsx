@@ -29,6 +29,7 @@ export type NombreIcono =
   | 'menos'
   | 'lupa'
   | 'salir'
+  | 'info'
 
 const TRAZOS: Record<NombreIcono, readonly string[]> = {
   calendario: ['M8 2v4', 'M16 2v4', 'M3 10h18', 'M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z'],
@@ -54,6 +55,7 @@ const TRAZOS: Record<NombreIcono, readonly string[]> = {
   menos: ['M5 12h14'],
   lupa: ['M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16z', 'M21 21l-4.3-4.3'],
   salir: ['M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4', 'M16 17l5-5-5-5', 'M21 12H9'],
+  info: ['M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z', 'M12 11v5', 'M12 17h.01'],
 }
 
 type Props = Omit<SVGProps<SVGSVGElement>, 'name'> & {

@@ -12,10 +12,13 @@ import {
   type Severidad,
 } from '@/modules/reporting/domain/severidad'
 import { EnlaceIcono } from '@/components/AccionesIcono'
+import { DialogoAyuda } from '@/components/DialogoAyuda'
 import { Icono } from '@/components/Iconos'
 import { MenuExportar } from '@/components/MenuExportar'
 import { TarjetaColapsable } from '@/components/TarjetaColapsable'
 import { nombreArchivo } from '@/modules/reporting/infrastructure/exportadores/comun'
+import { LeyendaDashboard } from './LeyendaDashboard'
+import { TILE } from './semaforo'
 
 export type MetricasDashboard = {
   cumplimientoPct: number
@@ -38,14 +41,6 @@ type Tile = {
   severidad: Severidad
   href?: string
   icono: 'check' | 'bandeja' | 'usuarios' | 'alerta'
-}
-
-/** Colores del semáforo sobre la superficie oscura del hero. */
-const TILE: Record<Severidad, { caja: string; pastilla: string; icono: string }> = {
-  ALERTA: { caja: 'border-red-400/60 bg-red-500/15', pastilla: 'bg-red-400 text-red-950', icono: 'text-red-200' },
-  AVISO: { caja: 'border-amber-300/60 bg-amber-400/15', pastilla: 'bg-amber-300 text-amber-950', icono: 'text-amber-200' },
-  OK: { caja: 'border-acento-400/60 bg-acento-500/15', pastilla: 'bg-acento-400 text-marca-950', icono: 'text-acento-200' },
-  NEUTRO: { caja: 'border-white/20 bg-white/5', pastilla: 'bg-white/20 text-white', icono: 'text-marca-200' },
 }
 
 function TileMetrica({ tile }: { tile: Tile }) {
@@ -161,6 +156,9 @@ export function ResumenDashboard({
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            <DialogoAyuda titulo="Colores y significados">
+              <LeyendaDashboard />
+            </DialogoAyuda>
             <EnlaceIcono
               href={navegacion.anterior}
               icono="flecha-izquierda"
