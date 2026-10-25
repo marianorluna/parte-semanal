@@ -11,24 +11,27 @@ export type CuentaAccesoRapido = {
 
 /**
  * Cuentas del seed demo que el login ofrece como acceso rápido mientras la app
- * está en pruebas. Emails genéricos a propósito (cualquiera puede usarlos sin
- * asociarlos a una persona). El seed crea estos mismos correos para las tres
- * cuentas destacadas, así login y datos no se desincronizan.
+ * está en pruebas. Los correos son genéricos a propósito (cualquiera puede
+ * usarlos sin asociarlos a una persona real); los nombres son de fantasía para
+ * que la demo no parezca un entorno con datos de plantilla.
+ *
+ * El seed crea estos mismos correos para las tres cuentas destacadas, así login
+ * y datos no se desincronizan: el nombre es la clave que ambos comparten.
  */
 const CUENTAS: Record<ClaveAccesoRapido, Omit<CuentaAccesoRapido, 'clave'>> = {
   ADMIN: {
     etiqueta: 'Administrador',
-    nombre: 'David Sierra',
+    nombre: 'Leo Messi',
     email: 'administrador@levitec.es',
   },
   ENCARGADO: {
     etiqueta: 'Encargado',
-    nombre: 'Fernando Nieto',
+    nombre: 'Daniel Rabinovich',
     email: 'encargado@levitec.es',
   },
   TRABAJADOR: {
     etiqueta: 'Trabajador',
-    nombre: 'Álvaro Méndez',
+    nombre: 'Juan Maldacena',
     email: 'trabajador01@levitec.es',
   },
 }

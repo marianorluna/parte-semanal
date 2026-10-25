@@ -34,8 +34,9 @@ export function AccionesDemo({ existeDemo }: { existeDemo: boolean }) {
           {existeDemo ? 'Recargar datos de demostración' : 'Cargar datos de demostración'}
         </h2>
         <p className="mt-1 text-xs text-slate-600">
-          Crea 50 usuarios, 10 proyectos y 6 semanas de partes. Si ya existe la empresa DEMO, se purga antes de
-          volver a cargarla.
+          Crea 50 empleados, 11 proyectos, 14 semanas de partes y todos los datos de fase 2: calendario,
+          convenios, ausencias, costes, presupuestos, cierres, informes, avisos, correo, API y webhooks.
+          Si ya existe la empresa DEMO, se purga antes de volver a cargarla.
         </p>
 
         <form action={accionCarga} className="mt-3 space-y-2">
@@ -53,7 +54,8 @@ export function AccionesDemo({ existeDemo }: { existeDemo: boolean }) {
       <div className="tarjeta border-red-200 p-4">
         <h2 className="text-sm font-semibold text-red-800">Purgar datos de demostración</h2>
         <p className="mt-1 text-xs text-slate-600">
-          Borra solo la empresa DEMO, sus usuarios, proyectos, partes y auditoría asociada. No toca datos reales.
+          Borra solo la empresa DEMO: personas, proyectos, partes, datos de fase 2 y la auditoría asociada.
+          No toca datos reales.
         </p>
 
         <form action={accionPurga} className="mt-3 space-y-2">

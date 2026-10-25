@@ -22,15 +22,30 @@ export async function cargarDemoAction(_prev: EstadoDemo, formData: FormData): P
       actorId: actor.id,
       entidad: 'demo',
       accion: 'CARGAR_DEMO',
-      despues: { usuarios: resumen.usuarios, partes: resumen.partes },
+      despues: {
+        usuarios: resumen.usuarios,
+        partes: resumen.partes,
+        informes: resumen.informes,
+        cierres: resumen.cierres,
+      },
     })
 
     revalidatePath('/admin/demo')
     revalidatePath('/admin/usuarios')
+    revalidatePath('/control/dashboard')
+    revalidatePath('/control/partes')
+    revalidatePath('/control/proyectos')
+    revalidatePath('/notificaciones')
+    revalidatePath('/admin/informes')
+    revalidatePath('/admin/cierres')
 
     return {
       ok: 'Datos de demostración cargados',
-      detalle: `${resumen.usuarios} usuarios, ${resumen.proyectos} proyectos, ${resumen.partes} partes y ${resumen.imputaciones} imputaciones en ${resumen.semanas} semanas.`,
+      detalle:
+        `${resumen.usuarios} usuarios, ${resumen.proyectos} proyectos y ${resumen.partes} partes ` +
+        `(${resumen.imputaciones} imputaciones en ${resumen.semanas} semanas). Fase 2: ` +
+        `${resumen.calendarios} calendarios, ${resumen.convenios} convenios, ${resumen.ausencias} ausencias, ` +
+        `${resumen.cierres} cierres e ${resumen.informes} informes.`,
     }
   } catch (error) {
     console.error('[admin/demo] cargar', error)
@@ -58,6 +73,12 @@ export async function purgarDemoAction(_prev: EstadoDemo, formData: FormData): P
 
     revalidatePath('/admin/demo')
     revalidatePath('/admin/usuarios')
+    revalidatePath('/control/dashboard')
+    revalidatePath('/control/partes')
+    revalidatePath('/control/proyectos')
+    revalidatePath('/notificaciones')
+    revalidatePath('/admin/informes')
+    revalidatePath('/admin/cierres')
 
     return resultado.empresaId
       ? {

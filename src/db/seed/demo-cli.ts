@@ -14,7 +14,8 @@ async function main() {
   if (estadoInicial.existe && !refrescar) {
     console.log(
       [
-        `La demo ya está cargada: ${estadoInicial.usuarios} usuarios y ${estadoInicial.partes} partes.`,
+        `La demo ya está cargada: ${estadoInicial.usuarios} usuarios, ${estadoInicial.partes} partes e ` +
+          `${estadoInicial.informes} informes.`,
         'Nada que hacer. Usa --refresh para purgarla y volver a generarla:',
         '  npm run db:seed:demo -- --refresh',
       ].join('\n'),
@@ -59,9 +60,18 @@ async function main() {
       `  proyectos: ${resumen.proyectos} (${resumen.tareas} tareas)`,
       `  partes: ${resumen.partes} en ${resumen.semanas} semanas`,
       `  imputaciones: ${resumen.imputaciones}`,
+      `  calendarios: ${resumen.calendarios} (${resumen.festivos} festivos)`,
+      `  convenios: ${resumen.convenios}`,
+      `  tarifas: ${resumen.tarifas}`,
+      `  ausencias: ${resumen.ausencias}`,
+      `  presupuestos: ${resumen.presupuestos}`,
+      `  cierres: ${resumen.cierres}`,
+      `  informes: ${resumen.informes}`,
+      `  avisos: ${resumen.avisos}, correos: ${resumen.correos}`,
+      `  claves API: ${resumen.clavesApi}, webhooks: ${resumen.webhooks}`,
       '',
       `Contraseña común: ${process.env.DEMO_PASSWORD ?? 'Demo1234!'}`,
-      ...CUENTAS_ACCESO_RAPIDO.map((cuenta) => `${cuenta.etiqueta}: ${cuenta.email}`),
+      ...CUENTAS_ACCESO_RAPIDO.map((cuenta) => `${cuenta.etiqueta}: ${cuenta.nombre} <${cuenta.email}>`),
       'Resto de cuentas: inicial+apellido@levitec.es (misma contraseña)',
     ].join('\n'),
   )

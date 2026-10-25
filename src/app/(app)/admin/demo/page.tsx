@@ -21,9 +21,24 @@ export default async function AdminDemoPage() {
       <div className="tarjeta p-4">
         <h2 className="text-sm font-semibold text-slate-900">Estado actual</h2>
         {resumen.existe ? (
-          <p className="mt-1 text-sm text-slate-700">
-            Demo presente: <strong>{resumen.usuarios} usuarios</strong> y <strong>{resumen.partes} partes</strong>.
-          </p>
+          <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-sm sm:grid-cols-4">
+            <div>
+              <dt className="text-xs text-slate-500">Usuarios</dt>
+              <dd className="font-semibold text-slate-800">{resumen.usuarios}</dd>
+            </div>
+            <div>
+              <dt className="text-xs text-slate-500">Partes</dt>
+              <dd className="font-semibold text-slate-800">{resumen.partes}</dd>
+            </div>
+            <div>
+              <dt className="text-xs text-slate-500">Informes</dt>
+              <dd className="font-semibold text-slate-800">{resumen.informes}</dd>
+            </div>
+            <div>
+              <dt className="text-xs text-slate-500">Cierres</dt>
+              <dd className="font-semibold text-slate-800">{resumen.cierres}</dd>
+            </div>
+          </dl>
         ) : (
           <p className="mt-1 text-sm text-slate-700">No hay datos de demostración cargados.</p>
         )}
@@ -39,7 +54,10 @@ export default async function AdminDemoPage() {
         <ul className="mt-3 space-y-1 text-sm">
           {CUENTAS_ACCESO_RAPIDO.map((cuenta) => (
             <li key={cuenta.email} className="flex items-baseline justify-between gap-3 border-b border-slate-100 pb-1 last:border-0">
-              <span className="text-slate-600">{cuenta.etiqueta}</span>
+              <span className="text-slate-600">
+                {cuenta.etiqueta}
+                <span className="text-xs text-slate-400"> · {cuenta.nombre}</span>
+              </span>
               <code className="text-xs text-slate-800">{cuenta.email}</code>
             </li>
           ))}

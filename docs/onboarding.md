@@ -74,7 +74,7 @@ Comandos auxiliares:
 |---------|-----|
 | `npm run db:generate` | Genera una migración tras cambiar el esquema |
 | `npm run db:studio` | Abre Drizzle Studio |
-| `npm run db:seed:demo` | Carga el demo completo (50 usuarios, 10 proyectos, 6 semanas) |
+| `npm run db:seed:demo` | Carga el demo completo (50 usuarios, 11 proyectos, 14 semanas y datos de fase 2) |
 | `npm run db:seed:demo -- --refresh` | Purga y recarga el demo relativo a la semana actual |
 | `npm run db:seed:demo:purge` | Borra solo la empresa `DEMO` |
 
@@ -108,9 +108,9 @@ Las tres cuentas de acceso rápido usan correos genéricos. El resto sigue el fo
 
 | Rol | Nombre | Email | Contraseña |
 |-----|--------|-------|------------|
-| ADMIN | David Sierra | `administrador@levitec.es` | `Demo1234!` (o `DEMO_PASSWORD`) |
-| ENCARGADO | Fernando Nieto | `encargado@levitec.es` | igual |
-| TRABAJADOR | Álvaro Méndez | `trabajador01@levitec.es` | igual |
+| ADMIN | Leo Messi | `administrador@levitec.es` | `Demo1234!` (o `DEMO_PASSWORD`) |
+| ENCARGADO | Daniel Rabinovich | `encargado@levitec.es` | igual |
+| TRABAJADOR | Juan Maldacena | `trabajador01@levitec.es` | igual |
 
 El resto de encargados y trabajadores usa el patrón corporativo (`ralcaide@levitec.es`, `ipenalver@levitec.es`, ...).
 
