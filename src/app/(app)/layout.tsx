@@ -6,6 +6,7 @@ import { Marca } from '@/components/Marca'
 import { NavegacionEscritorio, MenuNavegacion } from './Navegacion'
 import type { ItemNav } from './navegacion-modelo'
 import { cerrarSesion } from '@/app/login/actions'
+import { MOSTRAR_MIS_AUSENCIAS } from '@/config/navegacion'
 
 export const dynamic = 'force-dynamic'
 
@@ -23,7 +24,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   const items: ItemNav[] = []
   if (usuario.empleadoId) items.push({ href: '/mi-semana', etiqueta: 'Mi semana' })
-  if (usuario.empleadoId) items.push({ href: '/mis-ausencias', etiqueta: 'Mis ausencias' })
+  if (usuario.empleadoId && MOSTRAR_MIS_AUSENCIAS) {
+    items.push({ href: '/mis-ausencias', etiqueta: 'Mis ausencias' })
+  }
 
   // Encargado y trabajador conservan la barra plana: tienen pocas secciones.
   if (usuario.rol === 'ENCARGADO') {
