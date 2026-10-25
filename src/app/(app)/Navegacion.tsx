@@ -286,12 +286,10 @@ export function PanelMenu({
   items,
   onCerrar,
   usuario,
-  cerrarSesion,
 }: {
   items: ItemNav[]
   onCerrar: () => void
   usuario: { nombre: string; rol: string }
-  cerrarSesion: () => Promise<void>
 }) {
   const ruta = usePathname()
   // Al abrir, despliega solo las secciones que contienen la página actual.
@@ -498,18 +496,6 @@ export function PanelMenu({
             )
           })}
         </nav>
-
-        <div className="border-t border-white/10 p-3">
-          <form action={cerrarSesion}>
-            <button
-              type="submit"
-              className="inline-flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-md border border-white/15 px-3 text-sm font-semibold text-marca-100 transition-colors hover:bg-white/10 hover:text-white"
-            >
-              <Icono nombre="salir" />
-              Salir
-            </button>
-          </form>
-        </div>
       </div>
     </div>
   )
@@ -525,11 +511,9 @@ export function PanelMenu({
 export function MenuNavegacion({
   items,
   usuario,
-  cerrarSesion,
 }: {
   items: ItemNav[]
   usuario: { nombre: string; rol: string }
-  cerrarSesion: () => Promise<void>
 }) {
   const [abierto, setAbierto] = useState(false)
   const botonRef = useRef<HTMLButtonElement>(null)
@@ -554,7 +538,7 @@ export function MenuNavegacion({
       </button>
 
       {abierto ? (
-        <PanelMenu items={items} onCerrar={cerrar} usuario={usuario} cerrarSesion={cerrarSesion} />
+        <PanelMenu items={items} onCerrar={cerrar} usuario={usuario} />
       ) : null}
     </div>
   )

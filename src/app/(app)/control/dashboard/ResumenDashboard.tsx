@@ -12,13 +12,11 @@ import {
   type Severidad,
 } from '@/modules/reporting/domain/severidad'
 import { EnlaceIcono } from '@/components/AccionesIcono'
-import { DialogoAyuda } from '@/components/DialogoAyuda'
 import { Icono } from '@/components/Iconos'
+import { TILE } from '@/components/leyenda/semaforo'
 import { MenuExportar } from '@/components/MenuExportar'
 import { TarjetaColapsable } from '@/components/TarjetaColapsable'
 import { nombreArchivo } from '@/modules/reporting/infrastructure/exportadores/comun'
-import { LeyendaDashboard } from './LeyendaDashboard'
-import { TILE } from './semaforo'
 
 export type MetricasDashboard = {
   cumplimientoPct: number
@@ -156,9 +154,6 @@ export function ResumenDashboard({
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <DialogoAyuda titulo="Colores y significados">
-              <LeyendaDashboard />
-            </DialogoAyuda>
             <EnlaceIcono
               href={navegacion.anterior}
               icono="flecha-izquierda"

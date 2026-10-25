@@ -1,18 +1,21 @@
 import { requireUsuario } from '@/modules/identidad/application/sesion'
 import { proyectosPermitidos } from '@/modules/identidad/infrastructure/repositorio-identidad'
 import { depsPartes, repositorioNotificaciones } from '@/composition'
-import { CampanaNotificaciones } from '@/components/CampanaNotificaciones'
+import { LeyendaDashboard } from '@/components/leyenda/LeyendaDashboard'
 import { Marca } from '@/components/Marca'
 import { NavegacionEscritorio, MenuNavegacion } from './Navegacion'
 import { NavegacionMovil } from './NavegacionMovil'
+import { MenuUsuario } from './MenuUsuario'
 import type { ItemNav } from './navegacion-modelo'
-import { cerrarSesion } from '@/app/login/actions'
 
 export const dynamic = 'force-dynamic'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const usuario = await requireUsuario()
   const puedeControlar = usuario.rol === 'ADMIN' || usuario.rol === 'ENCARGADO'
+  const rolVisible =
+    usuario.rol === 'ADMIN' ? 'Administrador' : usuario.rol === 'ENCARGADO' ? 'Encargado' : 'Trabajador'
+  const datosUsuario = { nombre: usuario.nombre, rol: rolVisible }
 
   const pendientes = puedeControlar
     ? await depsPartes.repo.contarPendientes(usuario.empresaId, await proyectosPermitidos(usuario), {
@@ -159,36 +162,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             </div>
 
             <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-              <CampanaNotificaciones noLeidas={noLeidas} />
-              <div className="hidden min-w-0 text-right md:block">
-                <p className="max-w-36 truncate text-sm leading-tight font-medium text-white md:max-w-56">
-                  {usuario.nombre}
-                </p>
-                <p className="text-xs leading-tight text-marca-200">
-                  {usuario.rol === 'ADMIN' ? 'Administrador' : usuario.rol === 'ENCARGADO' ? 'Encargado' : 'Trabajador'}
-                </p>
-              </div>
-              <MenuNavegacion
-                items={items}
-                usuario={{
-                  nombre: usuario.nombre,
-                  rol:
-                    usuario.rol === 'ADMIN'
-                      ? 'Administrador'
-                      : usuario.rol === 'ENCARGADO'
-                        ? 'Encargado'
-                        : 'Trabajador',
-                }}
-                cerrarSesion={cerrarSesion}
+              <MenuUsuario
+                usuario={datosUsuario}
+                noLeidas={noLeidas}
+                leyenda={puedeControlar ? <LeyendaDashboard /> : undefined}
               />
-              <form action={cerrarSesion} className="hidden shrink-0 md:block">
-                <button
-                  type="submit"
-                  className="inline-flex h-11 cursor-pointer items-center rounded-md border border-marca-600 px-2.5 text-xs font-semibold text-white transition-colors hover:bg-marca-800"
-                >
-                  Salir
-                </button>
-              </form>
+              <MenuNavegacion items={items} usuario={datosUsuario} />
             </div>
           </div>
 
@@ -201,16 +180,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <NavegacionMovil
         items={items}
         rol={usuario.rol}
-        usuario={{
-          nombre: usuario.nombre,
-          rol:
-            usuario.rol === 'ADMIN'
-              ? 'Administrador'
-              : usuario.rol === 'ENCARGADO'
-                ? 'Encargado'
-                : 'Trabajador',
-        }}
-        cerrarSesion={cerrarSesion}
+        usuario={datosUsuario}
         pendientes={pendientes}
         noLeidas={noLeidas}
         tieneEmpleado={Boolean(usuario.empleadoId)}

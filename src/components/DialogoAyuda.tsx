@@ -16,11 +16,17 @@ export function DialogoAyuda({
   titulo,
   etiqueta = 'Qué significan los colores',
   children,
+  claseDisparador,
+  contenidoDisparador,
 }: {
   titulo: string
   /** Nombre accesible del disparador. */
   etiqueta?: string
   children: ReactNode
+  /** Sustituye las clases del disparador cuadrado por las de una fila de menú. */
+  claseDisparador?: string
+  /** Contenido del disparador; por defecto, el icono de información. */
+  contenidoDisparador?: ReactNode
 }) {
   const dialogoRef = useRef<HTMLDialogElement>(null)
   const idTitulo = useId()
@@ -36,9 +42,12 @@ export function DialogoAyuda({
         onClick={() => dialogoRef.current?.showModal()}
         aria-label={etiqueta}
         title={etiqueta}
-        className="no-imprimir inline-flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-md border border-marca-600 bg-marca-800/60 text-white transition-colors hover:bg-marca-700"
+        className={
+          claseDisparador ??
+          'no-imprimir inline-flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-md border border-marca-600 bg-marca-800/60 text-white transition-colors hover:bg-marca-700'
+        }
       >
-        <Icono nombre="info" className="h-5 w-5" />
+        {contenidoDisparador ?? <Icono nombre="info" className="h-5 w-5" />}
       </button>
 
       <dialog

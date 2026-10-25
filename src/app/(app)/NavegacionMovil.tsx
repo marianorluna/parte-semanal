@@ -50,7 +50,6 @@ export function NavegacionMovil({
   items,
   rol,
   usuario,
-  cerrarSesion,
   pendientes,
   noLeidas,
   tieneEmpleado,
@@ -58,7 +57,6 @@ export function NavegacionMovil({
   items: ItemNav[]
   rol: string
   usuario: { nombre: string; rol: string }
-  cerrarSesion: () => Promise<void>
   pendientes: number
   noLeidas: number
   tieneEmpleado: boolean
@@ -110,12 +108,7 @@ export function NavegacionMovil({
       </nav>
 
       {abierto ? (
-        <PanelMenu
-          items={items}
-          onCerrar={() => setAbierto(false)}
-          usuario={usuario}
-          cerrarSesion={cerrarSesion}
-        />
+        <PanelMenu items={items} onCerrar={() => setAbierto(false)} usuario={usuario} />
       ) : null}
     </>
   )
