@@ -9,9 +9,9 @@ export function FormularioLogin() {
   const [estado, accion, pendiente] = useActionState(iniciarSesion, estadoInicial)
 
   return (
-    <form action={accion} className="space-y-4" noValidate>
+    <form action={accion} className="space-y-4 [@media(max-height:46rem)]:space-y-3 [@media(max-height:32rem)]:space-y-2" noValidate>
       <div>
-        <label htmlFor="email" className="mb-1 block text-sm font-medium text-slate-700">
+        <label htmlFor="email" className="mb-1 block text-sm font-medium text-slate-700 [@media(max-height:32rem)]:sr-only">
           Email
         </label>
         <input
@@ -26,7 +26,7 @@ export function FormularioLogin() {
       </div>
 
       <div>
-        <label htmlFor="password" className="mb-1 block text-sm font-medium text-slate-700">
+        <label htmlFor="password" className="mb-1 block text-sm font-medium text-slate-700 [@media(max-height:32rem)]:sr-only">
           Contraseña
         </label>
         <input

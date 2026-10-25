@@ -16,35 +16,42 @@ export default async function LoginPage() {
   const cuentas = env().ACCESO_RAPIDO_DEMO ? CUENTAS_ACCESO_RAPIDO : []
 
   return (
-    <main className="flex min-h-dvh items-center justify-center bg-marca-900 px-4 py-10">
-      <div className="w-full max-w-sm">
-        <div className="mb-6 text-center">
-          <Marca className="text-xs" />
-          <h1 className="mt-1 text-2xl font-bold text-white">Parte semanal de horas</h1>
-          <p className="mt-1 text-sm text-marca-200">Accede con tu cuenta de empresa</p>
+    // Alto fijo de ventana: el contenido se centra y nunca necesita scroll. Si
+    // el usuario despliega el acceso rápido en una pantalla muy baja, el eje
+    // vertical queda disponible como red de seguridad.
+    <main className="h-dvh overflow-x-hidden overflow-y-auto bg-marca-900 px-4 py-4">
+      <div className="mx-auto flex min-h-full w-full max-w-sm flex-col justify-center">
+        <div className="mb-6 text-center [@media(max-height:46rem)]:mb-3 [@media(max-height:32rem)]:mb-2">
+          <Marca className="text-xs [@media(max-height:34rem)]:hidden" />
+          <h1 className="mt-1 text-2xl font-bold text-white [@media(max-height:34rem)]:mt-0 [@media(max-height:34rem)]:text-xl [@media(max-height:32rem)]:text-lg">
+            Parte semanal de horas
+          </h1>
+          <p className="mt-1 text-sm text-marca-200 [@media(max-height:46rem)]:hidden">
+            Accede con tu cuenta de empresa
+          </p>
         </div>
 
-        <div className="tarjeta border-t-4 border-t-acento-500 p-6">
+        <div className="tarjeta border-t-4 border-t-acento-500 p-6 [@media(max-height:46rem)]:p-4 [@media(max-height:32rem)]:p-3">
           <FormularioLogin />
         </div>
 
-        <p className="mt-4 text-center text-xs text-marca-300">
+        <p className="mt-4 text-center text-xs text-marca-300 [@media(max-height:46rem)]:hidden">
           Si no tienes acceso, solicítalo a administración.
         </p>
 
         <AccesoRapido cuentas={cuentas} />
 
-        <div className="mt-6 border-t border-marca-800 pt-4 text-center">
+        <div className="mt-6 border-t border-marca-800 pt-4 text-center [@media(max-height:46rem)]:mt-4 [@media(max-height:46rem)]:pt-3 [@media(max-height:34rem)]:hidden">
           <a
             href={REPOSITORIO_GITHUB}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex w-full items-center justify-center gap-2 rounded-md border border-marca-700 px-3 py-2 text-sm font-semibold text-marca-100 transition-colors hover:bg-marca-800 hover:text-white"
+            className="flex w-full items-center justify-center gap-2 rounded-md border border-slate-600 bg-slate-800/40 px-3 py-2 text-sm font-semibold text-slate-200 transition-colors hover:border-slate-400 hover:bg-slate-700/60 hover:text-white"
           >
             <IconoGitHub />
             Ver el código en GitHub
           </a>
-          <p className="mt-2 text-[11px] text-marca-300">
+          <p className="mt-2 text-[11px] text-marca-300 [@media(max-height:46rem)]:hidden">
             Proyecto abierto con licencia MIT: puedes copiarlo y reutilizarlo.
           </p>
         </div>
