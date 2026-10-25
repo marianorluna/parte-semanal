@@ -26,18 +26,11 @@ export default async function LoginPage() {
           <h1 className="mt-1 text-2xl font-bold text-white [@media(max-height:34rem)]:mt-0 [@media(max-height:34rem)]:text-xl [@media(max-height:32rem)]:text-lg">
             Parte semanal de horas
           </h1>
-          <p className="mt-1 text-sm text-marca-200 [@media(max-height:46rem)]:hidden">
-            Accede con tu cuenta de empresa
-          </p>
         </div>
 
         <div className="tarjeta border-t-4 border-t-acento-500 p-6 [@media(max-height:46rem)]:p-4 [@media(max-height:32rem)]:p-3">
           <FormularioLogin />
         </div>
-
-        <p className="mt-4 text-center text-xs text-marca-300 [@media(max-height:46rem)]:hidden">
-          Si no tienes acceso, solicítalo a administración.
-        </p>
 
         <AccesoRapido cuentas={cuentas} />
 

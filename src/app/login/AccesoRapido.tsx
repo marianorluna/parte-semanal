@@ -7,11 +7,11 @@ import { iniciarSesionRapida, type EstadoLogin } from './actions'
 const estadoInicial: EstadoLogin = {}
 
 /**
- * Altura mínima (px) por debajo de la cual los botones arrancan plegados. El
- * login debe caber en una ventana sin scroll; con el bloque abierto necesita
- * algo más de 780 px.
+ * Altura mínima (px) para arrancar con los botones desplegados. Con los textos
+ * auxiliares retirados, el login completo mide unos 650 px, así que la mayoría
+ * de móviles en vertical los muestran sin scroll. Por debajo se pliegan.
  */
-const ALTO_DESPLEGADO = 820
+const ALTO_DESPLEGADO = 660
 
 type Props = { cuentas: readonly CuentaAccesoRapido[] }
 
@@ -51,15 +51,18 @@ export function AccesoRapido({ cuentas }: Props) {
   return (
     <details
       ref={panel}
-      className="group mt-4 rounded-xl border border-dashed border-acento-500/60 bg-acento-950/40 px-3 py-2 [@media(max-height:46rem)]:mt-3 [@media(max-height:32rem)]:py-1.5"
+      className="group relative mt-4 rounded-xl border border-dashed border-acento-500/60 bg-acento-950/40 p-3 [@media(max-height:46rem)]:mt-3 [@media(max-height:32rem)]:p-2"
     >
+      {/* Plegado: título centrado. Desplegado: el título desaparece y queda solo
+          el chevron sobre el borde, para que el padding superior iguale al
+          lateral. El texto se conserva para lectores de pantalla. */}
       <summary
         onClick={() => {
           abiertoPorElUsuario.current = true
         }}
-        className="flex cursor-pointer list-none items-center justify-center gap-1.5 text-[11px] font-semibold tracking-wide text-acento-300 uppercase select-none [&::-webkit-details-marker]:hidden"
+        className="flex cursor-pointer list-none items-center justify-center gap-1.5 text-[11px] font-semibold tracking-wide text-acento-300 uppercase select-none [&::-webkit-details-marker]:hidden group-open:absolute group-open:top-0 group-open:left-1/2 group-open:z-10 group-open:-translate-x-1/2 group-open:-translate-y-1/2 group-open:rounded-full group-open:border group-open:border-dashed group-open:border-acento-500/60 group-open:bg-marca-900 group-open:px-2 group-open:py-0.5 after:absolute after:-inset-2 after:content-[''] group-open:transition-colors group-open:hover:border-acento-300"
       >
-        Acceso rápido (entorno de pruebas)
+        <span className="group-open:sr-only">Acceso rápido (entorno de pruebas)</span>
         <svg
           viewBox="0 0 12 12"
           fill="none"
@@ -72,7 +75,7 @@ export function AccesoRapido({ cuentas }: Props) {
         </svg>
       </summary>
 
-      <form action={accion} className="mt-2 space-y-2">
+      <form action={accion} className="mt-2 space-y-2 group-open:mt-0">
         {cuentas.map((cuenta) => (
           <button
             key={cuenta.clave}
