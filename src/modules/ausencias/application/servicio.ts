@@ -242,6 +242,29 @@ export async function ausenciasDeSemana(
   return deps.repo.aprobadasEnRango(empleadoId, weekStart, weekEnd)
 }
 
+/**
+ * Ausencias aprobadas de un conjunto de empleados en un rango, agrupadas por
+ * empleado. Lo usan las vistas de equipo para saber con quién se cuenta cada
+ * semana. Los identificadores llegan ya acotados por quien consulta.
+ */
+export async function ausenciasDeSemanaDeEmpleados(
+  deps: DepsAusencias,
+  empleadoIds: string[],
+  desde: string,
+  hasta: string,
+): Promise<Map<string, AusenciaVigente[]>> {
+  const porEmpleado = new Map<string, AusenciaVigente[]>()
+  if (empleadoIds.length === 0) return porEmpleado
+
+  const ausencias = await deps.repo.aprobadasDeEmpleados(empleadoIds, desde, hasta)
+  for (const ausencia of ausencias) {
+    const lista = porEmpleado.get(ausencia.empleadoId) ?? []
+    lista.push(ausencia)
+    porEmpleado.set(ausencia.empleadoId, lista)
+  }
+  return porEmpleado
+}
+
 export function listarSaldos(
   deps: DepsAusencias,
   usuario: UsuarioSesion,

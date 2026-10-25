@@ -17,6 +17,8 @@ import {
   proyectosAsignadosEnSemana,
 } from '@/modules/reporting/infrastructure/consultas'
 import { Select } from '@/components/Select'
+import { depsAusencias } from '@/composition'
+import { ausenciasDeSemanaDeEmpleados } from '@/modules/ausencias/application/servicio'
 import { AccionesLote } from './AccionesEquipo'
 import { TablaEquipo, type FilaEquipo } from './TablaEquipo'
 
@@ -54,9 +56,10 @@ export default async function EquipoPage({ searchParams }: Props) {
   })
   const empleadoIds = miembros.map((miembro) => miembro.empleadoId)
 
-  const [partes, asignaciones] = await Promise.all([
+  const [partes, asignaciones, ausenciasSemana] = await Promise.all([
     partesDeEmpleados(empleadoIds, semana.isoYear, semana.isoWeek),
     proyectosAsignadosEnSemana(empleadoIds, semana),
+    ausenciasDeSemanaDeEmpleados(depsAusencias, empleadoIds, semana.weekStart, semana.weekEnd),
   ])
 
   const partePorEmpleado = new Map(partes.map((parte) => [parte.empleadoId, parte]))
@@ -82,6 +85,7 @@ export default async function EquipoPage({ searchParams }: Props) {
         parteId: parte?.parteId ?? null,
         version: parte?.version ?? null,
         minutos: parte?.totalMinutos ?? 0,
+        ausencias: ausenciasSemana.get(miembro.empleadoId) ?? [],
       }
     })
     .sort((a, b) => {
@@ -90,6 +94,7 @@ export default async function EquipoPage({ searchParams }: Props) {
     })
 
   const resumen = resumirCumplimiento(filas.map((fila) => ({ estado: fila.estado })))
+  const conAusencia = filas.filter((fila) => fila.ausencias.length > 0).length
   const visibles = estadoFiltro ? filas.filter((fila) => fila.estado === estadoFiltro) : filas
 
   const aprobables = filas
@@ -149,6 +154,12 @@ export default async function EquipoPage({ searchParams }: Props) {
         <span className="ml-2 text-xs text-slate-500">
           {resumen.cumplimientoPct}% del equipo ha enviado o tiene aprobado el parte
         </span>
+        {conAusencia > 0 ? (
+          <span className="text-xs text-slate-500">
+            · {conAusencia} {conAusencia === 1 ? 'persona' : 'personas'} con ausencia aprobada esta
+            semana
+          </span>
+        ) : null}
       </div>
 
       <div className="flex flex-wrap items-end justify-between gap-3">

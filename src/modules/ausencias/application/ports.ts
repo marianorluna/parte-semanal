@@ -111,6 +111,23 @@ export type RepositorioAusencias = {
     }[]
   >
 
+  /**
+   * Ausencias aprobadas de varios empleados que tocan el rango. Pensado para
+   * vistas de equipo: una sola consulta en lugar de una por persona.
+   */
+  aprobadasDeEmpleados(empleadoIds: string[], desde: string, hasta: string): Promise<
+    {
+      id: string
+      empleadoId: string
+      desde: string
+      hasta: string
+      minutos: number | null
+      estado: EstadoAusencia
+      tipoId: string
+      tipoNombre: string
+    }[]
+  >
+
   listarSaldos(empresaId: string | null, empleadoId?: string): Promise<SaldoGuardado[]>
   perteneceAEmpresa(empleadoId: string, empresaId: string): Promise<boolean>
   guardarSaldo(

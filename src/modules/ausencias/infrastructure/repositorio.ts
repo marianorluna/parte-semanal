@@ -245,6 +245,33 @@ export const repositorioAusencias: RepositorioAusencias = {
       .orderBy(asc(ausencia.desde))
   },
 
+  async aprobadasDeEmpleados(empleadoIds, desde, hasta) {
+    if (empleadoIds.length === 0) return []
+
+    return db
+      .select({
+        id: ausencia.id,
+        empleadoId: ausencia.empleadoId,
+        desde: ausencia.desde,
+        hasta: ausencia.hasta,
+        minutos: ausencia.minutos,
+        estado: ausencia.estado,
+        tipoId: ausencia.tipoId,
+        tipoNombre: tipoAusencia.nombre,
+      })
+      .from(ausencia)
+      .innerJoin(tipoAusencia, eq(tipoAusencia.id, ausencia.tipoId))
+      .where(
+        and(
+          inArray(ausencia.empleadoId, empleadoIds),
+          eq(ausencia.estado, 'APROBADA'),
+          lte(ausencia.desde, hasta),
+          gte(ausencia.hasta, desde),
+        ),
+      )
+      .orderBy(asc(ausencia.empleadoId), asc(ausencia.desde))
+  },
+
   async listarSaldos(empresaId, empleadoId): Promise<SaldoGuardado[]> {
     const condiciones = []
     if (empresaId) condiciones.push(eq(empleado.empresaId, empresaId))

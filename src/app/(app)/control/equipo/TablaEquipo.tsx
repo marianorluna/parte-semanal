@@ -1,5 +1,7 @@
 import Link from 'next/link'
+import { formatearFecha, formatearRango } from '@/modules/partes/domain/fechas'
 import { formatearHorasReloj } from '@/modules/partes/domain/horas'
+import type { AusenciaVigente } from '@/modules/ausencias/domain/ausencia'
 import {
   CLASES_CUMPLIMIENTO,
   ETIQUETAS_CUMPLIMIENTO,
@@ -20,6 +22,18 @@ export type FilaEquipo = {
   parteId: string | null
   version: number | null
   minutos: number
+  ausencias: AusenciaVigente[]
+}
+
+/** Etiqueta legible de las ausencias aprobadas de la semana. */
+function textoTipos(ausencias: AusenciaVigente[]): string {
+  return ausencias.map((ausencia) => ausencia.tipoNombre).join(', ')
+}
+
+function textOFechas(ausencia: AusenciaVigente): string {
+  return ausencia.desde === ausencia.hasta
+    ? formatearFecha(ausencia.desde)
+    : formatearRango(ausencia.desde, ausencia.hasta)
 }
 
 function EtiquetaRol({ rol }: { rol: string }) {
@@ -52,6 +66,7 @@ export function TablaEquipo({
             <tr className="border-b border-marca-200 bg-marca-50 text-left text-xs font-semibold tracking-wide text-marca-900 uppercase">
               <th className="px-3 py-2">Empleado</th>
               <th className="px-3 py-2">Proyectos</th>
+              <th className="px-3 py-2">Ausencias</th>
               <th className="px-3 py-2">Estado</th>
               <th className="px-3 py-2 text-right">Horas</th>
               <th className="px-3 py-2 text-right">Acciones</th>
@@ -70,10 +85,31 @@ export function TablaEquipo({
                 <td className="max-w-64 px-3 py-2 text-xs text-slate-600">
                   {fila.proyectos.length > 0 ? fila.proyectos.join(', ') : '—'}
                 </td>
+                <td className="px-3 py-2 text-xs text-slate-600">
+                  {fila.ausencias.length > 0 ? (
+                    <ul className="space-y-0.5">
+                      {fila.ausencias.map((ausencia) => (
+                        <li key={ausencia.id}>
+                          <span className="font-medium text-amber-800">{ausencia.tipoNombre}</span>
+                          <span className="block text-[11px] text-slate-500">
+                            {textOFechas(ausencia)}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    '—'
+                  )}
+                </td>
                 <td className="px-3 py-2">
                   <span className={`etiqueta ${CLASES_CUMPLIMIENTO[fila.estado]}`}>
                     {ETIQUETAS_CUMPLIMIENTO[fila.estado]}
                   </span>
+                  {fila.estado === 'SIN_PARTE' && fila.ausencias.length > 0 ? (
+                    <span className="mt-1 block text-[11px] text-slate-500">
+                      {textoTipos(fila.ausencias)}
+                    </span>
+                  ) : null}
                 </td>
                 <td className="px-3 py-2 text-right font-mono">
                   {fila.minutos > 0 ? formatearHorasReloj(fila.minutos) : '—'}
@@ -133,6 +169,19 @@ export function TablaEquipo({
                   {fila.proyectos.length > 0 ? fila.proyectos.join(', ') : '—'}
                 </dd>
               </div>
+              {fila.ausencias.length > 0 ? (
+                <div className="min-w-0 col-span-2">
+                  <dt className="text-slate-500">Ausencias</dt>
+                  <dd className="text-slate-800">
+                    {fila.ausencias.map((ausencia) => (
+                      <span key={ausencia.id} className="block">
+                        <span className="font-medium text-amber-800">{ausencia.tipoNombre}</span>
+                        <span className="text-slate-500"> · {textOFechas(ausencia)}</span>
+                      </span>
+                    ))}
+                  </dd>
+                </div>
+              ) : null}
             </dl>
 
             <div className="mt-3 flex flex-wrap gap-2">
