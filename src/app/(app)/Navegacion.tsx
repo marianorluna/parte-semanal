@@ -277,9 +277,10 @@ export function NavegacionEscritorio({ items }: { items: ItemNav[] }) {
 }
 
 /**
- * Panel lateral completo. Lo usan la cabecera (desde `md`) y la barra inferior
- * móvil, así que se monta solo cuando está abierto y devuelve el foco al
- * llamador con `onCerrar`.
+ * Panel lateral completo. Lo montan el botón de la cabecera (franja `md`-`lg`),
+ * el menú móvil de la barra inferior y la barra horizontal de escritorio, así
+ * que se monta solo cuando está abierto y devuelve el foco al llamador con
+ * `onCerrar`.
  */
 export function PanelMenu({
   items,
@@ -516,7 +517,11 @@ export function PanelMenu({
   return createPortal(panel, document.body)
 }
 
-/** Botón de menú de la cabecera (desde `md`). */
+/**
+ * Botón de menú de la cabecera. Cubre la franja `md`-`lg`, donde la barra
+ * inferior ya no se ve y la horizontal todavía no cabe; desde `lg` sobra
+ * porque `NavegacionEscritorio` muestra las mismas secciones.
+ */
 export function MenuNavegacion({
   items,
   usuario,
@@ -535,7 +540,7 @@ export function MenuNavegacion({
   }
 
   return (
-    <div className="hidden md:block">
+    <div className="hidden md:block lg:hidden">
       <button
         ref={botonRef}
         type="button"
