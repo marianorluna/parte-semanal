@@ -1,7 +1,9 @@
 import { formatearFecha, formatearRango, type FechaIso } from '@/modules/partes/domain/fechas'
 import { minutosAHorasDecimal } from '@/modules/partes/domain/horas'
+import type { AvisoPanel } from '@/modules/reporting/application/avisos'
 import type { ResumenCumplimiento } from '@/modules/reporting/domain/cumplimiento'
 import type { NivelRiesgo } from '@/modules/reporting/domain/riesgo'
+import type { Severidad } from '@/modules/reporting/domain/severidad'
 
 export type LineaParte = {
   empleadoCodigo: string
@@ -44,13 +46,15 @@ export type ProyectoExport = {
   etiqueta: string
 }
 
-export type KpiExport = { etiqueta: string; valor: string; detalle: string }
+export type KpiExport = { etiqueta: string; valor: string; detalle: string; severidad: Severidad }
 
 export type DatosDashboardExport = {
   empresa: string
   hoy: FechaIso
   semanaEtiqueta: string
   kpis: KpiExport[]
+  avisos: AvisoPanel[]
+  severidadAvisos: Severidad
   cumplimiento: ResumenCumplimiento
   proyectos: ProyectoExport[]
   tendencia: { isoWeek: number; minutos: number }[]

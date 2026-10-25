@@ -6,6 +6,7 @@ import { formatearHorasReloj } from '@/modules/partes/domain/horas'
 import { etiquetaEstado } from '@/modules/partes/domain/parte'
 import type { ParteDetalle } from '@/modules/partes/infrastructure/consultas-detalle'
 import { panelRiesgo, resumenCumplimientoDeSemana } from './panel'
+import { avisosDelPanel } from './avisos'
 import {
   evolucionSemanal,
   lineasParaExportar,
@@ -14,6 +15,13 @@ import {
   topEmpleados,
 } from '../infrastructure/consultas'
 import type { NivelRiesgo } from '../domain/riesgo'
+import {
+  severidadAntiguedad,
+  severidadCumplimiento,
+  severidadPendientesRevision,
+  severidadProyectosEnRiesgo,
+  severidadSinEnviar,
+} from '../domain/severidad'
 import {
   etiquetaSemana,
   type DatosDashboardExport,
@@ -83,6 +91,12 @@ export async function datosDashboard(
     : 0
   const enRiesgo = panel.resumen.agotados + panel.resumen.criticos + panel.resumen.avisos
 
+  const avisos = avisosDelPanel({
+    pendientesRevision: resumen.pendientes,
+    personasSinEnviar: cumplimiento.pendientesDelTrabajador,
+    riesgo: panel.resumen,
+  })
+
   const proyectos: ProyectoExport[] = panel.filas
     .map((fila) => ({
       codigo: fila.codigo,
@@ -103,35 +117,52 @@ export async function datosDashboard(
     hoy,
     semanaEtiqueta: etiquetaSemana(semana),
     kpis: [
-      { etiqueta: 'Horas imputadas', valor: formatearHorasReloj(resumen.totalMinutos), detalle: 'en la semana' },
-      { etiqueta: 'Partes', valor: String(resumen.partes), detalle: `${resumen.empleados} empleados` },
-      { etiqueta: 'Pendientes de revisión', valor: String(resumen.pendientes), detalle: 'partes enviados' },
+      {
+        etiqueta: 'Horas imputadas',
+        valor: formatearHorasReloj(resumen.totalMinutos),
+        detalle: 'en la semana',
+        severidad: 'NEUTRO',
+      },
+      { etiqueta: 'Partes', valor: String(resumen.partes), detalle: `${resumen.empleados} empleados`, severidad: 'NEUTRO' },
+      {
+        etiqueta: 'Pendientes de revisión',
+        valor: String(resumen.pendientes),
+        detalle: 'partes enviados',
+        severidad: severidadPendientesRevision(resumen.pendientes),
+      },
       {
         etiqueta: 'Antigüedad máxima',
         valor: `${resumen.pendientes > 0 ? diasEspera : 0} d`,
         detalle: 'del parte más antiguo',
+        severidad: severidadAntiguedad(resumen.pendientes > 0 ? diasEspera : 0),
       },
       {
         etiqueta: 'Sin enviar',
         valor: String(cumplimiento.pendientesDelTrabajador),
         detalle: 'personas que deben cargar horas',
+        severidad: severidadSinEnviar(cumplimiento.pendientesDelTrabajador),
       },
       {
         etiqueta: 'Cumplimiento',
         valor: `${cumplimiento.cumplimientoPct}%`,
         detalle: 'partes enviados o aprobados',
+        severidad: severidadCumplimiento(cumplimiento.cumplimientoPct),
       },
       {
         etiqueta: 'Proyectos en riesgo',
         valor: String(enRiesgo),
         detalle: `${panel.resumen.agotados} agotados · ${panel.resumen.criticos} críticos · ${panel.resumen.avisos} avisos`,
+        severidad: severidadProyectosEnRiesgo(panel.resumen),
       },
       {
         etiqueta: 'Proyectos activos',
         valor: String(panel.filas.filter((fila) => fila.activo).length),
         detalle: `${panel.resumen.ok} en ritmo · ${panel.resumen.sinDatos} sin presupuesto o plazo`,
+        severidad: 'NEUTRO',
       },
     ],
+    avisos: avisos.avisos,
+    severidadAvisos: avisos.severidad,
     cumplimiento,
     proyectos,
     tendencia: evolucion.map((fila) => ({ isoWeek: fila.isoWeek, minutos: fila.minutos })),

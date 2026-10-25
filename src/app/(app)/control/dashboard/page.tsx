@@ -4,6 +4,16 @@ import { proyectosPermitidos } from '@/modules/identidad/infrastructure/reposito
 import { formatearRango, hoyEnZona, semanaIso, semanaIsoDe, sumarDias } from '@/modules/partes/domain/fechas'
 import { formatearHorasReloj } from '@/modules/partes/domain/horas'
 import { CLASES_CUMPLIMIENTO, ETIQUETAS_CUMPLIMIENTO } from '@/modules/reporting/domain/cumplimiento'
+import {
+  ETIQUETAS_SEVERIDAD,
+  severidadAntiguedad,
+  severidadCumplimiento,
+  severidadPendientesRevision,
+  severidadProyectosEnRiesgo,
+  severidadSinEnviar,
+  type Severidad,
+} from '@/modules/reporting/domain/severidad'
+import { avisosDelPanel } from '@/modules/reporting/application/avisos'
 import { panelRiesgo, resumenCumplimientoDeSemana } from '@/modules/reporting/application/panel'
 import {
   evolucionSemanal,
@@ -62,7 +72,12 @@ export default async function DashboardPage({ searchParams }: Props) {
     : 0
 
   const proyectosEnRiesgo = panel.resumen.agotados + panel.resumen.criticos + panel.resumen.avisos
-  const hayUrgencias = resumen.pendientes > 0 || cumplimiento.pendientesDelTrabajador > 0 || panel.resumen.agotados > 0
+  const avisos = avisosDelPanel({
+    pendientesRevision: resumen.pendientes,
+    personasSinEnviar: cumplimiento.pendientesDelTrabajador,
+    riesgo: panel.resumen,
+  })
+  const severidadCumplimientoSemana = severidadCumplimiento(cumplimiento.cumplimientoPct)
   const querySemana = `y=${semana.isoYear}&w=${semana.isoWeek}`
 
   return (
@@ -102,34 +117,20 @@ export default async function DashboardPage({ searchParams }: Props) {
         </div>
       </div>
 
-      {hayUrgencias || proyectosEnRiesgo > 0 ? (
+      {avisos.avisos.length > 0 ? (
         <div
           role="status"
-          className={`rounded-md border px-4 py-3 text-sm ${
-            panel.resumen.agotados > 0
-              ? 'border-red-300 bg-red-50 text-red-900'
-              : 'border-amber-300 bg-amber-50 text-amber-900'
-          }`}
+          className={`rounded-md border px-4 py-3 text-sm ${CLASES_SEVERIDAD[avisos.severidad].banner}`}
         >
           <p className="font-semibold">Necesita tu atención</p>
           <ul className="mt-1 flex flex-wrap gap-x-4 gap-y-1">
-            <li>
-              <Link href="/control/partes?estado=ENVIADO" className="underline">
-                {resumen.pendientes} {resumen.pendientes === 1 ? 'parte enviado' : 'partes enviados'} sin revisar
-              </Link>
-            </li>
-            <li>
-              <Link href="/control/equipo" className="underline">
-                {cumplimiento.pendientesDelTrabajador}{' '}
-                {cumplimiento.pendientesDelTrabajador === 1 ? 'persona' : 'personas'} sin enviar horas
-              </Link>
-            </li>
-            <li>
-              <Link href="/control/proyectos" className="underline">
-                {proyectosEnRiesgo} {proyectosEnRiesgo === 1 ? 'proyecto' : 'proyectos'} en riesgo
-                {panel.resumen.agotados > 0 ? ` (${panel.resumen.agotados} agotado)` : ''}
-              </Link>
-            </li>
+            {avisos.avisos.map((aviso) => (
+              <li key={aviso.href}>
+                <Link href={aviso.href} className="underline">
+                  {aviso.texto}
+                </Link>
+              </li>
+            ))}
             <li>
               <Link href="/notificaciones" className="underline">
                 Ver avisos
@@ -137,49 +138,68 @@ export default async function DashboardPage({ searchParams }: Props) {
             </li>
           </ul>
         </div>
-      ) : null}
+      ) : (
+        <div
+          role="status"
+          className={`rounded-md border px-4 py-3 text-sm ${CLASES_SEVERIDAD.OK.banner}`}
+        >
+          <p className="font-semibold">Sin incidencias</p>
+          <p className="mt-0.5">Ningún parte pendiente de revisión ni proyecto en riesgo esta semana.</p>
+        </div>
+      )}
 
       <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
-        <Kpi titulo="Horas imputadas" valor={formatearHorasReloj(resumen.totalMinutos)} detalle="en la semana" />
-        <Kpi titulo="Partes" valor={String(resumen.partes)} detalle={`${resumen.empleados} empleados`} />
+        <Kpi
+          titulo="Horas imputadas"
+          valor={formatearHorasReloj(resumen.totalMinutos)}
+          detalle="en la semana"
+          severidad="NEUTRO"
+        />
+        <Kpi
+          titulo="Partes"
+          valor={String(resumen.partes)}
+          detalle={`${resumen.empleados} empleados`}
+          severidad="NEUTRO"
+        />
         <Kpi
           titulo="Pendientes"
           valor={String(resumen.pendientes)}
           detalle="sin revisar"
-          destacado={resumen.pendientes > 0}
+          severidad={severidadPendientesRevision(resumen.pendientes)}
           href="/control/partes?estado=ENVIADO"
         />
         <Kpi
           titulo="Antigüedad máxima"
           valor={resumen.pendientes > 0 ? `${diasEspera} d` : '0 d'}
           detalle="del parte más antiguo"
-          destacado={diasEspera > 5}
+          severidad={severidadAntiguedad(resumen.pendientes > 0 ? diasEspera : 0)}
         />
         <Kpi
           titulo="Sin enviar"
           valor={String(cumplimiento.pendientesDelTrabajador)}
           detalle="personas que deben cargar horas"
-          destacado={cumplimiento.pendientesDelTrabajador > 0}
+          severidad={severidadSinEnviar(cumplimiento.pendientesDelTrabajador)}
           href="/control/equipo"
         />
         <Kpi
           titulo="Cumplimiento"
           valor={`${cumplimiento.cumplimientoPct}%`}
           detalle="partes enviados o aprobados"
-          destacado={cumplimiento.cumplimientoPct < 80}
+          severidad={severidadCumplimientoSemana}
           href="/control/equipo"
         />
         <Kpi
           titulo="Proyectos en riesgo"
           valor={String(proyectosEnRiesgo)}
           detalle={`${panel.resumen.agotados} agotados · ${panel.resumen.criticos} críticos · ${panel.resumen.avisos} avisos`}
-          destacado={panel.resumen.agotados + panel.resumen.criticos > 0}
+          severidad={severidadProyectosEnRiesgo(panel.resumen)}
           href="/control/proyectos"
         />
         <Kpi
           titulo="Proyectos activos"
           valor={String(panel.filas.filter((fila) => fila.activo).length)}
           detalle={`${panel.resumen.ok} en ritmo · ${panel.resumen.sinDatos} sin presupuesto o plazo`}
+          severidad="NEUTRO"
           href="/control/proyectos"
         />
       </div>
@@ -202,9 +222,19 @@ export default async function DashboardPage({ searchParams }: Props) {
           </Link>
         </div>
 
+        <div className="mb-3 flex flex-wrap items-baseline gap-2">
+          <span className={`text-lg font-bold ${CLASES_SEVERIDAD[severidadCumplimientoSemana].valor}`}>
+            {cumplimiento.cumplimientoPct}%
+          </span>
+          <span className="text-xs text-slate-600">de partes enviados o aprobados</span>
+          <span className={`etiqueta ${CLASES_SEVERIDAD[severidadCumplimientoSemana].etiqueta}`}>
+            {ETIQUETAS_SEVERIDAD[severidadCumplimientoSemana]}
+          </span>
+        </div>
+
         <div className="mb-3 h-2 w-full overflow-hidden rounded-full bg-slate-100">
           <div
-            className="h-full rounded-full bg-acento-500"
+            className={`h-full rounded-full ${CLASES_BARRA[severidadCumplimientoSemana]}`}
             style={{ width: `${cumplimiento.cumplimientoPct}%` }}
             aria-hidden="true"
           />
@@ -299,23 +329,69 @@ export default async function DashboardPage({ searchParams }: Props) {
   )
 }
 
+/**
+ * Paleta del semáforo en clases Tailwind. Debe coincidir en criterio con
+ * `paleta.ts` del exportador: mismo umbral, mismo mensaje.
+ */
+const CLASES_SEVERIDAD: Record<Severidad, { tarjeta: string; valor: string; etiqueta: string; banner: string }> = {
+  ALERTA: {
+    tarjeta: 'border-red-300 bg-red-50',
+    valor: 'text-red-900',
+    etiqueta: 'bg-red-100 text-red-800',
+    banner: 'border-red-300 bg-red-50 text-red-900',
+  },
+  AVISO: {
+    tarjeta: 'border-amber-300 bg-amber-50',
+    valor: 'text-amber-900',
+    etiqueta: 'bg-amber-100 text-amber-800',
+    banner: 'border-amber-300 bg-amber-50 text-amber-900',
+  },
+  OK: {
+    tarjeta: 'border-acento-200',
+    valor: 'text-slate-900',
+    etiqueta: 'bg-acento-100 text-acento-800',
+    banner: 'border-acento-200 bg-acento-50 text-acento-900',
+  },
+  NEUTRO: {
+    tarjeta: '',
+    valor: 'text-slate-900',
+    etiqueta: 'bg-slate-100 text-slate-600',
+    banner: 'border-slate-200 bg-slate-50 text-slate-700',
+  },
+}
+
+const CLASES_BARRA: Record<Severidad, string> = {
+  ALERTA: 'bg-red-500',
+  AVISO: 'bg-amber-500',
+  OK: 'bg-acento-500',
+  NEUTRO: 'bg-slate-400',
+}
+
 function Kpi({
   titulo,
   valor,
   detalle,
-  destacado,
+  severidad,
   href,
 }: {
   titulo: string
   valor: string
   detalle: string
-  destacado?: boolean
+  severidad: Severidad
   href?: string
 }) {
+  const colores = CLASES_SEVERIDAD[severidad]
+  const conSemaforo = severidad !== 'NEUTRO'
+
   const contenido = (
-    <div className={`tarjeta p-4 ${destacado ? 'border-amber-300' : ''}`}>
+    <div className={`tarjeta p-4 ${colores.tarjeta}`}>
       <p className="text-xs font-medium tracking-wide text-slate-500 uppercase">{titulo}</p>
-      <p className="mt-1 text-2xl font-bold text-slate-900">{valor}</p>
+      <div className="mt-1 flex items-center justify-between gap-2">
+        <p className={`text-2xl font-bold ${colores.valor}`}>{valor}</p>
+        {conSemaforo ? (
+          <span className={`etiqueta ${colores.etiqueta}`}>{ETIQUETAS_SEVERIDAD[severidad]}</span>
+        ) : null}
+      </div>
       <p className="text-xs text-slate-500">{detalle}</p>
     </div>
   )
