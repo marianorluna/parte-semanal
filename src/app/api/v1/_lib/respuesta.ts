@@ -40,6 +40,10 @@ function estadoDe(codigo: string): number {
       return 409
     case 'DEMASIADAS_PETICIONES':
       return 429
+    case 'NO_CONFIGURADO':
+      return 503
+    case 'SERVICIO_EXTERNO':
+      return 502
     default:
       return 500
   }

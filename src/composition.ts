@@ -36,6 +36,12 @@ import {
   hashClave,
 } from '@/modules/integraciones/infrastructure/seguridad'
 import type { DepsIntegraciones } from '@/modules/integraciones/application/ports'
+import { registrarAuditoria } from '@/modules/auditoria/application/registrar'
+import { crearConsultasAsistente } from '@/modules/asistente/infrastructure/consultas'
+import { crearLimitadorMemoria } from '@/modules/asistente/infrastructure/limite-memoria'
+import { crearProveedorDesdeEntorno } from '@/modules/asistente/infrastructure/openai-compatible'
+import type { DepsAsistente } from '@/modules/asistente/application/ports'
+import { env } from '@/config/env'
 
 /**
  * Raíz de composición: une los puertos de la aplicación con los adaptadores
@@ -174,6 +180,20 @@ export const depsPartes: DepsPartes = {
 export const depsAvisos: DepsAvisos = {
   repo: repositorioNotificaciones,
   consultas: consultasAvisos,
+}
+
+/**
+ * Asistente de IA: solo lectura y sin escrituras de negocio. Comparte la
+ * autorización y las consultas de `partes` y `reporting` para no crear una
+ * segunda fuente de verdad.
+ */
+export const depsAsistente: DepsAsistente = {
+  proveedor: crearProveedorDesdeEntorno(),
+  consultas: crearConsultasAsistente({ depsPartes, proyectosPermitidos }),
+  auditoria: registrarAuditoria,
+  limite: crearLimitadorMemoria({ porUsuarioPorMinuto: 20, porUsuarioPorSegundo: 1 }),
+  ahora: () => new Date(),
+  pseudonimizar: () => env().IA_PSEUDONIMIZAR,
 }
 
 export { repositorioNotificaciones }

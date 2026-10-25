@@ -126,6 +126,19 @@ async function exigirAlcanceSobreParte(
 }
 
 /**
+ * Lectura autorizada de un parte para revisión. La usan tanto la pantalla de
+ * detalle como las acciones del asistente, de modo que la comprobación de
+ * alcance (rol, propiedad y proyectos) vive en un único sitio.
+ */
+export async function parteParaRevision(
+  deps: DepsPartes,
+  usuario: UsuarioSesion,
+  parteId: string,
+): Promise<ParteCompleto> {
+  return exigirAlcanceSobreParte(deps, usuario, parteId)
+}
+
+/**
  * Un periodo cerrado no admite escritura: se comprueba antes de guardar,
  * enviar o revisar. La única salida es reabrirlo con motivo y auditoría.
  */

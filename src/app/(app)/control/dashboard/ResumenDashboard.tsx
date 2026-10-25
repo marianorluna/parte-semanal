@@ -86,6 +86,7 @@ export function ResumenDashboard({
   personas,
   cumplimiento,
   recordar,
+  briefing,
 }: {
   isoYear: number
   isoWeek: number
@@ -102,6 +103,8 @@ export function ResumenDashboard({
   personas: PersonaAtencion[]
   cumplimiento: ResumenCumplimiento
   recordar: ReactNode
+  /** Herramienta con IA que se muestra justo bajo el panel de control. */
+  briefing?: ReactNode
 }) {
   const tiles: Tile[] = [
     {
@@ -245,6 +248,8 @@ export function ResumenDashboard({
           />
         </div>
       </section>
+
+      {briefing}
 
       <TarjetaColapsable
         titulo={

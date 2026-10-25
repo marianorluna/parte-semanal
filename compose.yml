@@ -55,6 +55,14 @@ services:
       CRON_SECRET: ${CRON_SECRET:-}
       SMTP_URL: ${SMTP_URL:-}
       SMTP_FROM: ${SMTP_FROM:-}
+      # Asistente de IA. Opcional: sin IA_API_KEY o IA_MODELO el briefing y la
+      # redacción asistida quedan como no configurados y la app arranca igual.
+      IA_API_KEY: ${IA_API_KEY:-}
+      IA_BASE_URL: ${IA_BASE_URL:-https://api.deepseek.com}
+      IA_MODELO: ${IA_MODELO:-}
+      IA_TIMEOUT_MS: ${IA_TIMEOUT_MS:-20000}
+      IA_MAX_TOKENS: ${IA_MAX_TOKENS:-700}
+      IA_PSEUDONIMIZAR: ${IA_PSEUDONIMIZAR:-true}
       TZ: ${TZ:-Europe/Madrid}
       NODE_ENV: production
     expose:

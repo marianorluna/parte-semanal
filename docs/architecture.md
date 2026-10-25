@@ -73,6 +73,7 @@ No crees carpetas vacías: cada módulo nace con su primer caso de uso real.
 | `organizacion` | Empresas, empleados, proyectos, tareas, asignaciones | Registrar horas |
 | `partes` | Parte semanal, imputaciones, totales, máquina de estados | Consultas de dashboard |
 | `reporting` | Agregados de horas, bandejas, CSV, vistas imprimibles | Escribir datos de negocio |
+| `asistente` | Briefing semanal y redacción asistida sobre datos ya calculados; nunca escribe ni decide | Calcular totales, aprobar, rechazar o guardar horas |
 | `auditoria` | Registro append-only de cambios y accesos | Decidir permisos |
 
 ## Capas
@@ -117,6 +118,8 @@ Las utilidades `.campo`, `.boton-primario`, `.tarjeta` y `.etiqueta` ya consumen
 | `ESTADO_INVALIDO` | 409 | Transición no permitida |
 | `CONFLICTO_VERSION` | 409 | Edición concurrente |
 | `ERROR_INTERNO` | 500 | Fallo no esperado; log interno con id de correlación, sin trazas al cliente |
+| `NO_CONFIGURADO` | 503 | Función opcional sin configurar (por ejemplo, el asistente de IA sin clave) |
+| `SERVICIO_EXTERNO` | 502 | Un proveedor externo falló o devolvió una respuesta inválida |
 
 Los mensajes son públicos y seguros; los diagnósticos van al log del servidor sin datos personales ni secretos.
 

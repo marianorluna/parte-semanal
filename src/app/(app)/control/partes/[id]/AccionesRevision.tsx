@@ -1,22 +1,28 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { EstadoParte } from '@/db/schema'
+import { EtiquetaIA } from '@/components/HerramientaIA'
+import { Icono } from '@/components/Iconos'
 import { aprobarParteAction, rechazarParteAction, reabrirParteAction } from '../actions'
+import { redactarMotivoAction } from './acciones-ia'
 
 type Props = {
   parteId: string
   version: number
   estado: EstadoParte
+  iaDisponible?: boolean
 }
 
-export function AccionesRevision({ parteId, version, estado }: Props) {
+export function AccionesRevision({ parteId, version, estado, iaDisponible = false }: Props) {
   const router = useRouter()
   const [motivo, setMotivo] = useState('')
   const [modo, setModo] = useState<'ninguno' | 'rechazar' | 'reabrir'>('ninguno')
   const [ocupado, setOcupado] = useState(false)
+  const [redactando, setRedactando] = useState(false)
   const [error, setError] = useState('')
+  const refMotivo = useRef<HTMLTextAreaElement>(null)
 
   async function aprobar() {
     setOcupado(true)
@@ -56,6 +62,23 @@ export function AccionesRevision({ parteId, version, estado }: Props) {
     router.refresh()
   }
 
+  async function redactar() {
+    setRedactando(true)
+    setError('')
+
+    const respuesta = await redactarMotivoAction({ parteId })
+
+    setRedactando(false)
+
+    if (!respuesta.ok) {
+      setError(respuesta.error)
+      return
+    }
+
+    setMotivo((actual) => (actual.trim() ? `${actual.trim()}\n\n${respuesta.texto}` : respuesta.texto))
+    requestAnimationFrame(() => refMotivo.current?.focus())
+  }
+
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap gap-2">
@@ -91,13 +114,14 @@ export function AccionesRevision({ parteId, version, estado }: Props) {
           </label>
           <textarea
             id="motivo"
+            ref={refMotivo}
             value={motivo}
             onChange={(evento) => setMotivo(evento.target.value)}
             rows={3}
             className="campo"
             placeholder="Explica qué debe corregir el trabajador"
           />
-          <div className="mt-2 flex gap-2">
+          <div className="mt-2 flex flex-wrap gap-2">
             <button type="button" onClick={() => void confirmarMotivo()} disabled={ocupado} className="boton-primario">
               {ocupado ? 'Guardando...' : 'Confirmar'}
             </button>
@@ -105,6 +129,29 @@ export function AccionesRevision({ parteId, version, estado }: Props) {
               Cancelar
             </button>
           </div>
+
+          {modo === 'rechazar' && iaDisponible ? (
+            <div className="mt-3 rounded-lg border border-marca-200 bg-linear-to-br from-acento-50 via-white to-marca-50 p-3">
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <EtiquetaIA compacta />
+                  <p className="mt-1 text-xs text-slate-600">
+                    Redacta un borrador con los datos del parte. El texto es tuyo: revísalo y edítalo
+                    antes de confirmar.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void redactar()}
+                  disabled={ocupado || redactando}
+                  className="boton-secundario px-3 py-1.5 text-xs"
+                >
+                  <Icono nombre="chispa" className="h-4 w-4 text-marca-700" />
+                  {redactando ? 'Redactando...' : 'Redactar motivo'}
+                </button>
+              </div>
+            </div>
+          ) : null}
         </div>
       ) : null}
 

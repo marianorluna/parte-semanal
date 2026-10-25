@@ -6,7 +6,7 @@ import { formatearFecha, nombreDia, formatearRango } from '@/modules/partes/doma
 import { formatearHorasReloj } from '@/modules/partes/domain/horas'
 import { puedeRevisarParte } from '@/modules/partes/domain/permisos'
 import { historialParte, obtenerParteDetalle } from '@/modules/partes/infrastructure/consultas-detalle'
-import { depsComputo, depsCoste } from '@/composition'
+import { depsComputo, depsCoste, depsAsistente } from '@/composition'
 import { agruparPorTipo, resumenDeParte } from '@/modules/computo/application/servicio'
 import { ETIQUETAS_TIPO_HORA } from '@/modules/computo/domain/reglas'
 import { costeDeParte } from '@/modules/coste/application/servicio'
@@ -261,7 +261,12 @@ export default async function ParteDetallePage({ params }: Props) {
       <div className="grid gap-4 md:grid-cols-2">
         <div className="tarjeta p-4">
           <h2 className="mb-3 text-sm font-semibold text-slate-900">Revisión</h2>
-          <AccionesRevision parteId={parte.id} version={parte.version} estado={parte.estado} />
+          <AccionesRevision
+            parteId={parte.id}
+            version={parte.version}
+            estado={parte.estado}
+            iaDisponible={depsAsistente.proveedor.disponible()}
+          />
           <dl className="mt-4 space-y-1 text-xs text-slate-600">
             <div className="flex justify-between gap-2">
               <dt>Enviado</dt>

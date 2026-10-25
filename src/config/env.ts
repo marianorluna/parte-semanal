@@ -35,6 +35,35 @@ const envSchema = z.object({
     vacioComoUndefined,
     z.string().min(3, 'SMTP_FROM debe indicar el remitente').optional(),
   ),
+  // Asistente de IA. Todo opcional a propósito: sin clave las funciones quedan
+  // como no configuradas (503) y el resto de la app funciona igual. El
+  // proveedor habla el protocolo compatible con OpenAI, así que cambiar de
+  // DeepSeek a OpenAI u OpenRouter es cambiar `IA_BASE_URL` e `IA_MODELO`.
+  IA_API_KEY: z.preprocess(
+    vacioComoUndefined,
+    z.string().min(10, 'IA_API_KEY debe tener al menos 10 caracteres').optional(),
+  ),
+  IA_BASE_URL: z.preprocess(
+    vacioComoUndefined,
+    z.string().url('IA_BASE_URL debe ser una URL válida').default('https://api.deepseek.com'),
+  ),
+  IA_MODELO: z.preprocess(vacioComoUndefined, z.string().trim().min(1).optional()),
+  IA_TIMEOUT_MS: z.preprocess(
+    vacioComoUndefined,
+    z.coerce.number().int().min(1_000).max(60_000).default(20_000),
+  ),
+  IA_MAX_TOKENS: z.preprocess(
+    vacioComoUndefined,
+    z.coerce.number().int().min(100).max(2_000).default(700),
+  ),
+  // Reduce los nombres propios a iniciales antes de enviarlos al proveedor.
+  IA_PSEUDONIMIZAR: z.preprocess(
+    vacioComoUndefined,
+    z
+      .string()
+      .optional()
+      .transform((valor) => valor == null || valor === 'true' || valor === '1'),
+  ),
 })
 
 export type Env = z.infer<typeof envSchema>
@@ -56,6 +85,12 @@ const entornoDeCompilacion: Env = {
   CRON_SECRET: undefined,
   SMTP_URL: undefined,
   SMTP_FROM: undefined,
+  IA_API_KEY: undefined,
+  IA_BASE_URL: 'https://api.deepseek.com',
+  IA_MODELO: undefined,
+  IA_TIMEOUT_MS: 20_000,
+  IA_MAX_TOKENS: 700,
+  IA_PSEUDONIMIZAR: true,
 }
 
 export function env(): Env {

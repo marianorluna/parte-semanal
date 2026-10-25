@@ -24,6 +24,8 @@ import {
 import { TablaRiesgo } from '@/components/TablaRiesgo'
 import { GraficoEvolucion } from '@/components/GraficoEvolucion'
 import { TarjetaColapsable } from '@/components/TarjetaColapsable'
+import { depsAsistente } from '@/composition'
+import { BriefingSemanal } from './BriefingSemanal'
 import { ResumenDashboard } from './ResumenDashboard'
 import { RecordarPendientes } from './AccionesResumen'
 
@@ -126,6 +128,13 @@ export default async function DashboardPage({ searchParams }: Props) {
               isoWeek={semana.isoWeek}
             />
           ) : null
+        }
+        briefing={
+          <BriefingSemanal
+            isoYear={semana.isoYear}
+            isoWeek={semana.isoWeek}
+            disponible={depsAsistente.proveedor.disponible()}
+          />
         }
       />
 

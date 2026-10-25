@@ -142,7 +142,7 @@ Las migraciones se aplican **solas** al arrancar el contenedor (`docker/entrypoi
 En Coolify basta con un único recurso **Docker Compose**:
 
 1. Build pack `Docker Compose`, archivo `compose.yml`, rama `main`; Coolify construye el servicio `app` y crea el `db` con su volumen.
-2. Variables del recurso: `POSTGRES_PASSWORD` (contraseña fuerte y sin caracteres que rompan una URL; `openssl rand -hex 24`), `AUTH_SECRET`, `APP_URL`, `CRON_SECRET` y, si quieres que Coolify asigne el dominio, `SERVICE_FQDN_APP_3000`. Opcionales: `SMTP_URL` y `SMTP_FROM` para los avisos por correo; sin ellas los envíos quedan en estado `SIN_PROVEEDOR` sin afectar al resto de la app.
+2. Variables del recurso: `POSTGRES_PASSWORD` (contraseña fuerte y sin caracteres que rompan una URL; `openssl rand -hex 24`), `AUTH_SECRET`, `APP_URL`, `CRON_SECRET` y, si quieres que Coolify asigne el dominio, `SERVICE_FQDN_APP_3000`. Opcionales: `SMTP_URL` y `SMTP_FROM` para los avisos por correo; sin ellas los envíos quedan en estado `SIN_PROVEEDOR` sin afectar al resto de la app. También son opcionales `IA_API_KEY` e `IA_MODELO` para el asistente de IA (más `IA_BASE_URL` si no usas DeepSeek); sin ellas el briefing y la redacción asistida aparecen como no configurados.
 3. Dominio `https://horas.levitec.marianorluna.com` sobre el servicio `app`, puerto 3000; TLS lo gestiona el proxy de Coolify.
 4. Backup diario del volumen `parte_diario_pgdata` a almacenamiento fuera del VPS.
 

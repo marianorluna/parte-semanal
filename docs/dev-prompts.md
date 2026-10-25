@@ -518,6 +518,20 @@ prueba de restauración documentada; monitorización de errores y alerta de jobs
 Criterios: un PR roto no se puede mergear; restauración verificada al menos una vez.
 ```
 
+### Prompt 2.10 - Asistente de IA
+
+```text
+Tarea: dos funciones de IA de solo lectura, sin migraciones ni dependencias nuevas.
+Haz: módulo `asistente` con dominio puro, puerto `ProveedorLLM` y adaptador compatible con OpenAI
+(DeepSeek por defecto, OpenAI y OpenRouter cambiando URL y modelo); briefing semanal en el dashboard
+a partir de los datos de reporting; redacción asistida del motivo de rechazo en el detalle del parte,
+que solo rellena el textarea y nunca confirma; contexto minimizado, pseudonimización por defecto,
+prompts con datos delimitados, timeout, tope de tokens y límite por usuario; auditoría de modelo y
+tokens, nunca del contenido; degradación limpia sin `IA_API_KEY`.
+Criterios: la IA no calcula totales ni cambia estados; sin clave la app funciona igual; un encargado
+no recibe datos de proyectos fuera de su alcance; el detalle de un parte ajeno no se puede leer.
+```
+
 ---
 
 ## 8. Fase 3 - Backlog priorizado
