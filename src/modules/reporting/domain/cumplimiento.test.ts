@@ -1,5 +1,6 @@
 import {
   estadoCumplimiento,
+  ordenarPorAtencion,
   ordenarPorPrioridad,
   pendienteDeRevision,
   requiereAccionDelTrabajador,
@@ -82,5 +83,26 @@ describe('ordenarPorPrioridad', () => {
       'Enviado',
       'Aprobado',
     ])
+  })
+})
+
+describe('ordenarPorAtencion', () => {
+  it('prioriza el estado y, a igualdad, más días esperando', () => {
+    const filas = ordenarPorAtencion([
+      { nombre: 'Ana', estado: 'BORRADOR' as const, diasEspera: 2 },
+      { nombre: 'Luis', estado: 'SIN_PARTE' as const, diasEspera: 1 },
+      { nombre: 'Marta', estado: 'SIN_PARTE' as const, diasEspera: 4 },
+    ])
+
+    expect(filas.map((fila) => fila.nombre)).toEqual(['Marta', 'Luis', 'Ana'])
+  })
+
+  it('mantiene un orden estable por nombre en el empate total', () => {
+    const filas = ordenarPorAtencion([
+      { nombre: 'Zoe', estado: 'RECHAZADO' as const, diasEspera: 3 },
+      { nombre: 'Alba', estado: 'RECHAZADO' as const, diasEspera: 3 },
+    ])
+
+    expect(filas.map((fila) => fila.nombre)).toEqual(['Alba', 'Zoe'])
   })
 })

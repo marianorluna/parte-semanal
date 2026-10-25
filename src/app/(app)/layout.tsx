@@ -4,6 +4,7 @@ import { depsPartes, repositorioNotificaciones } from '@/composition'
 import { CampanaNotificaciones } from '@/components/CampanaNotificaciones'
 import { Marca } from '@/components/Marca'
 import { NavegacionEscritorio, MenuNavegacion } from './Navegacion'
+import { NavegacionMovil } from './NavegacionMovil'
 import type { ItemNav } from './navegacion-modelo'
 import { cerrarSesion } from '@/app/login/actions'
 import { MOSTRAR_MIS_AUSENCIAS } from '@/config/navegacion'
@@ -162,7 +163,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
             <div className="flex min-w-0 items-center gap-2 sm:gap-3">
               <CampanaNotificaciones noLeidas={noLeidas} />
-              <div className="hidden min-w-0 text-right sm:block">
+              <div className="hidden min-w-0 text-right md:block">
                 <p className="max-w-36 truncate text-sm leading-tight font-medium text-white md:max-w-56">
                   {usuario.nombre}
                 </p>
@@ -170,11 +171,23 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                   {usuario.rol === 'ADMIN' ? 'Administrador' : usuario.rol === 'ENCARGADO' ? 'Encargado' : 'Trabajador'}
                 </p>
               </div>
-              <MenuNavegacion items={items} />
-              <form action={cerrarSesion} className="shrink-0">
+              <MenuNavegacion
+                items={items}
+                usuario={{
+                  nombre: usuario.nombre,
+                  rol:
+                    usuario.rol === 'ADMIN'
+                      ? 'Administrador'
+                      : usuario.rol === 'ENCARGADO'
+                        ? 'Encargado'
+                        : 'Trabajador',
+                }}
+                cerrarSesion={cerrarSesion}
+              />
+              <form action={cerrarSesion} className="hidden shrink-0 md:block">
                 <button
                   type="submit"
-                  className="inline-flex h-9 cursor-pointer items-center rounded-md border border-marca-600 px-2.5 text-xs font-semibold text-white transition-colors hover:bg-marca-800"
+                  className="inline-flex h-11 cursor-pointer items-center rounded-md border border-marca-600 px-2.5 text-xs font-semibold text-white transition-colors hover:bg-marca-800"
                 >
                   Salir
                 </button>
@@ -186,7 +199,25 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6">{children}</main>
+      <main className="mx-auto max-w-7xl px-4 py-6 pb-24 sm:px-6 md:pb-6">{children}</main>
+
+      <NavegacionMovil
+        items={items}
+        rol={usuario.rol}
+        usuario={{
+          nombre: usuario.nombre,
+          rol:
+            usuario.rol === 'ADMIN'
+              ? 'Administrador'
+              : usuario.rol === 'ENCARGADO'
+                ? 'Encargado'
+                : 'Trabajador',
+        }}
+        cerrarSesion={cerrarSesion}
+        pendientes={pendientes}
+        noLeidas={noLeidas}
+        tieneEmpleado={Boolean(usuario.empleadoId)}
+      />
     </div>
   )
 }

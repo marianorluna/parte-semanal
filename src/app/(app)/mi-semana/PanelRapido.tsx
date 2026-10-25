@@ -19,6 +19,8 @@ type Props = {
   onAnadir: (fecha: string, tareaId: string, minutos: number) => ResultadoAnadir
   onRellenarSemana: (tareaId: string, minutos: number) => ResultadoAnadir
   onDeshacer: () => void
+  /** Variante para el modo rápido: título de un día y sin relleno semanal. */
+  compacto?: boolean
 }
 
 const PRESETS = [4, 7, 7.5, 8, 9] as const
@@ -40,6 +42,7 @@ export function PanelRapido({
   onAnadir,
   onRellenarSemana,
   onDeshacer,
+  compacto = false,
 }: Props) {
   const [fecha, setFecha] = useState(() => {
     const solicitado = dias.find((candidato) => candidato.fecha === diaInicial && candidato.laborable)
@@ -140,40 +143,44 @@ export function PanelRapido({
     <section className="tarjeta p-3 sm:p-4" aria-labelledby="carga-rapida-titulo">
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
         <h2 id="carga-rapida-titulo" className="text-sm font-semibold text-slate-900">
-          Añadir horas
+          {compacto ? 'Añadir horas a este día' : 'Añadir horas'}
         </h2>
-        <p className="text-xs text-slate-500">Se suma a lo que ya haya en ese día.</p>
+        <p className="text-xs text-slate-500">
+          {compacto ? 'Se suma a lo que ya haya.' : 'Se suma a lo que ya haya en ese día.'}
+        </p>
       </div>
 
-      <div className="mb-3 grid grid-cols-4 gap-1.5 sm:grid-cols-7" role="group" aria-label="Día de la imputación">
-        {dias.map((candidato) => {
-          const activo = candidato.fecha === fecha
-          return (
-            <button
-              key={candidato.fecha}
-              type="button"
-              onClick={() => setFecha(candidato.fecha)}
-              disabled={deshabilitado || !candidato.laborable}
-              aria-pressed={activo}
-              title={candidato.laborable ? undefined : (candidato.motivo ?? 'Día no laborable')}
-              className={`flex min-h-11 min-w-0 flex-col items-center justify-center rounded-md border px-1 py-1.5 text-xs font-semibold transition-colors ${
-                activo
-                  ? 'border-marca-700 bg-marca-700 text-white'
-                  : !candidato.laborable
-                    ? 'cursor-not-allowed border-slate-100 bg-slate-50 text-slate-300'
-                    : candidato.esHoy
-                      ? 'border-acento-400 bg-acento-50 text-marca-900 hover:bg-acento-100'
-                      : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-100'
-              }`}
-            >
-              <span className="max-w-full truncate capitalize">{candidato.dia}</span>
-              <span className={`text-[11px] font-normal ${activo ? 'text-marca-100' : 'text-slate-500'}`}>
-                {candidato.fecha.slice(8, 10)}
-              </span>
-            </button>
-          )
-        })}
-      </div>
+      {compacto ? null : (
+        <div className="mb-3 grid grid-cols-4 gap-1.5 sm:grid-cols-7" role="group" aria-label="Día de la imputación">
+          {dias.map((candidato) => {
+            const activo = candidato.fecha === fecha
+            return (
+              <button
+                key={candidato.fecha}
+                type="button"
+                onClick={() => setFecha(candidato.fecha)}
+                disabled={deshabilitado || !candidato.laborable}
+                aria-pressed={activo}
+                title={candidato.laborable ? undefined : (candidato.motivo ?? 'Día no laborable')}
+                className={`flex min-h-11 min-w-0 flex-col items-center justify-center rounded-md border px-1 py-1.5 text-xs font-semibold transition-colors ${
+                  activo
+                    ? 'border-marca-700 bg-marca-700 text-white'
+                    : !candidato.laborable
+                      ? 'cursor-not-allowed border-slate-100 bg-slate-50 text-slate-300'
+                      : candidato.esHoy
+                        ? 'border-acento-400 bg-acento-50 text-marca-900 hover:bg-acento-100'
+                        : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-100'
+                }`}
+              >
+                <span className="max-w-full truncate capitalize">{candidato.dia}</span>
+                <span className={`text-[11px] font-normal ${activo ? 'text-marca-100' : 'text-slate-500'}`}>
+                  {candidato.fecha.slice(8, 10)}
+                </span>
+              </button>
+            )
+          })}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1.15fr)_9rem_max-content]">
         <Select
@@ -235,28 +242,30 @@ export function PanelRapido({
           >
             Añadir
           </button>
-          <button
-            type="button"
-            onClick={rellenarSemana}
-            disabled={deshabilitado}
-            aria-describedby="rellenar-semana-ayuda"
-            title="Copia estas horas en los días laborables vacíos del calendario"
-            className="boton-acento boton-campo w-full text-sm whitespace-nowrap sm:w-auto sm:flex-1 lg:flex-none"
-          >
-            <svg
-              aria-hidden="true"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="h-4 w-4 shrink-0"
+          {compacto ? null : (
+            <button
+              type="button"
+              onClick={rellenarSemana}
+              disabled={deshabilitado}
+              aria-describedby="rellenar-semana-ayuda"
+              title="Copia estas horas en los días laborables vacíos del calendario"
+              className="boton-acento boton-campo w-full text-sm whitespace-nowrap sm:w-auto sm:flex-1 lg:flex-none"
             >
-              <path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z" />
-            </svg>
-            Rellenar semana
-          </button>
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="h-4 w-4 shrink-0"
+              >
+                <path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z" />
+              </svg>
+              Rellenar semana
+            </button>
+          )}
         </div>
       </div>
 
@@ -328,10 +337,12 @@ export function PanelRapido({
           Se añadirá al {dia.dia} {dia.fecha.slice(8, 10)}/{dia.fecha.slice(5, 7)}. Acepta 7,5 · 7.5 · 7:30.
         </p>
       ) : null}
-      <p id="rellenar-semana-ayuda" className="text-[11px] text-slate-400">
-        «Rellenar semana» copia estas horas en los días laborables de la semana y respeta los días que ya tengan
-        horas.
-      </p>
+      {compacto ? null : (
+        <p id="rellenar-semana-ayuda" className="text-[11px] text-slate-400">
+          «Rellenar semana» copia estas horas en los días laborables de la semana y respeta los días que ya tengan
+          horas.
+        </p>
+      )}
     </section>
   )
 }

@@ -10,6 +10,8 @@ import {
   sumarDias,
 } from '../domain/fechas'
 import { type ImputacionEntrada, validarParte } from '../domain/parte'
+import { semanaAnterior } from '../domain/parte'
+import { proyectarSemanaAnterior } from '../domain/copia'
 import { puedeRevisarParte } from '../domain/permisos'
 import { agruparTareas, type GrupoProyecto } from './agrupacion'
 import type { CalendarioSemana, ParteCompleto, RepositorioPartes } from './ports'
@@ -318,4 +320,54 @@ export async function reabrirSemana(
 
 export function diasDeLaSemana(semana: SemanaIso): FechaIso[] {
   return diasDeSemana(semana.isoYear, semana.isoWeek)
+}
+
+export type CopiaSemanaAnterior = {
+  /** Semana de origen; `null` si no existía parte. */
+  origen: { isoYear: number; isoWeek: number } | null
+  filas: ImputacionEntrada[]
+  totalMinutos: number
+  omitidas: number
+}
+
+/**
+ * Lee la semana anterior y la proyecta sobre la semana visible. Es solo
+ * lectura: nunca crea un borrador de una semana pasada ni guarda nada. El
+ * cliente decide qué celdas vacías rellena y lo guarda con el flujo normal.
+ */
+export async function copiaSemanaAnterior(
+  deps: DepsPartes,
+  usuario: UsuarioSesion,
+  semanaActual: SemanaIso,
+): Promise<CopiaSemanaAnterior> {
+  const empleadoId = exigirEmpleado(usuario)
+  const anterior = semanaAnterior(semanaActual.isoYear, semanaActual.isoWeek)
+
+  let previa: SemanaIso
+  try {
+    previa = semanaIso(anterior.isoYear, anterior.isoWeek)
+  } catch {
+    return { origen: null, filas: [], totalMinutos: 0, omitidas: 0 }
+  }
+
+  const parte = await deps.repo.buscarPorSemana(empleadoId, previa.isoYear, previa.isoWeek)
+  if (!parte) return { origen: null, filas: [], totalMinutos: 0, omitidas: 0 }
+
+  const [asignadas, calendario] = await Promise.all([
+    deps.repo.tareasAsignadas(empleadoId, semanaActual.weekStart, semanaActual.weekEnd),
+    deps.calendario.semana(empleadoId, semanaActual),
+  ])
+
+  return {
+    origen: { isoYear: previa.isoYear, isoWeek: previa.isoWeek },
+    ...proyectarSemanaAnterior(parte.imputaciones, {
+      semanaOrigen: previa,
+      semanaDestino: semanaActual,
+      tareasPermitidas: new Set(asignadas.map((tarea) => tarea.tareaId)),
+      diasNoLaborables: new Set(
+        calendario.dias.filter((dia) => !dia.laborable).map((dia) => dia.fecha),
+      ),
+      minutosOcupados: new Map(),
+    }),
+  }
 }

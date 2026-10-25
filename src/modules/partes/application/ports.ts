@@ -88,6 +88,25 @@ export type ResultadoControl = {
   totalMinutos: number
 }
 
+/** Parte enviado listo para aprobar, sin cargar su detalle. */
+export type ParteAprobable = {
+  parteId: string
+  version: number
+  empleadoNombre: string
+}
+
+export type FiltrosAprobables = {
+  empresaId: string
+  isoYear: number
+  isoWeek: number
+  proyectoId?: string
+  /** null = sin restricción (ADMIN). */
+  proyectosPermitidos: string[] | null
+  soloTrabajadores: boolean
+  /** Tope de seguridad para no aprobar de golpe una bandeja enorme. */
+  limite?: number
+}
+
 export type RepositorioPartes = {
   buscarPorSemana(empleadoId: string, isoYear: number, isoWeek: number): Promise<ParteCompleto | null>
   crearBorrador(
@@ -109,6 +128,11 @@ export type RepositorioPartes = {
   tareasPorIds(ids: string[]): Promise<TareaAsignada[]>
   tareasAsignadas(empleadoId: string, desde: FechaIso, hasta: FechaIso): Promise<TareaAsignada[]>
   listarParaControl(filtros: FiltrosControl): Promise<ResultadoControl>
+  /**
+   * Todo lo enviado que el usuario puede aprobar en la semana, sin paginar.
+   * Alimenta la acción «aprobar todos» del resumen de Partes.
+   */
+  listarEnviadosParaAprobar(filtros: FiltrosAprobables): Promise<ParteAprobable[]>
   contarPendientes(
     empresaId: string,
     proyectosPermitidos: string[] | null,

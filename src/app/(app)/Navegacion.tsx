@@ -17,6 +17,7 @@ import {
   grupoActivo,
   type ItemNav,
 } from './navegacion-modelo'
+import { Icono } from '@/components/Iconos'
 
 export type { EnlaceNav, GrupoNav, ItemNav } from './navegacion-modelo'
 
@@ -237,36 +238,27 @@ export function NavegacionEscritorio({ items }: { items: ItemNav[] }) {
 }
 
 /**
- * Menú lateral para móvil y tablet. Sin dependencias: overlay, bloqueo de
- * scroll, cierre con Escape, foco al abrir y devolución del foco al cerrar.
+ * Panel lateral completo. Lo usan la cabecera (desde `md`) y la barra inferior
+ * móvil, así que se monta solo cuando está abierto y devuelve el foco al
+ * llamador con `onCerrar`.
  */
-export function MenuNavegacion({ items }: { items: ItemNav[] }) {
+export function PanelMenu({
+  items,
+  onCerrar,
+  usuario,
+  cerrarSesion,
+}: {
+  items: ItemNav[]
+  onCerrar: () => void
+  usuario: { nombre: string; rol: string }
+  cerrarSesion: () => Promise<void>
+}) {
   const ruta = usePathname()
-  const [abiertaEn, setAbiertaEn] = useState<string | null>(null)
-  const [gruposAbiertos, setGruposAbiertos] = useState<string[]>([])
-  const botonRef = useRef<HTMLButtonElement>(null)
+  // Al abrir, despliega solo las secciones que contienen la página actual.
+  const [gruposAbiertos, setGruposAbiertos] = useState<string[]>(() =>
+    items.flatMap((item, indice) => (esGrupo(item) && grupoActivo(ruta, item) ? [claveGrupo(indice)] : [])),
+  )
   const panelRef = useRef<HTMLDivElement>(null)
-
-  // Derivado de la ruta: al navegar el menú se cierra sin efectos adicionales.
-  const abierto = abiertaEn === ruta
-
-  const cerrar = useCallback(() => {
-    setAbiertaEn(null)
-    botonRef.current?.focus()
-  }, [])
-
-  /** Al abrir, despliega solo las secciones que contienen la página actual. */
-  function alternarMenu() {
-    if (abierto) {
-      cerrar()
-      return
-    }
-    const activos = items.flatMap((item, indice) =>
-      esGrupo(item) && grupoActivo(ruta, item) ? [claveGrupo(indice)] : [],
-    )
-    setGruposAbiertos(activos)
-    setAbiertaEn(ruta)
-  }
 
   function alternarGrupo(clave: string) {
     setGruposAbiertos((anteriores) =>
@@ -277,15 +269,13 @@ export function MenuNavegacion({ items }: { items: ItemNav[] }) {
   }
 
   useEffect(() => {
-    if (!abierto) return
-
     const anterior = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     panelRef.current?.querySelector<HTMLElement>('a, button')?.focus()
 
     function alPulsarTecla(evento: KeyboardEvent) {
       if (evento.key === 'Escape') {
-        cerrar()
+        onCerrar()
         return
       }
       if (evento.key !== 'Tab' || !panelRef.current) return
@@ -313,15 +303,15 @@ export function MenuNavegacion({ items }: { items: ItemNav[] }) {
       document.removeEventListener('keydown', alPulsarTecla)
       document.body.style.overflow = anterior
     }
-  }, [abierto, cerrar])
+  }, [onCerrar])
 
-  const panel = abierto ? (
-    <div className="fixed inset-0 z-50 lg:hidden">
+  const panel = (
+    <div className="fixed inset-0 z-50" role="presentation">
       <button
         type="button"
         aria-hidden="true"
         tabIndex={-1}
-        onClick={cerrar}
+        onClick={onCerrar}
         className="absolute inset-0 h-full w-full cursor-default bg-slate-950/50"
       />
       <div
@@ -330,35 +320,21 @@ export function MenuNavegacion({ items }: { items: ItemNav[] }) {
         role="dialog"
         aria-modal="true"
         aria-label="Navegación principal"
-        className="absolute inset-y-0 right-0 flex w-72 max-w-[85vw] flex-col bg-marca-900 pb-[env(safe-area-inset-bottom)] text-white shadow-2xl"
+        className="absolute inset-y-0 right-0 flex w-80 max-w-[88vw] flex-col bg-marca-900 pb-[env(safe-area-inset-bottom)] text-white shadow-2xl"
       >
         <div className="flex items-center justify-between border-b border-marca-800 px-4 py-3">
           <span className="text-xs font-semibold tracking-widest text-acento-300 uppercase">Menú</span>
           <button
             type="button"
-            onClick={cerrar}
-            className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-md border border-marca-600 text-white transition-colors hover:bg-marca-800"
+            onClick={onCerrar}
+            className="inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-md border border-marca-600 text-white transition-colors hover:bg-marca-800"
             aria-label="Cerrar menú"
           >
-            <svg
-              aria-hidden="true"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              className="h-5 w-5"
-            >
-              <path d="M6 6l12 12" />
-              <path d="M18 6L6 18" />
-            </svg>
+            <Icono nombre="cerrar" className="h-5 w-5" />
           </button>
         </div>
 
-        <nav
-          aria-label="Navegación principal"
-          className="scroll-oscuro flex flex-1 flex-col gap-1 overflow-y-auto p-3"
-        >
+        <nav aria-label="Navegación principal" className="scroll-oscuro flex flex-1 flex-col gap-1 overflow-y-auto p-3">
           {items.map((item, indice) => {
             if (!esGrupo(item)) {
               const activo = estaActivo(ruta, item.href)
@@ -406,10 +382,7 @@ export function MenuNavegacion({ items }: { items: ItemNav[] }) {
                 </button>
 
                 {expandido ? (
-                  <div
-                    id={panelId}
-                    className="mt-1 ml-3 flex flex-col gap-1 border-l border-marca-700 pl-2"
-                  >
+                  <div id={panelId} className="mt-1 ml-3 flex flex-col gap-1 border-l border-marca-700 pl-2">
                     {item.enlaces.map((enlace) => {
                       const enlaceActivo = estaActivo(ruta, enlace.href)
                       return (
@@ -428,9 +401,7 @@ export function MenuNavegacion({ items }: { items: ItemNav[] }) {
                             <Contador valor={enlace.contador} />
                           </span>
                           {enlace.descripcion ? (
-                            <span className="text-xs leading-snug opacity-70">
-                              {enlace.descripcion}
-                            </span>
+                            <span className="text-xs leading-snug opacity-70">{enlace.descripcion}</span>
                           ) : null}
                         </Link>
                       )
@@ -441,46 +412,62 @@ export function MenuNavegacion({ items }: { items: ItemNav[] }) {
             )
           })}
         </nav>
+
+        <div className="border-t border-marca-800 p-3">
+          <p className="truncate text-sm font-medium text-white">{usuario.nombre}</p>
+          <p className="text-xs text-marca-300">{usuario.rol}</p>
+          <form action={cerrarSesion} className="mt-2">
+            <button
+              type="submit"
+              className="inline-flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-md border border-marca-600 px-3 text-sm font-semibold text-white hover:bg-marca-800"
+            >
+              <Icono nombre="salir" />
+              Salir
+            </button>
+          </form>
+        </div>
       </div>
     </div>
-  ) : null
+  )
+
+  return createPortal(panel, document.body)
+}
+
+/** Botón de menú de la cabecera (desde `md`). */
+export function MenuNavegacion({
+  items,
+  usuario,
+  cerrarSesion,
+}: {
+  items: ItemNav[]
+  usuario: { nombre: string; rol: string }
+  cerrarSesion: () => Promise<void>
+}) {
+  const [abierto, setAbierto] = useState(false)
+  const botonRef = useRef<HTMLButtonElement>(null)
+
+  function cerrar() {
+    setAbierto(false)
+    botonRef.current?.focus()
+  }
 
   return (
-    <div className="lg:hidden">
+    <div className="hidden md:block">
       <button
         ref={botonRef}
         type="button"
-        onClick={alternarMenu}
+        onClick={() => setAbierto(true)}
         aria-expanded={abierto}
         aria-controls="menu-navegacion"
-        aria-label={abierto ? 'Cerrar menú' : 'Abrir menú'}
-        className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-md border border-marca-600 text-white transition-colors hover:bg-marca-800"
+        aria-label="Abrir menú"
+        className="inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-md border border-marca-600 text-white transition-colors hover:bg-marca-800"
       >
-        <svg
-          aria-hidden="true"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinecap="round"
-          className="h-5 w-5"
-        >
-          {abierto ? (
-            <>
-              <path d="M6 6l12 12" />
-              <path d="M18 6L6 18" />
-            </>
-          ) : (
-            <>
-              <path d="M4 7h16" />
-              <path d="M4 12h16" />
-              <path d="M4 17h16" />
-            </>
-          )}
-        </svg>
+        <Icono nombre="menu" className="h-5 w-5" />
       </button>
 
-      {panel ? createPortal(panel, document.body) : null}
+      {abierto ? (
+        <PanelMenu items={items} onCerrar={cerrar} usuario={usuario} cerrarSesion={cerrarSesion} />
+      ) : null}
     </div>
   )
 }

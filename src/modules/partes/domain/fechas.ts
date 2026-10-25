@@ -82,6 +82,19 @@ export function diasDeSemana(isoYear: number, isoWeek: number): FechaIso[] {
   return Array.from({ length: 7 }, (_, i) => sumarDias(weekStart, i))
 }
 
+/**
+ * Traslada una fecha a la misma posición (lunes, martes...) de otra semana.
+ * Se usa al copiar la semana anterior: mantiene el día de la semana aunque
+ * cambie el año o la numeración ISO.
+ */
+export function trasladarFechaASemana(
+  fecha: FechaIso,
+  origen: Pick<SemanaIso, 'weekStart'>,
+  destino: Pick<SemanaIso, 'weekStart'>,
+): FechaIso {
+  return sumarDias(destino.weekStart, diasEntre(origen.weekStart, fecha))
+}
+
 export const DIAS_CORTOS = ['lun', 'mar', 'mié', 'jue', 'vie', 'sáb', 'dom'] as const
 
 export function nombreDia(fecha: FechaIso): string {

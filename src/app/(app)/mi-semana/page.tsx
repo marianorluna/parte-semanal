@@ -1,10 +1,12 @@
+import { cookies } from 'next/headers'
 import { requireUsuario } from '@/modules/identidad/application/sesion'
 import { depsPartes } from '@/composition'
 import { aTextoEditable } from '@/modules/partes/domain/horas'
 import { hoyEnZona, nombreDia, semanaIsoDe } from '@/modules/partes/domain/fechas'
 import { esEditable, semanaAnterior, semanaSiguiente } from '@/modules/partes/domain/parte'
-import { obtenerSemana } from '@/modules/partes/application/servicio'
+import { copiaSemanaAnterior, obtenerSemana } from '@/modules/partes/application/servicio'
 import { RejillaSemanal, type DiaSemana } from './RejillaSemanal'
+import { COOKIE_MODO, MODO_POR_DEFECTO, esModo } from './modo'
 
 export const dynamic = 'force-dynamic'
 
@@ -41,6 +43,14 @@ export default async function MiSemanaPage({ searchParams }: Props) {
   const anterior = semanaAnterior(vista.semana.isoYear, vista.semana.isoWeek)
   const siguiente = semanaSiguiente(vista.semana.isoYear, vista.semana.isoWeek)
 
+  const puedeEditar = esEditable(vista.parte.estado) && Boolean(usuario.empleadoId)
+  const copia = puedeEditar
+    ? await copiaSemanaAnterior(depsPartes, usuario, vista.semana)
+    : { origen: null, filas: [], totalMinutos: 0, omitidas: 0 }
+
+  const preferida = (await cookies()).get(COOKIE_MODO)?.value
+  const modoInicial = esModo(preferida) ? preferida : MODO_POR_DEFECTO
+
   return (
     <RejillaSemanal
       key={`${vista.semana.isoYear}-${vista.semana.isoWeek}`}
@@ -56,7 +66,19 @@ export default async function MiSemanaPage({ searchParams }: Props) {
         capacidadMin: vista.calendario.capacidadMin,
         porDefecto: vista.calendario.porDefecto,
       }}
-      editable={esEditable(vista.parte.estado) && Boolean(usuario.empleadoId)}
+      editable={puedeEditar}
+      modoInicial={modoInicial}
+      copiaSemanaAnterior={{
+        origen: copia.origen,
+        lineas: copia.filas.length,
+        filas: copia.filas.map((fila) => ({
+          fecha: fila.fecha,
+          tareaId: fila.tareaId,
+          minutos: fila.minutos,
+        })),
+        totalMinutos: copia.totalMinutos,
+        omitidas: copia.omitidas,
+      }}
       navegacion={{
         anterior: `/mi-semana?y=${anterior.isoYear}&w=${anterior.isoWeek}`,
         siguiente: `/mi-semana?y=${siguiente.isoYear}&w=${siguiente.isoWeek}`,

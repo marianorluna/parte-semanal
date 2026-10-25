@@ -12,11 +12,17 @@ import {
   MINUTOS_POR_DIA,
   sumarMinutos,
 } from '@/modules/partes/domain/horas'
-import { etiquetaEstado } from '@/modules/partes/domain/parte'
+import { formatearRango } from '@/modules/partes/domain/fechas'
 import { EstadoBadge } from '@/components/EstadoBadge'
+import { Icono } from '@/components/Iconos'
+import { EnlaceIcono } from '@/components/AccionesIcono'
 import { guardarSemanaAction, enviarSemanaAction } from './actions'
 import { ModalEnvio } from './ModalEnvio'
 import { PanelRapido, type ResultadoAnadir } from './PanelRapido'
+import { ModoCargaRapida, type CopiaDisponible } from './ModoCargaRapida'
+import { ResumenSemana } from './ResumenSemana'
+import { SelectorModo } from './SelectorModo'
+import type { ModoMiSemana } from './modo'
 
 export type DiaSemana = {
   fecha: string
@@ -31,6 +37,11 @@ export type DiaSemana = {
   ausencia: { nombre: string; minutos: number | null } | null
 }
 
+/** Proyección de la semana anterior ya trasladada a la semana visible. */
+export type CopiaSemana = CopiaDisponible & {
+  filas: { fecha: string; tareaId: string; minutos: number }[]
+}
+
 type Props = {
   isoYear: number
   isoWeek: number
@@ -41,6 +52,8 @@ type Props = {
   estado: EstadoParte
   motivoRechazo: string | null
   editable: boolean
+  modoInicial: ModoMiSemana
+  copiaSemanaAnterior: CopiaSemana
   navegacion: { anterior: string; siguiente: string; actual: string }
   nombreEmpleado: string
   calendario: { capacidadMin: number | null; porDefecto: boolean }
@@ -89,6 +102,8 @@ export function RejillaSemanal({
   estado,
   motivoRechazo,
   editable,
+  modoInicial,
+  copiaSemanaAnterior,
   navegacion,
   nombreEmpleado,
   calendario,
@@ -105,6 +120,7 @@ export function RejillaSemanal({
   const [resaltadas, setResaltadas] = useState<ReadonlySet<string>>(() => new Set())
   const [deshacer, setDeshacer] = useState<Record<string, string> | null>(null)
   const [pendienteEnvio, iniciarEnvio] = useTransition()
+  const [modo, setModo] = useState<ModoMiSemana>(modoInicial)
   const ediciones = useRef(0)
 
   const celdas = useMemo(() => {
@@ -308,6 +324,115 @@ export function RejillaSemanal({
   }
 
   /**
+   * Aplica un conjunto de celdas con un único punto de deshacer. Toda la
+   * captura rápida (plantilla, copia y relleno) pasa por aquí para que el
+   * comportamiento sea el mismo.
+   */
+  function aplicarCambios(anteriores: Record<string, string>, nuevas: Record<string, string>) {
+    if (Object.keys(nuevas).length === 0) return
+    ediciones.current += 1
+    setDeshacer(anteriores)
+    setValores((anterior) => ({ ...anterior, ...nuevas }))
+    setHayCambios(true)
+    setMensaje('')
+    setError('')
+    setResaltadas(new Set(Object.keys(nuevas)))
+  }
+
+  /** Rellena los días elegidos que todavía están vacíos con la misma tarea. */
+  function rellenarDias(fechas: readonly string[], tareaId: string, minutos: number): ResultadoAnadir {
+    if (minutos <= 0) {
+      return { ok: false, error: 'Escribe o elige las horas antes de rellenar' }
+    }
+    if (minutos > MINUTOS_POR_DIA) {
+      return { ok: false, error: 'Una tarea no puede superar las 24 horas en un día.' }
+    }
+    if (!tareaId) {
+      return { ok: false, error: 'Selecciona una tarea' }
+    }
+
+    const vacios = fechas.filter((fecha) => (totalDia[fecha] ?? 0) === 0)
+    if (vacios.length === 0) {
+      return {
+        ok: true,
+        mensaje: `Los ${fechas.length} días elegidos ya tienen horas: ajusta el día en la tira de abajo.`,
+      }
+    }
+
+    const texto = aTextoEditable(minutos)
+    const anteriores: Record<string, string> = {}
+    const nuevas: Record<string, string> = {}
+    for (const fecha of vacios) {
+      const llave = clave(fecha, tareaId)
+      anteriores[llave] = valores[llave] ?? ''
+      nuevas[llave] = texto
+    }
+    aplicarCambios(anteriores, nuevas)
+
+    const resto =
+      fechas.length > vacios.length ? ` ${fechas.length - vacios.length} ya tenían horas.` : ''
+    return {
+      ok: true,
+      mensaje: `Rellenados ${vacios.length} ${vacios.length === 1 ? 'día' : 'días'} con ${formatearHorasReloj(minutos)}.${resto}`,
+    }
+  }
+
+  /**
+   * Copia la semana anterior solo en celdas vacías. El servidor ya descartó
+   * tareas no asignadas y días no laborables; aquí se respeta el tope de 24
+   * horas diarias y lo que el usuario haya escrito en esta sesión.
+   */
+  function copiarSemanaAnterior(): ResultadoAnadir {
+    if (!copiaSemanaAnterior.origen || copiaSemanaAnterior.filas.length === 0) {
+      return { ok: false, error: 'La semana anterior no tiene horas que copiar' }
+    }
+
+    const totales = { ...totalDia }
+    const anteriores: Record<string, string> = {}
+    const nuevas: Record<string, string> = {}
+    let ocupadas = 0
+    let copiados = 0
+
+    for (const fila of copiaSemanaAnterior.filas) {
+      const llave = clave(fila.fecha, fila.tareaId)
+      const yaHay = (valores[llave] ?? '').trim() !== '' || nuevas[llave] !== undefined
+      if (yaHay) {
+        ocupadas += 1
+        continue
+      }
+      const acumulado = totales[fila.fecha] ?? 0
+      if (acumulado + fila.minutos > MINUTOS_POR_DIA) {
+        ocupadas += 1
+        continue
+      }
+      anteriores[llave] = valores[llave] ?? ''
+      nuevas[llave] = aTextoEditable(fila.minutos)
+      totales[fila.fecha] = acumulado + fila.minutos
+      copiados += 1
+    }
+
+    if (copiados === 0) {
+      return {
+        ok: true,
+        mensaje: 'No había huecos libres: la semana anterior ya está reflejada en esta.',
+      }
+    }
+
+    aplicarCambios(anteriores, nuevas)
+
+    const totalCopiado = Object.values(nuevas).reduce((suma, texto) => {
+      const parseado = horasAMinutos(texto)
+      return suma + (parseado.ok ? parseado.minutos : 0)
+    }, 0)
+
+    const resto = ocupadas > 0 ? ` ${ocupadas} celdas ya tenían horas.` : ''
+    return {
+      ok: true,
+      mensaje: `Copiados ${copiados} registros (${formatearHorasReloj(totalCopiado)}) de la semana ${copiaSemanaAnterior.origen.isoWeek}.${resto}`,
+    }
+  }
+
+  /**
    * Copia las horas indicadas a la tarea elegida en los días laborables que
    * sigan vacíos. Nunca sobrescribe un día con horas ni toca el fin de semana,
    * de modo que se puede rellenar la semana y después ajustar un día suelto.
@@ -321,51 +446,11 @@ export function RejillaSemanal({
     }
 
     const laborables = dias.filter((dia) => dia.laborable)
-    if (laborables.length === 0) {
-      return { ok: false, error: 'Esta semana no tiene días laborables que rellenar.' }
-    }
-
-    const diasConHoras = new Set(
-      celdas.filter((celda) => celda.texto.trim() !== '').map((celda) => celda.fecha),
+    return rellenarDias(
+      laborables.map((dia) => dia.fecha),
+      tareaId,
+      minutos,
     )
-    const vacios = laborables.filter((dia) => !diasConHoras.has(dia.fecha))
-    const ocupados = laborables.length - vacios.length
-
-    if (vacios.length === 0) {
-      return {
-        ok: true,
-        mensaje: `No hay días laborables vacíos: los ${laborables.length} ya tienen horas.`,
-      }
-    }
-
-    const texto = aTextoEditable(minutos)
-    const anteriores: Record<string, string> = {}
-    for (const dia of vacios) {
-      const llave = clave(dia.fecha, tareaId)
-      anteriores[llave] = valores[llave] ?? ''
-    }
-
-    ediciones.current += 1
-    setDeshacer(anteriores)
-    setValores((anterior) => {
-      const siguiente = { ...anterior }
-      for (const llave of Object.keys(anteriores)) siguiente[llave] = texto
-      return siguiente
-    })
-    setHayCambios(true)
-    setMensaje('')
-    setError('')
-    setResaltadas(new Set(Object.keys(anteriores)))
-
-    const yaTenían = ocupados === 0 ? '' : ` ${ocupados} ya tenían horas.`
-    const rellenado =
-      vacios.length === 1
-        ? `Rellenado 1 día laborable con ${formatearHorasReloj(minutos)}.`
-        : `Rellenados ${vacios.length} días laborables con ${formatearHorasReloj(minutos)}.`
-    return {
-      ok: true,
-      mensaje: `${rellenado}${yaTenían}`,
-    }
   }
 
   function enviar() {
@@ -385,29 +470,41 @@ export function RejillaSemanal({
   }
 
   const deshabilitado = !editable
-  const diaInicial = dias.find((dia) => dia.esHoy)?.fecha ?? dias[0]?.fecha ?? ''
+  const diaHoy =
+    dias.find((dia) => dia.esHoy && dia.laborable)?.fecha ??
+    dias.find((dia) => dia.laborable)?.fecha ??
+    dias[0]?.fecha ??
+    ''
+  const [diaAjuste, setDiaAjuste] = useState(diaHoy)
+
+  const rango = dias.length > 0 ? formatearRango(dias[0]?.fecha ?? '', dias[dias.length - 1]?.fecha ?? '') : ''
 
   return (
-    <section className="space-y-4 pb-28 lg:pb-0">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
+    <section className={`space-y-4 ${editable ? 'pb-44 md:pb-0' : 'pb-4'}`}>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
           <h1 className="text-xl font-semibold text-slate-900">Mi semana</h1>
           <p className="text-sm text-slate-600">
             {nombreEmpleado} · semana {isoWeek} de {isoYear}
           </p>
         </div>
+        {editable ? (
+          <SelectorModo modo={modo} onChange={setModo} />
+        ) : (
+          <span className="etiqueta bg-slate-100 text-slate-600">Solo lectura</span>
+        )}
+      </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <Link href={navegacion.anterior} className="boton-secundario px-3 py-1.5 text-xs">
-            Anterior
-          </Link>
-          <Link href={navegacion.actual} className="boton-secundario px-3 py-1.5 text-xs">
-            Esta semana
-          </Link>
-          <Link href={navegacion.siguiente} className="boton-secundario px-3 py-1.5 text-xs">
-            Siguiente
-          </Link>
-        </div>
+      <div className="flex items-center gap-2">
+        <EnlaceIcono href={navegacion.anterior} icono="flecha-izquierda" etiqueta="Semana anterior" soloIcono />
+        <p className="cifra flex-1 text-center text-xs font-medium text-slate-600">{rango}</p>
+        <Link
+          href={navegacion.actual}
+          className="inline-flex min-h-11 items-center rounded-md border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+        >
+          Esta semana
+        </Link>
+        <EnlaceIcono href={navegacion.siguiente} icono="flecha-derecha" etiqueta="Semana siguiente" soloIcono />
       </div>
 
       {estado === 'RECHAZADO' && motivoRechazo ? (
@@ -444,167 +541,216 @@ export function RejillaSemanal({
         </div>
       ) : (
         <>
-          {editable && diaInicial ? (
-            <PanelRapido
-              dias={dias}
-              grupos={grupos}
-              diaInicial={diaInicial}
-              deshabilitado={deshabilitado}
-              puedeDeshacer={deshacer !== null}
-              onAnadir={anadirRapido}
-              onRellenarSemana={rellenarSemana}
-              onDeshacer={deshacerUltimo}
-            />
+          <ResumenSemana
+            isoWeek={isoWeek}
+            isoYear={isoYear}
+            total={total}
+            capacidadMin={calendario.capacidadMin}
+            porDefecto={calendario.porDefecto}
+            desviacion={desviacion}
+            estado={estado}
+            guardando={guardando}
+            mensaje={mensaje}
+            hayCambios={hayCambios}
+            hayErrores={hayErrores}
+          />
+
+          {modo === 'rapido' && editable ? (
+            <>
+              <ModoCargaRapida
+                dias={dias}
+                grupos={grupos}
+                deshabilitado={deshabilitado}
+                totalDia={totalDia}
+                diaSeleccionado={diaAjuste}
+                onSeleccionarDia={setDiaAjuste}
+                onRellenarDias={rellenarDias}
+                copia={{
+                  origen: copiaSemanaAnterior.origen,
+                  lineas: copiaSemanaAnterior.filas.length,
+                  totalMinutos: copiaSemanaAnterior.totalMinutos,
+                  omitidas: copiaSemanaAnterior.omitidas,
+                }}
+                onCopiarSemana={copiarSemanaAnterior}
+                puedeDeshacer={deshacer !== null}
+                onDeshacer={deshacerUltimo}
+              />
+
+              <PanelRapido
+                key={diaAjuste}
+                dias={dias}
+                grupos={grupos}
+                diaInicial={diaAjuste}
+                deshabilitado={deshabilitado}
+                puedeDeshacer={deshacer !== null}
+                onAnadir={anadirRapido}
+                onRellenarSemana={rellenarSemana}
+                onDeshacer={deshacerUltimo}
+                compacto
+              />
+
+              <p className="text-[11px] text-slate-500">
+                El modo rápido rellena días vacíos. Para editar una celda concreta, cambia a «Detalle».
+              </p>
+            </>
           ) : null}
 
-          <div className="hidden flex-wrap items-center gap-x-5 gap-y-2 text-xs text-slate-600 lg:flex">
-            <span className="inline-flex items-center gap-1.5">
-              <span
-                aria-hidden="true"
-                className="inline-block h-5 w-9 rounded border border-dashed border-slate-400 bg-white"
-              />
-              Casilla libre: escribe las horas
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <span
-                aria-hidden="true"
-                className="inline-block h-5 w-9 rounded border border-slate-400 bg-white text-center text-[11px] leading-5 font-medium"
-              >
-                7:30
-              </span>
-              Horas guardadas
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <span aria-hidden="true" className="inline-block h-5 w-2 rounded bg-acento-200" />
-              Día de hoy
-            </span>
-            {editable ? <span className="text-slate-500">Puedes escribir 7,5 · 7.5 · 7:30</span> : null}
-          </div>
+          {modo === 'detalle' || !editable ? (
+            <>
+              {editable ? (
+                <PanelRapido
+                  dias={dias}
+                  grupos={grupos}
+                  diaInicial={diaHoy}
+                  deshabilitado={deshabilitado}
+                  puedeDeshacer={deshacer !== null}
+                  onAnadir={anadirRapido}
+                  onRellenarSemana={rellenarSemana}
+                  onDeshacer={deshacerUltimo}
+                />
+              ) : null}
 
-          <div className="tarjeta hidden max-h-[calc(100dvh-11rem)] overflow-auto lg:block">
-            <table className="w-full border-collapse text-sm">
-              <thead className="sticky top-0 z-20">
-                <tr className="border-b border-slate-200 bg-marca-50">
-                  <th
-                    scope="col"
-                    className="sticky left-0 z-10 min-w-56 border-r border-marca-200 bg-marca-50 px-3 py-2 text-left font-semibold text-marca-900"
+              <div className="hidden flex-wrap items-center gap-x-5 gap-y-2 text-xs text-slate-600 md:flex">
+                <span className="inline-flex items-center gap-1.5">
+                  <span
+                    aria-hidden="true"
+                    className="inline-block h-5 w-9 rounded border border-dashed border-slate-400 bg-white"
+                  />
+                  Casilla libre: escribe las horas
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <span
+                    aria-hidden="true"
+                    className="inline-block h-5 w-9 rounded border border-slate-400 bg-white text-center text-[11px] leading-5 font-medium"
                   >
-                    Proyecto / tarea
-                  </th>
-                  {dias.map((dia) => (
-                    <th
-                      key={dia.fecha}
-                      scope="col"
-                      title={dia.motivo ?? undefined}
-                      className={`w-20 border-l border-marca-100 px-2 py-2 text-center font-semibold ${
-                        dia.esHoy ? 'bg-acento-100 text-marca-900' : dia.laborable ? 'text-slate-700' : 'bg-slate-100 text-slate-400'
-                      }`}
-                    >
-                      <span className="block text-xs uppercase">{dia.dia}</span>
-                      <span className="block text-[11px] font-normal text-slate-500">
-                        {dia.fecha.slice(8, 10)}
-                      </span>
-                      <span
-                        className={`mt-0.5 block truncate text-[10px] font-semibold ${
-                          dia.laborable ? 'text-acento-800' : 'text-slate-400'
-                        }`}
-                        title={dia.ausencia?.nombre ?? undefined}
+                    7:30
+                  </span>
+                  Horas guardadas
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <span aria-hidden="true" className="inline-block h-5 w-2 rounded bg-acento-200" />
+                  Día de hoy
+                </span>
+                {editable ? <span className="text-slate-500">Puedes escribir 7,5 · 7.5 · 7:30</span> : null}
+              </div>
+
+              <div className="tarjeta hidden max-h-[calc(100dvh-11rem)] overflow-auto md:block">
+                <table className="w-full border-collapse text-sm">
+                  <thead className="sticky top-0 z-20">
+                    <tr className="border-b border-slate-200 bg-marca-50">
+                      <th
+                        scope="col"
+                        className="sticky left-0 z-10 min-w-56 border-r border-marca-200 bg-marca-50 px-3 py-2 text-left font-semibold text-marca-900"
                       >
-                        {dia.ausencia
-                          ? dia.ausencia.nombre
-                          : dia.laborable
-                            ? dia.esHoy
-                              ? 'hoy'
-                              : '\u00a0'
-                            : 'libre'}
-                      </span>
-                    </th>
-                  ))}
-                  <th
-                    scope="col"
-                    className="w-24 border-l border-marca-200 px-2 py-2 text-right font-semibold text-slate-700"
-                  >
-                    Total
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {grupos.map((grupo) => (
-                  <GrupoFilas
-                    key={grupo.proyectoId}
-                    grupo={grupo}
-                    dias={dias}
+                        Proyecto / tarea
+                      </th>
+                      {dias.map((dia) => (
+                        <th
+                          key={dia.fecha}
+                          scope="col"
+                          title={dia.motivo ?? undefined}
+                          className={`w-20 border-l border-marca-100 px-2 py-2 text-center font-semibold ${
+                            dia.esHoy
+                              ? 'bg-acento-100 text-marca-900'
+                              : dia.laborable
+                                ? 'text-slate-700'
+                                : 'bg-slate-100 text-slate-400'
+                          }`}
+                        >
+                          <span className="block text-xs uppercase">{dia.dia}</span>
+                          <span className="block text-[11px] font-normal text-slate-500">
+                            {dia.fecha.slice(8, 10)}
+                          </span>
+                          <span
+                            className={`mt-0.5 block truncate text-[10px] font-semibold ${
+                              dia.laborable ? 'text-acento-800' : 'text-slate-400'
+                            }`}
+                            title={dia.ausencia?.nombre ?? undefined}
+                          >
+                            {dia.ausencia
+                              ? dia.ausencia.nombre
+                              : dia.laborable
+                                ? dia.esHoy
+                                  ? 'hoy'
+                                  : '\u00a0'
+                                : 'libre'}
+                          </span>
+                        </th>
+                      ))}
+                      <th
+                        scope="col"
+                        className="w-24 border-l border-marca-200 px-2 py-2 text-right font-semibold text-slate-700"
+                      >
+                        Total
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {grupos.map((grupo) => (
+                      <GrupoFilas
+                        key={grupo.proyectoId}
+                        grupo={grupo}
+                        dias={dias}
+                        valores={valores}
+                        totalTarea={totalTarea}
+                        deshabilitado={deshabilitado}
+                        resaltadas={resaltadas}
+                        permiteDia={permiteDia}
+                        cambiar={cambiar}
+                      />
+                    ))}
+                    <tr className="border-t-2 border-slate-300 bg-marca-50 font-semibold">
+                      <th
+                        scope="row"
+                        className="sticky left-0 z-10 border-r border-marca-200 bg-marca-50 px-3 py-2 text-left"
+                      >
+                        Total día
+                      </th>
+                      {dias.map((dia) => (
+                        <td
+                          key={dia.fecha}
+                          className={`cifra border-l border-marca-100 px-2 py-2 text-center ${
+                            (totalDia[dia.fecha] ?? 0) > 12 * 60 ? 'text-amber-700' : ''
+                          }`}
+                        >
+                          {totalDia[dia.fecha] ? formatearHorasReloj(totalDia[dia.fecha] ?? 0) : '—'}
+                        </td>
+                      ))}
+                      <td className="cifra border-l border-marca-200 px-2 py-2 text-right">
+                        {formatearHorasReloj(total)}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="space-y-3 md:hidden">
+                {dias.map((dia) => (
+                  <TarjetaDia
+                    key={dia.fecha}
+                    dia={dia}
+                    grupos={grupos}
                     valores={valores}
-                    totalTarea={totalTarea}
+                    totalDia={totalDia[dia.fecha] ?? 0}
                     deshabilitado={deshabilitado}
                     resaltadas={resaltadas}
-                    permiteDia={permiteDia}
+                    permite={permiteDia[dia.fecha] ?? true}
                     cambiar={cambiar}
+                    tieneError={
+                      diasConExceso.includes(dia.fecha) ||
+                      celdas.some((celda) => celda.fecha === dia.fecha && celda.error !== null)
+                    }
                   />
                 ))}
-                <tr className="border-t-2 border-slate-300 bg-marca-50 font-semibold">
-                  <th
-                    scope="row"
-                    className="sticky left-0 z-10 border-r border-marca-200 bg-marca-50 px-3 py-2 text-left"
-                  >
-                    Total día
-                  </th>
-                  {dias.map((dia) => (
-                    <td
-                      key={dia.fecha}
-                      className={`border-l border-marca-100 px-2 py-2 text-center ${
-                        (totalDia[dia.fecha] ?? 0) > 12 * 60 ? 'text-amber-700' : ''
-                      }`}
-                    >
-                      {totalDia[dia.fecha] ? formatearHorasReloj(totalDia[dia.fecha] ?? 0) : '—'}
-                    </td>
-                  ))}
-                  <td className="border-l border-marca-200 px-2 py-2 text-right">{formatearHorasReloj(total)}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+              </div>
 
-          <div className="space-y-3 lg:hidden">
-            {dias.map((dia) => (
-              <TarjetaDia
-                key={dia.fecha}
-                dia={dia}
-                grupos={grupos}
-                valores={valores}
-                totalDia={totalDia[dia.fecha] ?? 0}
-                deshabilitado={deshabilitado}
-                resaltadas={resaltadas}
-                permite={permiteDia[dia.fecha] ?? true}
-                cambiar={cambiar}
-                tieneError={
-                  diasConExceso.includes(dia.fecha) ||
-                  celdas.some((celda) => celda.fecha === dia.fecha && celda.error !== null)
-                }
-              />
-            ))}
-          </div>
-
-          {calendario.capacidadMin !== null ? (
-            <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
-              <span>
-                Jornada teórica: <strong className="text-slate-800">{formatearHorasReloj(calendario.capacidadMin)}</strong>
-                {' · '}registradas <strong className="text-slate-800">{formatearHorasReloj(total)}</strong>
-              </span>
-              {desviacion !== null && desviacion !== 0 ? (
-                <span className={desviacion > 0 ? 'font-semibold text-amber-700' : 'font-semibold text-marca-700'}>
-                  {desviacion > 0 ? '+' : '-'}
-                  {formatearHorasReloj(Math.abs(desviacion))} {desviacion > 0 ? 'por encima' : 'por debajo'}
-                </span>
-              ) : (
-                <span className="font-semibold text-acento-800">En jornada</span>
-              )}
-            </div>
-          ) : calendario.porDefecto ? (
-            <p className="rounded-md border border-dashed border-slate-300 px-3 py-2 text-xs text-slate-500">
-              Sin calendario laboral configurado: se aplica lunes a viernes. Administración puede definir festivos y
-              jornada teórica en Calendario.
-            </p>
+              {calendario.capacidadMin === null && calendario.porDefecto ? (
+                <p className="rounded-md border border-dashed border-slate-300 px-3 py-2 text-xs text-slate-500">
+                  Sin calendario laboral configurado: se aplica lunes a viernes. Administración puede definir festivos
+                  y jornada teórica en Calendario.
+                </p>
+              ) : null}
+            </>
           ) : null}
         </>
       )}
@@ -640,7 +786,7 @@ export function RejillaSemanal({
       ) : null}
 
       {editable ? (
-        <div className="hidden flex-wrap items-center justify-between gap-3 lg:flex">
+        <div className="hidden flex-wrap items-center justify-between gap-3 md:flex">
           <div className="flex items-center gap-3 text-sm text-slate-600">
             <EstadoBadge estado={estado} />
             <span>{guardando ? 'Guardando...' : mensaje}</span>
@@ -672,17 +818,12 @@ export function RejillaSemanal({
       ) : (
         <div className="flex items-center gap-3">
           <EstadoBadge estado={estado} />
-          <span className="text-sm text-slate-600">Total de la semana: {formatearHorasReloj(total)}</span>
+          <span className="cifra text-sm text-slate-600">Total de la semana: {formatearHorasReloj(total)}</span>
         </div>
       )}
 
-      <p className="hidden text-xs text-slate-500 lg:block">
-        Puedes escribir 7,5 · 7.5 · 7:30. Pulsa Intro para pasar a la celda siguiente. El parte pasa a{' '}
-        {etiquetaEstado('ENVIADO').toLowerCase()} cuando lo envías y queda bloqueado hasta la revisión.
-      </p>
-
       {editable ? (
-        <div className="no-imprimir fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] shadow-lg backdrop-blur lg:hidden">
+        <div className="no-imprimir fixed inset-x-0 bottom-[calc(3.625rem+env(safe-area-inset-bottom))] z-30 border-t border-slate-200 bg-white/95 px-4 py-3 shadow-lg backdrop-blur md:hidden">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
               <p className={`truncate text-xs ${hayErrores ? 'text-red-600' : 'text-slate-500'}`}>
@@ -692,16 +833,17 @@ export function RejillaSemanal({
                     ? 'Corrige las horas marcadas'
                     : mensaje || (hayCambios ? 'Cambios sin guardar' : 'Total semana')}
               </p>
-              <p className="text-lg font-bold text-marca-900">{formatearHorasReloj(total)}</p>
+              <p className="cifra text-lg font-bold text-marca-900">{formatearHorasReloj(total)}</p>
             </div>
             <div className="flex shrink-0 gap-2">
               <button
                 type="button"
                 onClick={() => void guardar()}
                 disabled={guardando || guardadoBloqueado}
-                className="boton-secundario px-3 py-1.5 text-xs"
+                aria-label="Guardar borrador"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-md border border-slate-300 bg-white text-slate-700 disabled:opacity-50"
               >
-                Guardar
+                <Icono nombre="documento" className="h-5 w-5" />
               </button>
               <button
                 type="button"
@@ -825,7 +967,7 @@ function GrupoFilas({
               </td>
             )
           })}
-          <td className="border-l border-slate-200 px-2 py-1 text-right text-sm font-medium text-slate-700">
+          <td className="cifra border-l border-slate-200 px-2 py-1 text-right text-sm font-medium text-slate-700">
             {totalTarea[tarea.tareaId] ? formatearHorasReloj(totalTarea[tarea.tareaId] ?? 0) : '—'}
           </td>
         </tr>
@@ -845,13 +987,13 @@ function GrupoFilas({
           return (
             <td
               key={dia.fecha}
-              className="border-l border-slate-100 px-2 py-1 text-center text-[11px] font-medium text-marca-800"
+              className="cifra border-l border-slate-100 px-2 py-1 text-center text-[11px] font-medium text-marca-800"
             >
               {minutos > 0 ? formatearHorasReloj(minutos) : '·'}
             </td>
           )
         })}
-        <td className="border-l border-slate-200 px-2 py-1 text-right text-[11px] font-semibold text-marca-800">
+        <td className="cifra border-l border-slate-200 px-2 py-1 text-right text-[11px] font-semibold text-marca-800">
           {grupo.tareas.reduce((suma, tarea) => suma + (totalTarea[tarea.tareaId] ?? 0), 0) > 0
             ? formatearHorasReloj(grupo.tareas.reduce((suma, tarea) => suma + (totalTarea[tarea.tareaId] ?? 0), 0))
             : '—'}
@@ -897,7 +1039,9 @@ function TarjetaDia({
         aria-expanded={abierta}
         className="flex min-h-11 w-full items-center justify-between gap-2 text-left"
       >
-        <h2 className={`text-sm font-semibold capitalize ${dia.esHoy ? 'text-acento-800' : dia.laborable ? 'text-slate-800' : 'text-slate-500'}`}>
+        <h2
+          className={`text-sm font-semibold capitalize ${dia.esHoy ? 'text-acento-800' : dia.laborable ? 'text-slate-800' : 'text-slate-500'}`}
+        >
           {dia.dia} {dia.fecha.slice(8, 10)}/{dia.fecha.slice(5, 7)}
           {dia.esHoy ? <span className="ml-2 text-[11px] font-normal text-acento-700">hoy</span> : null}
           {!dia.laborable ? (
@@ -908,7 +1052,7 @@ function TarjetaDia({
           ) : null}
         </h2>
         <span className="flex items-center gap-2 text-xs text-slate-500">
-          {formatearHorasReloj(totalDia)}
+          <span className="cifra">{formatearHorasReloj(totalDia)}</span>
           <span aria-hidden="true">{abierta ? '▾' : '▸'}</span>
         </span>
       </button>

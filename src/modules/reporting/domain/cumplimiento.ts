@@ -126,3 +126,20 @@ export function ordenarPorPrioridad<T extends { estado: EstadoCumplimiento }>(fi
     return 0
   })
 }
+
+/**
+ * Orden de atención del panel: primero lo que bloquea el cierre y, dentro del
+ * mismo estado, quien lleva más días esperando. Empate estable por nombre para
+ * que dos cargas seguidas pinten el mismo orden.
+ */
+export function ordenarPorAtencion<T extends { estado: EstadoCumplimiento; diasEspera: number; nombre: string }>(
+  filas: readonly T[],
+): T[] {
+  return [...filas].sort((a, b) => {
+    const prioridad = prioridadCumplimiento(a.estado) - prioridadCumplimiento(b.estado)
+    if (prioridad !== 0) return prioridad
+    const espera = b.diasEspera - a.diasEspera
+    if (espera !== 0) return espera
+    return a.nombre.localeCompare(b.nombre, 'es')
+  })
+}

@@ -138,6 +138,25 @@
     @apply rounded-lg border border-marca-100 bg-white shadow-sm;
   }
 
+  /* Cifras alineadas: los totales cambian sin mover el resto de la fila. */
+  .cifra {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+  }
+
+  /* Superficie de cabecera de los paneles de control. Un solo gradiente de
+     marca para que Dashboard y Partes compartan lenguaje visual. */
+  .superficie-hero {
+    @apply rounded-xl border border-marca-700 text-white shadow-sm;
+    background-image: linear-gradient(135deg, var(--color-marca-900), var(--color-marca-700) 60%, var(--color-marca-600));
+  }
+
+  /* Barra fija de acciones en móvil, siempre por encima del contenido y
+     respetando el área segura del iPhone. */
+  .barra-inferior {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
   .etiqueta {
     @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
   }

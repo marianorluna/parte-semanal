@@ -7,8 +7,10 @@ import { registrarOutbox } from '@/modules/integraciones/infrastructure/outbox'
 import type { FechaIso, SemanaIso } from '../domain/fechas'
 import { esEditable } from '../domain/parte'
 import type {
+  FiltrosAprobables,
   FiltrosControl,
   ImputacionGuardada,
+  ParteAprobable,
   ParteCompleto,
   ParteEnLista,
   ParteResumen,
@@ -500,12 +502,41 @@ export const repositorioPartes = {
     }
   },
 
+  async listarEnviadosParaAprobar(filtros: FiltrosAprobables): Promise<ParteAprobable[]> {
+    const condiciones = [
+      eq(parte.empresaId, filtros.empresaId),
+      eq(parte.isoYear, filtros.isoYear),
+      eq(parte.isoWeek, filtros.isoWeek),
+      eq(parte.estado, 'ENVIADO'),
+    ]
+
+    if (filtros.soloTrabajadores) condiciones.push(condicionSoloTrabajadores())
+
+    const porProyecto = filtros.proyectoId
+      ? condicionProyectos([filtros.proyectoId])
+      : condicionProyectos(filtros.proyectosPermitidos)
+    if (porProyecto) condiciones.push(porProyecto)
+
+    const filas = await db
+      .select({
+        parteId: parte.id,
+        version: parte.version,
+        empleadoNombre: empleado.nombre,
+      })
+      .from(parte)
+      .innerJoin(empleado, eq(empleado.id, parte.empleadoId))
+      .where(and(...condiciones))
+      .orderBy(asc(empleado.nombre))
+      .limit(filtros.limite ?? 500)
+
+    return filas
+  },
+
   async contarPendientes(
     empresaId: string,
     proyectosPermitidos: string[] | null,
     opciones: { soloTrabajadores?: boolean } = {},
-  ): Promise<number> {
-    const condiciones = [eq(parte.empresaId, empresaId), eq(parte.estado, 'ENVIADO')]
+  ): Promise<number> {    const condiciones = [eq(parte.empresaId, empresaId), eq(parte.estado, 'ENVIADO')]
     const porProyecto = condicionProyectos(proyectosPermitidos)
     if (porProyecto) condiciones.push(porProyecto)
     if (opciones.soloTrabajadores) condiciones.push(condicionSoloTrabajadores())

@@ -503,6 +503,9 @@ export type ParteDeEmpleado = {
   estado: 'BORRADOR' | 'ENVIADO' | 'APROBADO' | 'RECHAZADO' | 'BLOQUEADO'
   version: number
   totalMinutos: number
+  enviadoAt: Date | null
+  revisadoAt: Date | null
+  motivoRechazo: string | null
 }
 
 export async function partesDeEmpleados(
@@ -519,6 +522,9 @@ export async function partesDeEmpleados(
       estado: parte.estado,
       version: parte.version,
       totalMinutos: parte.totalMinutos,
+      enviadoAt: parte.enviadoAt,
+      revisadoAt: parte.revisadoAt,
+      motivoRechazo: parte.motivoRechazo,
     })
     .from(parte)
     .where(

@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation'
 import type { EstadoParte } from '@/db/schema'
 import { formatearHorasReloj } from '@/modules/partes/domain/horas'
 import { EstadoBadge } from '@/components/EstadoBadge'
+import { Icono } from '@/components/Iconos'
+import { BotonIcono, EnlaceIcono } from '@/components/AccionesIcono'
 import { aprobarLoteAction, aprobarParteAction, rechazarParteAction } from './actions'
 
 export type FilaParte = {
@@ -114,14 +116,22 @@ export function TablaPartes({ filas }: { filas: FilaParte[] }) {
   return (
     <div className="space-y-3">
       {seleccion.size > 0 ? (
-        <div className="tarjeta sticky top-14 z-10 flex flex-wrap items-center gap-3 border-acento-300 bg-acento-50 p-3 lg:top-24">
-          <span className="text-sm font-medium text-marca-900">{seleccion.size} seleccionados</span>
-          <button type="button" onClick={() => void aprobarSeleccion()} disabled={ocupado} className="boton-primario boton-campo text-xs">
-            Aprobar seleccionados
-          </button>
-          <button type="button" onClick={() => setMostrarMotivo((v) => !v)} disabled={ocupado} className="boton-peligro boton-campo text-xs">
-            Rechazar seleccionados
-          </button>
+        <div className="tarjeta sticky top-14 z-10 flex flex-wrap items-center gap-2 border-acento-300 bg-acento-50 p-3 lg:top-24">
+          <span className="text-sm font-semibold text-marca-900">{seleccion.size} seleccionados</span>
+          <BotonIcono
+            icono="check"
+            etiqueta="Aprobar seleccionados"
+            variante="primario"
+            disabled={ocupado}
+            onClick={() => void aprobarSeleccion()}
+          />
+          <BotonIcono
+            icono="alerta"
+            etiqueta="Rechazar seleccionados"
+            variante="peligro"
+            disabled={ocupado}
+            onClick={() => setMostrarMotivo((v) => !v)}
+          />
           {mostrarMotivo ? (
             <div className="flex w-full flex-wrap items-center gap-2">
               <input
@@ -130,7 +140,13 @@ export function TablaPartes({ filas }: { filas: FilaParte[] }) {
                 placeholder="Motivo del rechazo (se guarda en auditoría)"
                 className="campo flex-1 text-sm"
               />
-              <button type="button" onClick={() => void rechazarSeleccion()} disabled={ocupado} className="boton-peligro boton-campo text-xs">
+              <button
+                type="button"
+                onClick={() => void rechazarSeleccion()}
+                disabled={ocupado}
+                className="boton-peligro boton-campo text-xs"
+              >
+                <Icono nombre="alerta" />
                 Confirmar rechazo
               </button>
             </div>
@@ -152,6 +168,7 @@ export function TablaPartes({ filas }: { filas: FilaParte[] }) {
                   checked={todosSeleccionados}
                   onChange={alternarTodos}
                   disabled={seleccionables.length === 0}
+                  className="h-[22px] w-[22px] cursor-pointer accent-marca-700"
                 />
               </th>
               <th className="px-3 py-2">Empleado</th>
@@ -170,6 +187,7 @@ export function TablaPartes({ filas }: { filas: FilaParte[] }) {
                     checked={seleccion.has(fila.id)}
                     onChange={() => alternar(fila.id)}
                     disabled={fila.estado !== 'ENVIADO'}
+                    className="h-[22px] w-[22px] cursor-pointer accent-marca-700"
                   />
                 </td>
                 <td className="px-3 py-2">
@@ -187,13 +205,22 @@ export function TablaPartes({ filas }: { filas: FilaParte[] }) {
                 </td>
                 <td className="px-3 py-2 text-right">
                   <div className="flex justify-end gap-2">
-                    <Link href={`/control/partes/${fila.id}`} className="boton-secundario px-2 py-1 text-xs">
-                      Ver
-                    </Link>
+                    <EnlaceIcono
+                      href={`/control/partes/${fila.id}`}
+                      icono="lupa"
+                      etiqueta="Ver"
+                      variante="secundario"
+                      className="min-h-9 px-2 text-xs"
+                    />
                     {fila.estado === 'ENVIADO' ? (
-                      <button type="button" onClick={() => void aprobarUno(fila)} disabled={ocupado} className="boton-primario px-2 py-1 text-xs">
-                        Aprobar
-                      </button>
+                      <BotonIcono
+                        icono="check"
+                        etiqueta="Aprobar"
+                        variante="primario"
+                        disabled={ocupado}
+                        onClick={() => void aprobarUno(fila)}
+                        className="min-h-9 px-2 text-xs"
+                      />
                     ) : null}
                   </div>
                 </td>
@@ -213,7 +240,7 @@ export function TablaPartes({ filas }: { filas: FilaParte[] }) {
                 checked={seleccion.has(fila.id)}
                 onChange={() => alternar(fila.id)}
                 disabled={fila.estado !== 'ENVIADO'}
-                className="mt-1 h-5 w-5 shrink-0"
+                className="mt-1 h-[22px] w-[22px] shrink-0 cursor-pointer accent-marca-700"
               />
               <div className="min-w-0 flex-1">
                 <Link href={`/control/partes/${fila.id}`} className="block font-medium text-slate-900 hover:text-marca-700">
@@ -235,6 +262,7 @@ export function TablaPartes({ filas }: { filas: FilaParte[] }) {
                     href={`/control/partes/${fila.id}`}
                     className="boton-secundario flex-1 px-2 py-1.5 text-xs"
                   >
+                    <Icono nombre="lupa" className="h-4 w-4" />
                     Ver
                   </Link>
                   {fila.estado === 'ENVIADO' ? (
@@ -244,6 +272,7 @@ export function TablaPartes({ filas }: { filas: FilaParte[] }) {
                       disabled={ocupado}
                       className="boton-primario flex-1 px-2 py-1.5 text-xs"
                     >
+                      <Icono nombre="check" className="h-4 w-4" />
                       Aprobar
                     </button>
                   ) : null}

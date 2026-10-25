@@ -4,10 +4,10 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   aprobarEnviadosAction,
-  aprobarParteAction,
   recordarUsuariosAction,
   type ResultadoAccion,
-} from './actions'
+} from '../acciones-lote'
+import { aprobarParteAction } from './actions'
 
 function mensajeDe(resultado: ResultadoAccion): { texto: string; error: boolean } {
   return resultado.ok

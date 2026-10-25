@@ -6,6 +6,7 @@ import {
   semanaIso,
   semanaIsoDe,
   sumarDias,
+  trasladarFechaASemana,
 } from './fechas'
 
 describe('semanas ISO', () => {
@@ -67,5 +68,21 @@ describe('utilidades de fecha', () => {
     expect(esFinDeSemana('2026-10-25')).toBe(true)
     expect(esFinDeSemana('2026-10-23')).toBe(false)
     expect(esFinDeSemana('2026-10-19')).toBe(false)
+  })
+})
+
+describe('traslado de fechas entre semanas', () => {
+  it('mantiene el día de la semana en una semana normal', () => {
+    expect(trasladarFechaASemana('2026-10-20', semanaIso(2026, 42), semanaIso(2026, 43))).toBe('2026-10-27')
+  })
+
+  it('cruza el cambio de año conservando el día', () => {
+    const origen = semanaIso(2026, 53)
+    const destino = semanaIso(2027, 1)
+    expect(trasladarFechaASemana('2026-12-31', origen, destino)).toBe('2027-01-07')
+  })
+
+  it('traslada el domingo al domingo de la semana destino', () => {
+    expect(trasladarFechaASemana('2026-10-25', semanaIso(2026, 43), semanaIso(2026, 44))).toBe('2026-11-01')
   })
 })
