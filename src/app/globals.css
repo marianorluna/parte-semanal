@@ -1,7 +1,7 @@
 @import 'tailwindcss';
 
 /*
- * Paleta de marca tomada del logotipo de Levitec:
+ * Paleta de marca tomada del logotipo corporativo:
  * - `marca`: petróleo profundo del fondo del logo (#015151 medido en la imagen).
  * - `acento`: verde menta del brillo del logo (#009878 medido en la imagen).
  * Se definen como tokens para que cualquier vista use los mismos nombres.

@@ -40,8 +40,10 @@ export function NavegacionEscritorio({ enlaces }: { enlaces: EnlaceNav[] }) {
             key={enlace.href}
             href={enlace.href}
             aria-current={activo ? 'page' : undefined}
-            className={`flex shrink-0 items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-              activo ? 'bg-marca-800 text-white' : 'text-marca-100 hover:bg-marca-800 hover:text-white'
+            className={`flex shrink-0 items-center gap-1.5 rounded-md px-3 py-2 text-sm transition-colors ${
+              activo
+                ? 'bg-white font-semibold text-marca-900 shadow-sm'
+                : 'font-medium text-marca-100 hover:bg-marca-800 hover:text-white'
             }`}
           >
             {enlace.etiqueta}
@@ -161,8 +163,10 @@ export function MenuNavegacion({ enlaces }: { enlaces: EnlaceNav[] }) {
                 key={enlace.href}
                 href={enlace.href}
                 aria-current={activo ? 'page' : undefined}
-                className={`flex min-h-11 items-center justify-between gap-2 rounded-md px-3 py-2 text-base font-medium transition-colors ${
-                  activo ? 'bg-marca-700 text-white' : 'text-marca-100 hover:bg-marca-800 hover:text-white'
+                className={`flex min-h-11 items-center justify-between gap-2 rounded-md px-3 py-2 text-base transition-colors ${
+                  activo
+                    ? 'bg-white font-semibold text-marca-900 shadow-sm'
+                    : 'font-medium text-marca-100 hover:bg-marca-800 hover:text-white'
                 }`}
               >
                 {enlace.etiqueta}

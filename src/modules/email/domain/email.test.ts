@@ -79,7 +79,7 @@ describe('plantillas', () => {
       nombreDestinatario: 'Dani',
     })
 
-    expect(mensaje.asunto).toBe('[Levitec] Te faltan horas por enviar')
+    expect(mensaje.asunto).toBe('[LeviParte] Te faltan horas por enviar')
     expect(mensaje.texto).toContain('Hola Dani:')
     expect(mensaje.texto).toContain('https://horas.levitec.es/mi-semana?y=2026&w=44')
     expect(mensaje.html).toContain('href="https://horas.levitec.es/mi-semana?y=2026&amp;w=44"')

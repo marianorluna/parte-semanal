@@ -3,6 +3,7 @@ import { REPOSITORIO_GITHUB } from '@/config/enlaces'
 import { env } from '@/config/env'
 import { CUENTAS_ACCESO_RAPIDO } from '@/modules/identidad/application/cuentas-demo'
 import { usuarioActual, rutaInicial } from '@/modules/identidad/application/sesion'
+import { Marca } from '@/components/Marca'
 import { AccesoRapido } from './AccesoRapido'
 import { FormularioLogin } from './FormularioLogin'
 
@@ -18,7 +19,7 @@ export default async function LoginPage() {
     <main className="flex min-h-dvh items-center justify-center bg-marca-900 px-4 py-10">
       <div className="w-full max-w-sm">
         <div className="mb-6 text-center">
-          <p className="text-xs font-semibold tracking-widest text-acento-300 uppercase">Levitec</p>
+          <Marca className="text-xs" />
           <h1 className="mt-1 text-2xl font-bold text-white">Parte semanal de horas</h1>
           <p className="mt-1 text-sm text-marca-200">Accede con tu cuenta de empresa</p>
         </div>

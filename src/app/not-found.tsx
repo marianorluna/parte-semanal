@@ -1,9 +1,10 @@
 import Link from 'next/link'
+import { Marca } from '@/components/Marca'
 
 export default function NotFound() {
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center gap-3 bg-marca-50 px-4 text-center">
-      <p className="text-xs font-semibold tracking-widest text-marca-700 uppercase">Levitec</p>
+      <Marca tono="claro" className="text-xs" />
       <h1 className="text-2xl font-bold text-slate-900">Página no encontrada</h1>
       <p className="max-w-sm text-sm text-slate-600">
         La página o el parte que buscas no existe, se ha borrado o no tienes acceso.

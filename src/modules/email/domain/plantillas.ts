@@ -5,6 +5,7 @@
  */
 
 import type { TipoNotificacion } from '@/db/schema'
+import { MARCA } from '@/config/marca'
 
 /** Subir la versión al cambiar el formato: queda guardada en cada envío. */
 export const VERSION_PLANTILLAS = 1
@@ -30,7 +31,7 @@ const ETIQUETA: Record<TipoNotificacion, string> = {
   RIESGO_PROYECTO: 'Aviso de proyecto',
 }
 
-const PIE = 'Este aviso se genera automáticamente desde el parte semanal de Levitec.'
+const PIE = `Este aviso se genera automáticamente desde ${MARCA.nombre}, el parte semanal de horas.`
 
 export function escaparHtml(texto: string): string {
   return texto
@@ -51,7 +52,7 @@ export function urlAbsoluta(appUrl: string, ruta: string | null): string | null 
 export function construirEmail(entrada: EntradaPlantilla): MensajeEmail {
   const saludo = entrada.nombreDestinatario ? `Hola ${entrada.nombreDestinatario}:` : 'Hola:'
   const enlace = urlAbsoluta(entrada.appUrl, entrada.url)
-  const asunto = `[Levitec] ${entrada.titulo}`
+  const asunto = `[${MARCA.nombre}] ${entrada.titulo}`
 
   const lineas = [saludo, '', entrada.cuerpo]
   if (enlace) lineas.push('', `Abrir en el parte semanal: ${enlace}`)

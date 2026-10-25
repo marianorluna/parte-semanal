@@ -1,4 +1,4 @@
-# Parte semanal de horas - Levitec
+# LeviParte - Parte semanal de horas
 
 Aplicación interna para declarar, controlar y explotar las horas imputadas a proyecto.
 
@@ -100,7 +100,7 @@ curl -H "Authorization: Bearer $API_KEY" \
 
 La respuesta sigue el formato `{ "success": true, "data": ... }` o `{ "success": false, "error": { "code", "message", "fieldErrors?" } }`. Una repetición con la misma `Idempotency-Key` devuelve la respuesta guardada con `Idempotency-Replayed: true`.
 
-Los webhooks se firman con HMAC-SHA256 sobre `timestamp.cuerpo` y se envían con `X-Levitec-Evento`, `X-Levitec-Timestamp` y `X-Levitec-Firma`. Los eventos son `parte.enviado`, `parte.aprobado`, `parte.rechazado` y `parte.reabierto`; se escriben en el outbox dentro de la misma transacción del cambio de estado y se reintentan con backoff exponencial hasta cinco veces.
+Los webhooks se firman con HMAC-SHA256 sobre `timestamp.cuerpo` y se envían con `X-Leviparte-Evento`, `X-Leviparte-Timestamp` y `X-Leviparte-Firma`. Los eventos son `parte.enviado`, `parte.aprobado`, `parte.rechazado` y `parte.reabierto`; se escriben en el outbox dentro de la misma transacción del cambio de estado y se reintentan con backoff exponencial hasta cinco veces.
 
 ## Rutas principales
 

@@ -1,6 +1,7 @@
 import ExcelJS from 'exceljs'
 import { desviacion, horas, nombreSemana } from './comun'
 import type { DatosDashboardExport, DatosPartesExport, LineaParte } from './comun'
+import { MARCA } from '@/config/marca'
 
 const COLOR_MARCA = 'FF005453'
 const COLOR_ACENTO = 'FF009878'
@@ -98,11 +99,11 @@ function agruparPorEmpleado(lineas: LineaParte[]) {
 
 export async function construirExcelPartes(datos: DatosPartesExport): Promise<Buffer> {
   const libro = new ExcelJS.Workbook()
-  libro.creator = 'Parte semanal · Levitec'
+  libro.creator = `${MARCA.nombre} - Parte semanal`
   libro.created = new Date()
 
   const resumen = libro.addWorksheet('Resumen')
-  titulo(resumen, 'Parte semanal · Levitec', `${datos.empresa} · ${datos.semana.isoYear} W${datos.semana.isoWeek}`)
+  titulo(resumen, `${MARCA.nombre} - Parte semanal`, `${datos.empresa} · ${datos.semana.isoYear} W${datos.semana.isoWeek}`)
   resumen.addRow([])
   resumen.addRow(['Semana', `W${datos.semana.isoWeek} de ${datos.semana.isoYear}`])
   resumen.addRow(['Desde', datos.semana.weekStart])
@@ -175,11 +176,11 @@ export async function construirExcelPartes(datos: DatosPartesExport): Promise<Bu
 
 export async function construirExcelDashboard(datos: DatosDashboardExport): Promise<Buffer> {
   const libro = new ExcelJS.Workbook()
-  libro.creator = 'Parte semanal · Levitec'
+  libro.creator = `${MARCA.nombre} - Parte semanal`
   libro.created = new Date()
 
   const resumen = libro.addWorksheet('Resumen')
-  titulo(resumen, 'Panel de control · Levitec', `${datos.empresa} · ${datos.semanaEtiqueta}`)
+  titulo(resumen, `${MARCA.nombre} - Panel de control`, `${datos.empresa} · ${datos.semanaEtiqueta}`)
   resumen.addRow([])
   const filaCabecera = resumen.addRow(['Indicador', 'Valor', 'Detalle'])
   filaCabecera.eachCell((celda) => {

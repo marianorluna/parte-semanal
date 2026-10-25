@@ -20,9 +20,9 @@ export async function enviarWebhookHttp(
       headers: {
         'Content-Type': 'application/json',
         'User-Agent': 'parte-diario-webhooks/1',
-        'X-Levitec-Evento': entrega.evento,
-        'X-Levitec-Timestamp': String(timestamp),
-        'X-Levitec-Firma': firma,
+        'X-Leviparte-Evento': entrega.evento,
+        'X-Leviparte-Timestamp': String(timestamp),
+        'X-Leviparte-Firma': firma,
       },
       body: cuerpo,
       signal: AbortSignal.timeout(TIMEOUT_MS),

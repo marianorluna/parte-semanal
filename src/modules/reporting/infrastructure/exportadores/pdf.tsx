@@ -1,5 +1,6 @@
 import { Document, Page, StyleSheet, Text, View, renderToBuffer } from '@react-pdf/renderer'
 import { formatearFecha, formatearRango, type FechaIso } from '@/modules/partes/domain/fechas'
+import { MARCA as MARCA_APP } from '@/config/marca'
 import { formatearHorasReloj } from '@/modules/partes/domain/horas'
 import {
   desviacion,
@@ -37,6 +38,7 @@ const estilos = StyleSheet.create({
     marginBottom: 12,
   },
   marca: { fontSize: 7, letterSpacing: 2, color: MARCA, fontFamily: 'Helvetica-Bold' },
+  marcaSufijo: { color: ACENTO },
   titulo: { fontSize: 15, fontFamily: 'Helvetica-Bold', marginTop: 2 },
   subtitulo: { fontSize: 8.5, color: SUAVE, marginTop: 2 },
   meta: { fontSize: 7.5, color: SUAVE, textAlign: 'right' },
@@ -139,7 +141,10 @@ function Cabecera({ titulo, subtitulo, derecha }: { titulo: string; subtitulo: s
   return (
     <View style={estilos.cabecera}>
       <View>
-        <Text style={estilos.marca}>LEVITEC</Text>
+        <Text style={estilos.marca}>
+          {MARCA_APP.prefijo}
+          <Text style={estilos.marcaSufijo}>{MARCA_APP.sufijo}</Text>
+        </Text>
         <Text style={estilos.titulo}>{titulo}</Text>
         <Text style={estilos.subtitulo}>{subtitulo}</Text>
       </View>
@@ -182,7 +187,7 @@ export async function construirPdfPartes(datos: DatosPartesExport): Promise<Buff
   ]
 
   return renderToBuffer(
-    <Document title={`Partes ${datos.semana.isoYear} W${datos.semana.isoWeek}`} author="Levitec">
+    <Document title={`Partes ${datos.semana.isoYear} W${datos.semana.isoWeek}`} author={MARCA_APP.nombre}>
       <Page size="A4" orientation="landscape" style={estilos.pagina} wrap>
         <Cabecera
           titulo="Partes de la semana"
@@ -258,7 +263,7 @@ export async function construirPdfDashboard(datos: DatosDashboardExport): Promis
   const maximoTop = Math.max(...datos.top.map((fila) => fila.minutos), 1)
 
   return renderToBuffer(
-    <Document title={`Dashboard ${datos.semanaEtiqueta}`} author="Levitec">
+    <Document title={`Dashboard ${datos.semanaEtiqueta}`} author={MARCA_APP.nombre}>
       <Page size="A4" orientation="landscape" style={estilos.pagina}>
         <Cabecera
           titulo="Panel de control"
@@ -382,7 +387,7 @@ export async function construirPdfParte(datos: DatosParteExport): Promise<Buffer
   }
 
   return renderToBuffer(
-    <Document title={`Parte ${parte.empleadoCodigo} ${parte.isoYear} W${parte.isoWeek}`} author="Levitec">
+    <Document title={`Parte ${parte.empleadoCodigo} ${parte.isoYear} W${parte.isoWeek}`} author={MARCA_APP.nombre}>
       <Page size="A4" style={estilos.pagina}>
         <Text style={estilos.marcaAgua}>{parte.estado.toUpperCase()}</Text>
 

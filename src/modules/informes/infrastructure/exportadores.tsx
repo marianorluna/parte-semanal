@@ -1,6 +1,7 @@
 import ExcelJS from 'exceljs'
 import { Document, Page, StyleSheet, Text, View, renderToBuffer } from '@react-pdf/renderer'
 import type { ColumnaInforme, FormatoInforme, TablaInforme } from '../domain/informe'
+import { MARCA } from '@/config/marca'
 
 const COLOR_MARCA = 'FF005453'
 const COLOR_ACENTO = 'FF009878'
@@ -42,7 +43,7 @@ export function generarCsv(tabla: TablaInforme): Buffer {
 
 export async function generarXlsx(tabla: TablaInforme): Promise<Buffer> {
   const libro = new ExcelJS.Workbook()
-  libro.creator = 'Parte semanal · Levitec'
+  libro.creator = `${MARCA.nombre} - Parte semanal`
   libro.created = new Date()
 
   const hoja = libro.addWorksheet('Informe')
@@ -121,6 +122,7 @@ const estilos = StyleSheet.create({
     marginBottom: 10,
   },
   marca: { fontSize: 6.5, letterSpacing: 2, color: '#005453', fontFamily: 'Helvetica-Bold' },
+  marcaSufijo: { color: '#009878' },
   titulo: { fontSize: 13, fontFamily: 'Helvetica-Bold', marginTop: 2 },
   subtitulo: { fontSize: 7.5, color: '#475569', marginTop: 2 },
   meta: { fontSize: 7, color: '#475569', textAlign: 'right' },
@@ -167,12 +169,15 @@ export async function generarPdf(tabla: TablaInforme): Promise<Buffer> {
   if (paginas.length === 0) paginas.push([])
 
   const documento = (
-    <Document title={tabla.titulo} author="Parte semanal · Levitec">
+    <Document title={tabla.titulo} author={`${MARCA.nombre} - Parte semanal`}>
       {paginas.map((filas, indicePagina) => (
         <Page key={indicePagina} size="A4" orientation="landscape" style={estilos.pagina}>
           <View style={estilos.cabecera}>
             <View>
-              <Text style={estilos.marca}>PARTE SEMANAL · LEVITEC</Text>
+              <Text style={estilos.marca}>
+                {MARCA.prefijo}
+                <Text style={estilos.marcaSufijo}>{MARCA.sufijo}</Text>
+              </Text>
               <Text style={estilos.titulo}>{tabla.titulo}</Text>
               <Text style={estilos.subtitulo}>{tabla.subtitulo}</Text>
             </View>
@@ -229,7 +234,7 @@ export async function generarPdf(tabla: TablaInforme): Promise<Buffer> {
           </View>
 
           <Text style={estilos.pie} fixed>
-            {tabla.filas.length} filas · generado por Parte semanal · Levitec
+            {tabla.filas.length} filas · generado por {MARCA.nombre} - Parte semanal
           </Text>
         </Page>
       ))}

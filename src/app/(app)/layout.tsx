@@ -2,6 +2,7 @@ import { requireUsuario } from '@/modules/identidad/application/sesion'
 import { proyectosPermitidos } from '@/modules/identidad/infrastructure/repositorio-identidad'
 import { depsPartes, repositorioNotificaciones } from '@/composition'
 import { CampanaNotificaciones } from '@/components/CampanaNotificaciones'
+import { Marca } from '@/components/Marca'
 import { NavegacionEscritorio, MenuNavegacion, type EnlaceNav } from './Navegacion'
 import { cerrarSesion } from '@/app/login/actions'
 
@@ -49,7 +50,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <div className="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-2 sm:px-6">
           <div className="flex items-center justify-between gap-3">
             <div className="flex shrink-0 items-baseline gap-2">
-              <span className="text-xs font-semibold tracking-widest text-acento-300 uppercase">Levitec</span>
+              <Marca className="text-xs" />
               <span className="hidden text-sm font-semibold text-white sm:inline">Parte semanal</span>
             </div>
 

@@ -119,7 +119,7 @@ export default async function AdminApiPage() {
           <h2 className="text-sm font-semibold text-slate-900">Webhooks</h2>
           <p className="text-xs text-slate-500">
             Cada entrega se firma con HMAC-SHA256 sobre <code>timestamp.cuerpo</code> en la cabecera
-            <code className="ml-1">X-Levitec-Firma</code>. Los reintentos usan backoff exponencial.
+            <code className="ml-1">X-Leviparte-Firma</code>. Los reintentos usan backoff exponencial.
           </p>
         </div>
 

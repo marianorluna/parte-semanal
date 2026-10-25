@@ -5,6 +5,7 @@ import { formatearFecha, nombreDia } from '@/modules/partes/domain/fechas'
 import { formatearHorasReloj } from '@/modules/partes/domain/horas'
 import { etiquetaEstado } from '@/modules/partes/domain/parte'
 import { obtenerParteDetalle } from '@/modules/partes/infrastructure/consultas-detalle'
+import { Marca } from '@/components/Marca'
 import { BotonImprimir } from './BotonImprimir'
 
 export const dynamic = 'force-dynamic'
@@ -63,7 +64,7 @@ export default async function ImprimirPartePage({ params }: Props) {
         <header className="relative border-b border-slate-300 pb-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <p className="text-xs font-semibold tracking-widest text-marca-800 uppercase">Levitec</p>
+              <Marca tono="claro" className="text-xs" />
               <h1 className="mt-1 text-xl font-bold text-slate-900">Parte semanal de horas</h1>
               <p className="text-sm text-slate-600">
                 Semana {parte.isoWeek} de {parte.isoYear}

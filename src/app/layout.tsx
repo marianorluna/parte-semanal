@@ -1,8 +1,9 @@
 import type { Metadata, Viewport } from 'next'
+import { MARCA } from '@/config/marca'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Parte semanal - Levitec',
+  title: `${MARCA.nombre} - Parte semanal de horas`,
   description: 'Registro y control de horas imputadas a proyecto',
   robots: { index: false, follow: false },
 }
