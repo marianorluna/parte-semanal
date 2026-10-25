@@ -1,19 +1,24 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type KeyboardEvent as KeyboardEventReact,
+} from 'react'
 import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import {
+  contadorVisible,
+  esGrupo,
+  estaActivo,
+  grupoActivo,
+  type ItemNav,
+} from './navegacion-modelo'
 
-export type EnlaceNav = {
-  href: string
-  etiqueta: string
-  contador?: number
-}
-
-function estaActivo(ruta: string, href: string): boolean {
-  return ruta === href || ruta.startsWith(`${href}/`)
-}
+export type { EnlaceNav, GrupoNav, ItemNav } from './navegacion-modelo'
 
 function Contador({ valor }: { valor?: number }) {
   if (!valor || valor <= 0) return null
@@ -24,31 +29,207 @@ function Contador({ valor }: { valor?: number }) {
   )
 }
 
+function Chevron({ abierto }: { abierto: boolean }) {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={`h-3.5 w-3.5 shrink-0 transition-transform ${abierto ? 'rotate-180' : ''}`}
+    >
+      <path d="M6 9l6 6 6-6" />
+    </svg>
+  )
+}
+
+/** Clave estable de cada grupo; no depende del contenido ni del orden de las rutas. */
+function claveGrupo(indice: number): string {
+  return `menu-grupo-${indice}`
+}
+
 /** Barra horizontal de escritorio. Por debajo de `lg` se usa el drawer. */
-export function NavegacionEscritorio({ enlaces }: { enlaces: EnlaceNav[] }) {
+export function NavegacionEscritorio({ items }: { items: ItemNav[] }) {
   const ruta = usePathname()
+  // Guardar la ruta junto a la clave cierra el desplegable al navegar sin efectos.
+  const [abiertoEn, setAbiertoEn] = useState<{ clave: string; ruta: string } | null>(null)
+  const abierto = abiertoEn?.ruta === ruta ? abiertoEn.clave : null
+  const navRef = useRef<HTMLElement>(null)
+  const panelRef = useRef<HTMLDivElement>(null)
+  const disparadoresRef = useRef(new Map<string, HTMLButtonElement>())
+  const focoPendiente = useRef(false)
+
+  const cerrar = useCallback(() => setAbiertoEn(null), [])
+
+  useEffect(() => {
+    if (!abierto) return
+    const claveAbierta = abierto
+
+    function alPulsarFuera(evento: MouseEvent) {
+      if (navRef.current && !navRef.current.contains(evento.target as Node)) cerrar()
+    }
+
+    function alPulsarTecla(evento: KeyboardEvent) {
+      if (evento.key !== 'Escape') return
+      disparadoresRef.current.get(claveAbierta)?.focus()
+      cerrar()
+    }
+
+    document.addEventListener('mousedown', alPulsarFuera)
+    document.addEventListener('keydown', alPulsarTecla)
+    return () => {
+      document.removeEventListener('mousedown', alPulsarFuera)
+      document.removeEventListener('keydown', alPulsarTecla)
+    }
+  }, [abierto, cerrar])
+
+  useEffect(() => {
+    if (!abierto || !focoPendiente.current) return
+    focoPendiente.current = false
+    panelRef.current?.querySelector<HTMLElement>('a[href]')?.focus()
+  }, [abierto])
+
+  /** Navegación de teclado dentro del panel y cierre al salir con Tab. */
+  function alPulsarEnPanel(evento: KeyboardEventReact<HTMLDivElement>) {
+    if (!panelRef.current) return
+    const enfocables = Array.from(panelRef.current.querySelectorAll<HTMLElement>('a[href]'))
+    const primero = enfocables[0]
+    const ultimo = enfocables[enfocables.length - 1]
+    if (!primero || !ultimo) return
+
+    if (evento.key === 'Tab') {
+      if (evento.shiftKey && document.activeElement === primero) cerrar()
+      else if (!evento.shiftKey && document.activeElement === ultimo) cerrar()
+      return
+    }
+
+    const actual = enfocables.indexOf(document.activeElement as HTMLElement)
+
+    if (evento.key === 'ArrowDown') {
+      evento.preventDefault()
+      const siguiente = enfocables[actual + 1] ?? primero
+      siguiente.focus()
+    } else if (evento.key === 'ArrowUp') {
+      evento.preventDefault()
+      const anterior = enfocables[actual - 1] ?? ultimo
+      anterior.focus()
+    } else if (evento.key === 'Home') {
+      evento.preventDefault()
+      primero.focus()
+    } else if (evento.key === 'End') {
+      evento.preventDefault()
+      ultimo.focus()
+    }
+  }
 
   return (
     <nav
+      ref={navRef}
       aria-label="Navegación principal"
-      className="hidden items-center gap-1 overflow-x-auto scroll-oscuro lg:flex"
+      className="hidden items-center gap-1 lg:flex"
     >
-      {enlaces.map((enlace) => {
-        const activo = estaActivo(ruta, enlace.href)
+      {items.map((item, indice) => {
+        if (!esGrupo(item)) {
+          const activo = estaActivo(ruta, item.href)
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              aria-current={activo ? 'page' : undefined}
+              className={`flex shrink-0 items-center gap-1.5 rounded-md px-3 py-2 text-sm transition-colors ${
+                activo
+                  ? 'bg-white font-semibold text-marca-900 shadow-sm'
+                  : 'font-medium text-marca-100 hover:bg-marca-800 hover:text-white'
+              }`}
+            >
+              {item.etiqueta}
+              <Contador valor={item.contador} />
+            </Link>
+          )
+        }
+
+        const clave = claveGrupo(indice)
+        const expandido = abierto === clave
+        const activo = grupoActivo(ruta, item)
+        const panelId = `${clave}-panel`
+
         return (
-          <Link
-            key={enlace.href}
-            href={enlace.href}
-            aria-current={activo ? 'page' : undefined}
-            className={`flex shrink-0 items-center gap-1.5 rounded-md px-3 py-2 text-sm transition-colors ${
-              activo
-                ? 'bg-white font-semibold text-marca-900 shadow-sm'
-                : 'font-medium text-marca-100 hover:bg-marca-800 hover:text-white'
-            }`}
-          >
-            {enlace.etiqueta}
-            <Contador valor={enlace.contador} />
-          </Link>
+          <div key={clave} className="relative">
+            <button
+              type="button"
+              ref={(nodo) => {
+                if (nodo) disparadoresRef.current.set(clave, nodo)
+                else disparadoresRef.current.delete(clave)
+              }}
+              aria-haspopup="menu"
+              aria-expanded={expandido}
+              aria-controls={expandido ? panelId : undefined}
+              aria-current={activo ? 'true' : undefined}
+              onClick={() => setAbiertoEn(expandido ? null : { clave, ruta })}
+              onKeyDown={(evento) => {
+                if (evento.key !== 'ArrowDown') return
+                evento.preventDefault()
+                if (expandido) {
+                  panelRef.current?.querySelector<HTMLElement>('a[href]')?.focus()
+                  return
+                }
+                focoPendiente.current = true
+                setAbiertoEn({ clave, ruta })
+              }}
+              className={`flex cursor-pointer items-center gap-1.5 rounded-md px-3 py-2 text-sm transition-colors ${
+                expandido
+                  ? 'bg-marca-800 font-semibold text-white'
+                  : activo
+                    ? 'bg-marca-800 font-semibold text-white'
+                    : 'font-medium text-marca-100 hover:bg-marca-800 hover:text-white'
+              }`}
+            >
+              {item.etiqueta}
+              <Contador valor={contadorVisible(item)} />
+              <Chevron abierto={expandido} />
+            </button>
+
+            {expandido ? (
+              <div
+                ref={panelRef}
+                id={panelId}
+                role="menu"
+                aria-label={item.etiqueta}
+                onKeyDown={alPulsarEnPanel}
+                className="absolute top-full left-0 z-20 mt-1 min-w-72 rounded-lg border border-marca-700 bg-marca-900 p-2 shadow-xl"
+              >
+                {item.enlaces.map((enlace) => {
+                  const enlaceActivo = estaActivo(ruta, enlace.href)
+                  return (
+                    <Link
+                      key={enlace.href}
+                      href={enlace.href}
+                      role="menuitem"
+                      aria-current={enlaceActivo ? 'page' : undefined}
+                      className={`flex items-start justify-between gap-3 rounded-md px-3 py-2 transition-colors ${
+                        enlaceActivo
+                          ? 'bg-white text-marca-900 shadow-sm'
+                          : 'text-marca-100 hover:bg-marca-800 hover:text-white'
+                      }`}
+                    >
+                      <span className="min-w-0">
+                        <span className="block text-sm font-medium">{enlace.etiqueta}</span>
+                        {enlace.descripcion ? (
+                          <span className="mt-0.5 block text-xs leading-snug opacity-70">
+                            {enlace.descripcion}
+                          </span>
+                        ) : null}
+                      </span>
+                      <Contador valor={enlace.contador} />
+                    </Link>
+                  )
+                })}
+              </div>
+            ) : null}
+          </div>
         )
       })}
     </nav>
@@ -59,9 +240,10 @@ export function NavegacionEscritorio({ enlaces }: { enlaces: EnlaceNav[] }) {
  * Menú lateral para móvil y tablet. Sin dependencias: overlay, bloqueo de
  * scroll, cierre con Escape, foco al abrir y devolución del foco al cerrar.
  */
-export function MenuNavegacion({ enlaces }: { enlaces: EnlaceNav[] }) {
+export function MenuNavegacion({ items }: { items: ItemNav[] }) {
   const ruta = usePathname()
   const [abiertaEn, setAbiertaEn] = useState<string | null>(null)
+  const [gruposAbiertos, setGruposAbiertos] = useState<string[]>([])
   const botonRef = useRef<HTMLButtonElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
 
@@ -72,6 +254,27 @@ export function MenuNavegacion({ enlaces }: { enlaces: EnlaceNav[] }) {
     setAbiertaEn(null)
     botonRef.current?.focus()
   }, [])
+
+  /** Al abrir, despliega solo las secciones que contienen la página actual. */
+  function alternarMenu() {
+    if (abierto) {
+      cerrar()
+      return
+    }
+    const activos = items.flatMap((item, indice) =>
+      esGrupo(item) && grupoActivo(ruta, item) ? [claveGrupo(indice)] : [],
+    )
+    setGruposAbiertos(activos)
+    setAbiertaEn(ruta)
+  }
+
+  function alternarGrupo(clave: string) {
+    setGruposAbiertos((anteriores) =>
+      anteriores.includes(clave)
+        ? anteriores.filter((otra) => otra !== clave)
+        : [...anteriores, clave],
+    )
+  }
 
   useEffect(() => {
     if (!abierto) return
@@ -156,22 +359,85 @@ export function MenuNavegacion({ enlaces }: { enlaces: EnlaceNav[] }) {
           aria-label="Navegación principal"
           className="scroll-oscuro flex flex-1 flex-col gap-1 overflow-y-auto p-3"
         >
-          {enlaces.map((enlace) => {
-            const activo = estaActivo(ruta, enlace.href)
+          {items.map((item, indice) => {
+            if (!esGrupo(item)) {
+              const activo = estaActivo(ruta, item.href)
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  aria-current={activo ? 'page' : undefined}
+                  className={`flex min-h-11 items-center justify-between gap-2 rounded-md px-3 py-2 text-base transition-colors ${
+                    activo
+                      ? 'bg-white font-semibold text-marca-900 shadow-sm'
+                      : 'font-medium text-marca-100 hover:bg-marca-800 hover:text-white'
+                  }`}
+                >
+                  {item.etiqueta}
+                  <Contador valor={item.contador} />
+                </Link>
+              )
+            }
+
+            const clave = claveGrupo(indice)
+            const expandido = gruposAbiertos.includes(clave)
+            const panelId = `${clave}-movil`
+            const activo = grupoActivo(ruta, item)
+
             return (
-              <Link
-                key={enlace.href}
-                href={enlace.href}
-                aria-current={activo ? 'page' : undefined}
-                className={`flex min-h-11 items-center justify-between gap-2 rounded-md px-3 py-2 text-base transition-colors ${
-                  activo
-                    ? 'bg-white font-semibold text-marca-900 shadow-sm'
-                    : 'font-medium text-marca-100 hover:bg-marca-800 hover:text-white'
-                }`}
-              >
-                {enlace.etiqueta}
-                <Contador valor={enlace.contador} />
-              </Link>
+              <div key={clave} className="flex flex-col">
+                <button
+                  type="button"
+                  aria-expanded={expandido}
+                  aria-controls={expandido ? panelId : undefined}
+                  aria-current={activo ? 'true' : undefined}
+                  onClick={() => alternarGrupo(clave)}
+                  className={`flex min-h-11 cursor-pointer items-center justify-between gap-2 rounded-md px-3 py-2 text-base transition-colors ${
+                    activo
+                      ? 'bg-marca-800 font-semibold text-white'
+                      : 'font-medium text-marca-100 hover:bg-marca-800 hover:text-white'
+                  }`}
+                >
+                  <span className="min-w-0">{item.etiqueta}</span>
+                  <span className="flex shrink-0 items-center gap-2">
+                    <Contador valor={contadorVisible(item)} />
+                    <Chevron abierto={expandido} />
+                  </span>
+                </button>
+
+                {expandido ? (
+                  <div
+                    id={panelId}
+                    className="mt-1 ml-3 flex flex-col gap-1 border-l border-marca-700 pl-2"
+                  >
+                    {item.enlaces.map((enlace) => {
+                      const enlaceActivo = estaActivo(ruta, enlace.href)
+                      return (
+                        <Link
+                          key={enlace.href}
+                          href={enlace.href}
+                          aria-current={enlaceActivo ? 'page' : undefined}
+                          className={`flex min-h-11 flex-col justify-center gap-0.5 rounded-md px-3 py-2 transition-colors ${
+                            enlaceActivo
+                              ? 'bg-white font-semibold text-marca-900 shadow-sm'
+                              : 'font-medium text-marca-100 hover:bg-marca-800 hover:text-white'
+                          }`}
+                        >
+                          <span className="flex items-center justify-between gap-2 text-sm">
+                            {enlace.etiqueta}
+                            <Contador valor={enlace.contador} />
+                          </span>
+                          {enlace.descripcion ? (
+                            <span className="text-xs leading-snug opacity-70">
+                              {enlace.descripcion}
+                            </span>
+                          ) : null}
+                        </Link>
+                      )
+                    })}
+                  </div>
+                ) : null}
+              </div>
             )
           })}
         </nav>
@@ -184,7 +450,7 @@ export function MenuNavegacion({ enlaces }: { enlaces: EnlaceNav[] }) {
       <button
         ref={botonRef}
         type="button"
-        onClick={() => setAbiertaEn(abierto ? null : ruta)}
+        onClick={alternarMenu}
         aria-expanded={abierto}
         aria-controls="menu-navegacion"
         aria-label={abierto ? 'Cerrar menú' : 'Abrir menú'}

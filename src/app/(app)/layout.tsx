@@ -3,7 +3,8 @@ import { proyectosPermitidos } from '@/modules/identidad/infrastructure/reposito
 import { depsPartes, repositorioNotificaciones } from '@/composition'
 import { CampanaNotificaciones } from '@/components/CampanaNotificaciones'
 import { Marca } from '@/components/Marca'
-import { NavegacionEscritorio, MenuNavegacion, type EnlaceNav } from './Navegacion'
+import { NavegacionEscritorio, MenuNavegacion } from './Navegacion'
+import type { ItemNav } from './navegacion-modelo'
 import { cerrarSesion } from '@/app/login/actions'
 
 export const dynamic = 'force-dynamic'
@@ -20,28 +21,130 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   const noLeidas = await repositorioNotificaciones.contarNoLeidas(usuario.id)
 
-  const enlaces: EnlaceNav[] = []
-  if (usuario.empleadoId) enlaces.push({ href: '/mi-semana', etiqueta: 'Mi semana' })
-  if (usuario.empleadoId) enlaces.push({ href: '/mis-ausencias', etiqueta: 'Mis ausencias' })
-  if (puedeControlar) {
-    enlaces.push({ href: '/control/dashboard', etiqueta: 'Dashboard' })
-    enlaces.push({ href: '/control/equipo', etiqueta: 'Equipo' })
-    enlaces.push({ href: '/control/partes', etiqueta: 'Partes', contador: pendientes })
-    enlaces.push({ href: '/control/ausencias', etiqueta: 'Ausencias' })
+  const items: ItemNav[] = []
+  if (usuario.empleadoId) items.push({ href: '/mi-semana', etiqueta: 'Mi semana' })
+  if (usuario.empleadoId) items.push({ href: '/mis-ausencias', etiqueta: 'Mis ausencias' })
+
+  // Encargado y trabajador conservan la barra plana: tienen pocas secciones.
+  if (usuario.rol === 'ENCARGADO') {
+    items.push(
+      { href: '/control/dashboard', etiqueta: 'Dashboard' },
+      { href: '/control/equipo', etiqueta: 'Equipo' },
+      { href: '/control/partes', etiqueta: 'Partes', contador: pendientes },
+      { href: '/control/ausencias', etiqueta: 'Ausencias' },
+    )
   }
+
+  // Admin: cuatro grupos para no exponer 16 secciones de golpe.
   if (usuario.rol === 'ADMIN') {
-    enlaces.push({ href: '/admin/usuarios', etiqueta: 'Usuarios' })
-    enlaces.push({ href: '/admin/proyectos', etiqueta: 'Proyectos' })
-    enlaces.push({ href: '/admin/calendario', etiqueta: 'Calendario' })
-    enlaces.push({ href: '/admin/convenios', etiqueta: 'Convenios' })
-    enlaces.push({ href: '/admin/costes', etiqueta: 'Costes' })
-    enlaces.push({ href: '/admin/informes', etiqueta: 'Informes' })
-    enlaces.push({ href: '/admin/cierres', etiqueta: 'Cierres' })
-    enlaces.push({ href: '/admin/emails', etiqueta: 'Correos' })
-    enlaces.push({ href: '/admin/api', etiqueta: 'API' })
-    enlaces.push({ href: '/admin/ausencias', etiqueta: 'Tipos ausencia' })
-    enlaces.push({ href: '/admin/auditoria', etiqueta: 'Auditoría' })
-    enlaces.push({ href: '/admin/demo', etiqueta: 'Demo' })
+    items.push(
+      {
+        etiqueta: 'Control',
+        enlaces: [
+          {
+            href: '/control/dashboard',
+            etiqueta: 'Dashboard',
+            descripcion: 'Horas por proyecto, tendencia y top 5 del periodo',
+          },
+          {
+            href: '/control/partes',
+            etiqueta: 'Partes',
+            descripcion: 'Revisar, aprobar o rechazar los partes de la semana',
+            contador: pendientes,
+          },
+          {
+            href: '/control/equipo',
+            etiqueta: 'Equipo',
+            descripcion: 'Estado de los partes de cada trabajador por semana',
+          },
+          {
+            href: '/control/ausencias',
+            etiqueta: 'Ausencias del equipo',
+            descripcion: 'Vacaciones y bajas registradas por el equipo',
+          },
+          {
+            href: '/control/proyectos',
+            etiqueta: 'Proyectos en riesgo',
+            descripcion: 'Consumo acumulado frente a presupuesto y plazo',
+          },
+        ],
+      },
+      {
+        etiqueta: 'Configuración',
+        enlaces: [
+          {
+            href: '/admin/usuarios',
+            etiqueta: 'Usuarios',
+            descripcion: 'Altas, roles y vínculo con el empleado',
+          },
+          {
+            href: '/admin/proyectos',
+            etiqueta: 'Proyectos y tareas',
+            descripcion: 'Catálogo de proyectos, tareas y asignaciones',
+          },
+          {
+            href: '/admin/calendario',
+            etiqueta: 'Calendario laboral',
+            descripcion: 'Festivos, jornada teórica y excepciones',
+          },
+          {
+            href: '/admin/convenios',
+            etiqueta: 'Convenios y cómputo',
+            descripcion: 'Reglas de cómputo de horas por convenio',
+          },
+          {
+            href: '/admin/ausencias',
+            etiqueta: 'Tipos de ausencia',
+            descripcion: 'Tipos, saldos y su consumo',
+          },
+        ],
+      },
+      {
+        etiqueta: 'Análisis',
+        enlaces: [
+          {
+            href: '/admin/costes',
+            etiqueta: 'Coste y presupuestos',
+            descripcion: 'Tarifas por hora y presupuesto de cada proyecto',
+          },
+          {
+            href: '/admin/informes',
+            etiqueta: 'Informes',
+            descripcion: 'Exportaciones generadas en segundo plano',
+          },
+          {
+            href: '/admin/cierres',
+            etiqueta: 'Cierres de periodo',
+            descripcion: 'Cierre semanal y mensual con reapertura auditada',
+          },
+        ],
+      },
+      {
+        etiqueta: 'Sistema',
+        enlaces: [
+          {
+            href: '/admin/emails',
+            etiqueta: 'Correos de aviso',
+            descripcion: 'Últimos envíos y estado de entrega',
+          },
+          {
+            href: '/admin/api',
+            etiqueta: 'API y webhooks',
+            descripcion: 'Claves de integración y suscripciones firmadas',
+          },
+          {
+            href: '/admin/auditoria',
+            etiqueta: 'Auditoría',
+            descripcion: 'Registro append-only de cambios',
+          },
+          {
+            href: '/admin/demo',
+            etiqueta: 'Datos de demostración',
+            descripcion: 'Cargar o purgar el entorno de demo',
+          },
+        ],
+      },
+    )
   }
 
   return (
@@ -64,7 +167,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                   {usuario.rol === 'ADMIN' ? 'Administrador' : usuario.rol === 'ENCARGADO' ? 'Encargado' : 'Trabajador'}
                 </p>
               </div>
-              <MenuNavegacion enlaces={enlaces} />
+              <MenuNavegacion items={items} />
               <form action={cerrarSesion} className="shrink-0">
                 <button
                   type="submit"
@@ -76,7 +179,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             </div>
           </div>
 
-          <NavegacionEscritorio enlaces={enlaces} />
+          <NavegacionEscritorio items={items} />
         </div>
       </header>
 
